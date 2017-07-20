@@ -1,5 +1,6 @@
 
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 from scipy.stats import rv_discrete
 
@@ -45,7 +46,6 @@ class MultiCarParticleFilter(object):
             self.x_cov,
             size=self.Np).reshape((self.Np, self.Ncars, self.Ndim))
         self.weights = 1.0 / self.Np * np.ones((self.Np,))
-        self.control_probs = np.ones_like(self.weights)
 
     def pdf(self, meas, mean, cov):
         return multivariate_normal.pdf(
@@ -59,10 +59,6 @@ class MultiCarParticleFilter(object):
         for j in xrange(self.Np):
             u_noise = self.sample(np.zeros_like(self.x0), self.x_cov)
             new_particle = self.particles[j] + u * dt
-            self.control_probs[j] = self.pdf(
-                new_particle + u_noise,
-                new_particle,
-                self.x_cov)
             self.particles[j] = new_particle + u_noise
         return self
 
@@ -94,3 +90,74 @@ class MultiCarParticleFilter(object):
         for i in xrange(self.Np):
             pred += (self.weights[i] / total_weight) * self.particles[i]
         return pred
+
+
+if __name__ == "__main__":
+    from tqdm import trange
+
+    Np = 100
+    Ncars = 3
+    Ndim = 2
+    Nmeas = 5
+    dt = 0.1
+    x0 = np.array([[0, 0],
+                [2, 1],
+                [0, 1]], dtype=np.float64)
+    x_cov = np.diag(Ncars * Ndim * [0.01])
+    measurement_cov = np.diag(Ncars * [0.1, 0.1, 0.01, 0.01, 0.01])
+    v_cov = np.diag(Ncars * Ndim * [0.1])
+    v_func = lambda t: np.array([
+        [0.1 * t, 3 * np.cos(t)],
+        [2 * np.cos(0.5 * t), 1 * np.sin(t)],
+        [1.4 * np.cos(t), 3 * np.sin(0.5 * t)]])
+    Nsecs = 10.0
+    Nsteps = int(Nsecs / dt)
+    xs = np.zeros((Nsteps, Ncars, Ndim))
+    xs_pred = np.zeros_like(xs)
+    xs[0] = x0
+    xs_pred[0] = x0
+
+    mcpf = MultiCarParticleFilter(
+        num_particles=Np,
+        num_cars=Ncars,
+        num_state_dim=Ndim,
+        x0=x0,
+        x_cov=x_cov,
+        measurement_cov=measurement_cov,
+        resample_perc=0.3)
+
+    error = np.zeros((Nsteps,))
+
+    for i in trange(1, Nsteps):
+        vs_actual = v_func(i * dt)
+        xs[i] = xs[i - 1] + vs_actual * dt
+        vs = np.random.multivariate_normal(
+            vs_actual.flatten(), v_cov).reshape(Ncars, Ndim)
+
+        means = np.zeros((Ncars, Nmeas))
+        for j in xrange(Ncars):
+            means[j, :2] = xs[i, j, :2]
+            for k in xrange(Ncars):
+                if j != k:
+                    means[j, k + 2] = np.linalg.norm(xs[i, j] - xs[i, k])
+        meas = np.random.multivariate_normal(
+            means.flatten(), measurement_cov).reshape(Ncars, Nmeas)
+        mcpf.predict(vs, dt)
+        mcpf.update_weights(meas)
+        xs_pred[i] = mcpf.predicted_state()
+        mcpf.resample()
+        for j in xrange(Ncars):
+            error[i] += np.linalg.norm(xs_pred[i, j] - xs[i, j]) / Ncars
+
+    fig, axes = plt.subplots(2, 1, figsize=(10, 8))
+
+    axes[0].plot(xs[:, 0, 0], xs[:, 0, 1], "r")
+    axes[0].plot(xs[:, 1, 0], xs[:, 1, 1], "g")
+    axes[0].plot(xs[:, 2, 0], xs[:, 2, 1], "b")
+
+    axes[0].scatter(xs_pred[:, 0, 0], xs_pred[:, 0, 1], c="r")
+    axes[0].scatter(xs_pred[:, 1, 0], xs_pred[:, 1, 1], c="g")
+    axes[0].scatter(xs_pred[:, 2, 0], xs_pred[:, 2, 1], c="b")
+
+    axes[1].plot(error)
+    plt.show()
