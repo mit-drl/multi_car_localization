@@ -48,8 +48,8 @@ class Consensus(object):
 
 		self.pose_sub = rospy.Subscriber("/consensus_uwb", CarState, self.pose_sub_cb)
 
-	def pose_sub_cb(self, meas):
-
+	def pose_sub_cb(self, state):
+		
 
 	def publish_pose(self):
 		ps = PoseStamped()
