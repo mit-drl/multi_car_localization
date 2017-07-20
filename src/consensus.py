@@ -23,23 +23,9 @@ Measurements:
      gps_x1, gps_y1, uwb_10, uwb_11, uwb_12;
      gps_x2, gps_y2, uwb_20, uwb_21, uwb_22]
 
-z0 = [gps_x0; gps_y0; uwb_01; uwb_02]
-x0 = [x0, y0]
-x = [x0, y0, x1, y1, x2, y2]
-z0 = H0*x
-H0 = [1 0 0 0 0 0
-	  0 1 0 0 0 0
-	  (x0 - x1)^2 + (y0 - y1)^2
-	  (x0 - x2)^2 + (y0 - y2)^2]
-# ^ assuming that the uwb ranges are squared
-lineared H0 = [1  0  0  0  0  0
-			   0  1  0  0  0  0
-			   2  2 -2 -2  0  0
-			   2  2  0  0 -2 -2]
-
 """
 
-class Car(object):
+class Consensus(object):
 
 	def __init__(self):
 		self.rate = rospy.Rate(rospy.get_param("frequency", 50))
@@ -59,6 +45,11 @@ class Car(object):
 		self.ranges = {}
 		self.xi_prior = 0
 		self.Ji_prior = 0
+
+		self.pose_sub = rospy.Subscriber("/consensus_uwb", CarState, self.pose_sub_cb)
+
+	def pose_sub_cb(self, meas):
+
 
 	def publish_pose(self):
 		ps = PoseStamped()
