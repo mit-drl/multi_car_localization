@@ -39,7 +39,7 @@ lineared H0 = [1  0  0  0  0  0
 
 """
 
-class Car(object):
+class FakeCar(object):
 
 	def __init__(self):
 		self.rate = rospy.Rate(rospy.get_param("frequency", 50))
@@ -48,11 +48,11 @@ class Car(object):
 		self.frame_id = rospy.get_param("~frame_id", "car0")
 		self.uwb_id = rospy.get_param("~uwb_id", "uwb0")
 
-		self.x = 5*random.random()
-		self.y = 5*random.random()
+		self.x = 10*random.random()
+		self.y = 10*random.random()
 		self.gps = None
 
-		self.pose_pub = rospy.Publisher("/range_position", PoseStamped)
+		self.pose_pub = rospy.Publisher("/range_position", PoseStamped, queue_size=1)
 		self.range_sub = rospy.Subscriber("/" + self.uwb_id + "/measurements", CarMeasurement, self.range_sub_cb)
 		self.gps_sub = rospy.Subscriber("gps", PoseStamped, self.gps_sub_cb)
 
@@ -85,6 +85,6 @@ if __name__ == "__main__":
 	uwb_id = rospy.get_param("~uwb_id", "uwb0")
 	frame_id = rospy.get_param("~frame_id", "car0")
 
-	rospy.init_node("car", anonymous=False)
-	car = Car()
+	rospy.init_node("fakecar", anonymous=False)
+	car = FakeCar()
 	car.run()

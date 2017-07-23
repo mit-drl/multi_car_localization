@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
 import rospy
+import numpy as np
 from sensor_msgs.msg import Range
 from geometry_msgs.msg import PoseStamped
 from multi_car_localization.msg import CarMeasurement
+from multi_car_localization.msg import CarState
 import math
 import random
 
@@ -29,27 +31,20 @@ class Consensus(object):
 
 	def __init__(self):
 		self.rate = rospy.Rate(rospy.get_param("frequency", 50))
-		self.gps_cov = rospy.get_param("~gps_cov", 0.1)
-		self.uwb_cov = rospy.get_param("~uwb_cov", 0.01)
-		self.frame_id = rospy.get_param("~frame_id", "car0")
-		self.uwb_id = rospy.get_param("~uwb_id", "uwb0")
 
-		self.x = 5*random.random()
-		self.y = 5*random.random()
-		self.gps = None
+		self.epsilon = rospy.get_param("epsilon", 0.01)
+		self.K = rospy.get_param("consensus_iterations", 20)
+		self.N = rospy.get_param("number_of_nodes", 3)
 
-		self.pose_pub = rospy.Publisher("/range_position", PoseStamped)
-		self.range_sub = rospy.Subscriber("/" + self.uwb_id + "/measurements", CarMeasurement, self.range_sub_cb)
-		self.gps_sub = rospy.Subscriber("gps", PoseStamped, self.gps_sub_cb)
+		self.pose_pub = rospy.Publisher("/range_position", CarState)
 
-		self.ranges = {}
-		self.xi_prior = 0
-		self.Ji_prior = 0
+		self.xi_prior = None
+		self.Ji_prior = None
 
 		self.pose_sub = rospy.Subscriber("/consensus_uwb", CarState, self.pose_sub_cb)
 
 	def pose_sub_cb(self, state):
-		
+		frame_id = state.header.frame_id
 
 	def publish_pose(self):
 		ps = PoseStamped()
