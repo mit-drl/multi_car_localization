@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+
+	<arg name="car_frame_id" default="car0" />
+	<arg name="uwb_id" default="uwb0" />
+
+    <node pkg="multi_car_localization" type="car.py" name="$(arg car_frame_id)" output="screen">
+    	<param name="uwb_id" value="$(arg uwb_id)"/>
+		<param name="frame_id" value="$(arg car_frame_id)"/>
+    </node>
+
+</launch>

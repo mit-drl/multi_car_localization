@@ -3,54 +3,62 @@
 import math
 import rospy
 from sensor_msgs.msg import Range
-from std_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped
+from multi_car_localization.msg import CarMeasurement
+import random
+import copy
 
-DIST_TOPIC = "range"
-
-NODE_NAME = "fake_uwb"
-n = roshelper.Node(NODE_NAME, anonymous=False)
-
-@n.entry_point()
-class FakeUWB:
+class FakeUWB(object):
 
     def __init__(self):
-        self.rate = rospy.Rate(rospy.get_param("frequency", 100))
-        self.ID = rospy.get_param("frame_id", "car1")
+        self.rate = rospy.Rate(rospy.get_param("~frequency", 50))
+        self.frame_id = rospy.get_param("~frame_id", "car0")
+        self.ID = int(self.frame_id[-1])
+
         self.ranges = {}
         self.rng = Range()
         self.rng.field_of_view = math.pi * 0.1
         self.rng.min_range = 0
         self.rng.max_range = 300
-        self.pub = None
-        self.offset = 0.0
-        self.position = (0, 0)
 
-    @n.subscriber('range_position', PoseStamped)
-    def range_sub(self, ps):
-        ID = ps.header.frame_id
-        x = ps.position.x
-        y = ps.position.y
-        self1.ranges[ID] = copy(self.rng)
-        self.ranges[ID].range = math.sqrt(x**2 + y**2)
-        self.ranges[ID].header.frame_id = ID
-        self.range_pub(self.ranges[ID])
+        self.sigma = 0.01
+        self.num_cars = 3
+        self.uwbs_per_car = 1
 
-    @n.publisher('range', Range)
-    def range_pub(self, rng):
-        return rng
+        self.position = None
 
-    @n.subscriber('car_pose', PoseStamped)
-    def car_sub(self, ps):
-        if self.ID == ps.header.frame_id:
-            self.position = (ps.position.x, ps.position.y)
-            self.car_pub(ps)
+        self.range_pub = rospy.Publisher('~measurements', CarMeasurement, queue_size=1)
+        self.range_sub = rospy.Subscriber('/range_position', PoseStamped, self.range_sub_cb)
 
-    @n.publisher('range_position', PoseStamped)
-    def car_pub(self, ps):
-        return ps
+    def range_sub_cb(self, ps):
+        frame_id = ps.header.frame_id
+        ID = int(frame_id[-1])
+
+        if self.position == None and ID == self.ID:
+            self.position = (ps.pose.position.x, ps.pose.position.y)
+        elif self.position is not None and ID != self.ID:
+            x = ps.pose.position.x
+            y = ps.pose.position.y
+            dist = math.sqrt((self.position[0] - x)**2 + (self.position[1] - y)**2)
+            self.ranges[ID] = copy.deepcopy(self.rng)
+            self.ranges[ID].range = dist + random.gauss(0.0, self.sigma)
+            self.ranges[ID].header.frame_id = frame_id        
+
+    def publish_range(self):
+        if len(self.ranges) == 0:
+            return
+        meas = CarMeasurement()
+        for ID in self.ranges:
+            rng = self.ranges[ID]
+            meas.ranges.append(rng)
+        self.range_pub.publish(meas)
 
     def run(self):
-        pass
+        while not rospy.is_shutdown():
+            self.publish_range()
+            self.rate.sleep()
 
 if __name__ == "__main__":
-    n.start(spin=True)
+    rospy.init_node("uwb", anonymous=False)
+    uwb = FakeUWB()
+    uwb.run()

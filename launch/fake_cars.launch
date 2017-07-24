@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+
+    <include file="$(find multi_car_localization)/launch/fake_car.launch">
+    	<arg name="car_frame_id" value="car0" />
+    	<arg name="uwb_id" value="fake_uwb0" />
+    </include>
+
+    <include file="$(find multi_car_localization)/launch/fake_car.launch">
+        <arg name="car_frame_id" value="car1" />
+        <arg name="uwb_id" value="fake_uwb1" />
+    </include>
+
+    <include file="$(find multi_car_localization)/launch/fake_car.launch">
+        <arg name="car_frame_id" value="car2" />
+        <arg name="uwb_id" value="fake_uwb2" />
+    </include>
+
+</launch>
