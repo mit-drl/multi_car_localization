@@ -1,5 +1,6 @@
 
 import numpy as np
+import math
 import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 from scipy.stats import rv_discrete
@@ -55,11 +56,42 @@ class MultiCarParticleFilter(object):
         return np.random.multivariate_normal(
             mean.flatten(), cov).reshape(mean.shape)
 
-    def predict(self, u, dt):
-        for j in xrange(self.Np):
+    def state_transition(self, x, u, dt):
+        # u is a tuple (u_d, u_a)
+
+        k1 = self.state_transition_model(x, u)
+        k2 = self.state_transition_model(x + 0.5*dt*k1, u)
+        k3 = self.state_transition_model(x + 0.5*dt*k2, u)
+        k4 = self.state_transition_model(x + k3*dt, u)
+        new_x = x + (dt/6)*(k1 + 2*k2 + 2*k3 + k4)
+        return new_x
+
+    def state_transition_model(self, state, u):
+        u_d, u_a, = u
+        x, y, phi, delta, v = state
+        dx = v*math.cos(phi)
+        dy = v*math.sin(phi)
+        dphi = (v/3)*math.tan(delta)
+        ddelta = u_d
+        dv = u_a
+        return np.array([dx, dy, dphi, ddelta, dv])
+
+    # x0 = np.array([0, 0, math.pi/2.0, 0.2, 1.0])
+    # dt = 3.0
+    # u = (-0.2, 1.0)
+    # steps = 100
+    #
+    # states = erk4(f, x0, dt, u, steps)
+
+    def update_particles(self, u, dt):
+        for i in xrange(self.Np):
             u_noise = self.sample(np.zeros_like(self.x0), self.x_cov)
-            new_particle = self.particles[j] + u * dt
-            self.particles[j] = new_particle + u_noise
+            # new_particle = self.particles[j] + u * dt
+            # self.particles[j] = new_particle + u_noise
+            for j in xrange(self.Ncars):
+                self.particles[i, j] = self.state_transition(
+                    self.particles[i, j], u[j], dt)
+            self.particles[i] += u_noise
         return self
 
     def update_weights(self, meas):
@@ -70,7 +102,7 @@ class MultiCarParticleFilter(object):
                 for l in xrange(self.Ncars):
                     if k != l:
                         p_means[k, l + 2] = np.linalg.norm(
-                            self.particles[j, k] - self.particles[j, l])
+                            self.particles[j, k, :2] - self.particles[j, l, :2])
             self.weights[j] *= self.pdf(meas, p_means, self.meas_cov)
         self.weights += 1e-32
         self.weights /= self.weights.sum()
@@ -97,19 +129,21 @@ if __name__ == "__main__":
 
     Np = 100
     Ncars = 3
-    Ndim = 2
+    Ndim = 5
     Nmeas = 5
     dt = 0.1
-    x0 = np.array([[0, 0],
-                [2, 1],
-                [0, 1]], dtype=np.float64)
-    x_cov = np.diag(Ncars * Ndim * [0.01])
+    x0 = np.array([[0, 0, 0, 0, 0],
+                   [2, 1, 0, 0, 0],
+                   [0, 1, 0, 0, 0]],
+                  dtype=np.float64)
+    x_cov = np.diag(Ncars * [0.01, 0.01, 0, 0, 0])
     measurement_cov = np.diag(Ncars * [0.1, 0.1, 0.01, 0.01, 0.01])
-    v_cov = np.diag(Ncars * Ndim * [0.1])
-    v_func = lambda t: np.array([
-        [0.1 * t, 3 * np.cos(t)],
-        [2 * np.cos(0.5 * t), 1 * np.sin(t)],
-        [1.4 * np.cos(t), 3 * np.sin(0.5 * t)]])
+    actual_meas_cov = measurement_cov
+    # actual_meas_cov = np.diag(Ncars * [0.001, 0.001, 0.01, 0.01, 0.01])
+    u_func = lambda t: np.array([
+        [0, 0.1],
+        [-0.01, 0.1],
+        [0.03, 0.1]])
     Nsecs = 10.0
     Nsteps = int(Nsecs / dt)
     xs = np.zeros((Nsteps, Ncars, Ndim))
@@ -129,10 +163,9 @@ if __name__ == "__main__":
     error = np.zeros((Nsteps,))
 
     for i in trange(1, Nsteps):
-        vs_actual = v_func(i * dt)
-        xs[i] = xs[i - 1] + vs_actual * dt
-        vs = np.random.multivariate_normal(
-            vs_actual.flatten(), v_cov).reshape(Ncars, Ndim)
+        us = u_func(i * dt)
+        for j in xrange(Ncars):
+            xs[i, j] = mcpf.state_transition(xs[i - 1, j], us[j], dt)
 
         means = np.zeros((Ncars, Nmeas))
         for j in xrange(Ncars):
@@ -141,8 +174,8 @@ if __name__ == "__main__":
                 if j != k:
                     means[j, k + 2] = np.linalg.norm(xs[i, j] - xs[i, k])
         meas = np.random.multivariate_normal(
-            means.flatten(), measurement_cov).reshape(Ncars, Nmeas)
-        mcpf.predict(vs, dt)
+            means.flatten(), actual_meas_cov).reshape(Ncars, Nmeas)
+        mcpf.update_particles(us, dt)
         mcpf.update_weights(meas)
         xs_pred[i] = mcpf.predicted_state()
         mcpf.resample()
