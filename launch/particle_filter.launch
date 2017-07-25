@@ -2,10 +2,10 @@
 <launch>
 
 	<arg name="car_frame_id" default="car0" />
-	<arg name="num_particles" default="100" />
+	<arg name="num_particles" default="300" />
 	<arg name="num_cars" default="3" />
-	<arg name="num_state_dim" default="2" />
-	<arg name="num_measurements" default="5" />
+	<arg name="num_state_dim" default="5" />
+	<arg name="num_measurements" default="6" />
 	<arg name="resample_perc" default="0.3" />
 
     <node pkg="tf" type="static_transform_publisher" name="$(arg car_frame_id)"
