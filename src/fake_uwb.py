@@ -6,7 +6,7 @@ from sensor_msgs.msg import Range
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped
 from multi_car_localization.msg import CarMeasurement
-from multi_car_localization.msg import UWBMsg
+from multi_car_localization.msg import CarState
 import random
 import copy
 
@@ -31,17 +31,17 @@ class FakeUWB(object):
         self.position = None
 
         self.range_pub = rospy.Publisher('uwb', Range, queue_size=1)
-        self.range_sub = rospy.Subscriber('/range_position', PoseStamped, self.range_sub_cb)
+        self.range_sub = rospy.Subscriber('/range_position', CarState, self.range_sub_cb)
 
-    def range_sub_cb(self, ps):
-        frame_id = ps.header.frame_id
+    def range_sub_cb(self, cs):
+        frame_id = cs.header.frame_id
         ID = int(frame_id[-1])
 
         if self.position == None and ID == self.ID:
-            self.position = (ps.pose.position.x, ps.pose.position.y)
+            self.position = (cs.state[0], cs.state[1])
         elif self.position is not None and ID != self.ID:
-            x = ps.pose.position.x
-            y = ps.pose.position.y
+            x = cs.state[0]
+            y = cs.state[1]
             dist = math.sqrt((self.position[0] - x)**2 + (self.position[1] - y)**2)
             self.ranges[ID] = copy.deepcopy(self.rng)
             self.ranges[ID].range = dist + random.gauss(0.0, self.sigma)

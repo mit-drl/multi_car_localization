@@ -6,7 +6,7 @@ from sensor_msgs.msg import Range
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped
 from multi_car_localization.msg import CarMeasurement
-from multi_car_localization.msg import UWBMsg
+from multi_car_localization.msg import CarState
 import random
 import copy
 
@@ -24,16 +24,16 @@ class FakeGPS(object):
         self.ps.header.frame_id = self.frame_id
 
         self.gps_pub = rospy.Publisher('gps', PoseStamped, queue_size=1)
-        self.range_sub = rospy.Subscriber('/range_position', PoseStamped, self.range_sub_cb)
+        self.range_sub = rospy.Subscriber('/range_position', CarState, self.range_sub_cb)
 
-    def range_sub_cb(self, ps):
-        frame_id = ps.header.frame_id
+    def range_sub_cb(self, cs):
+        frame_id = cs.header.frame_id
         ID = int(frame_id[-1])
 
         if ID == self.ID:
             self.ps.header.stamp = rospy.Time.now()
-            self.ps.pose.position.x = ps.pose.position.x + random.gauss(0.0, self.sigma)
-            self.ps.pose.position.y = ps.pose.position.y + random.gauss(0.0, self.sigma)
+            self.ps.pose.position.x = cs.state[0] + random.gauss(0.0, self.sigma)
+            self.ps.pose.position.y = cs.state[1] + random.gauss(0.0, self.sigma)
 
     def publish_range(self):
         if self.ps.pose.position.x == 0:

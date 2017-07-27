@@ -1,4 +1,4 @@
 Header header
 geometry_msgs/PoseStamped[] gps
 std_msgs/String[] ids
-UWBMsg[] ranges
+sensor_msgs/Range[] ranges

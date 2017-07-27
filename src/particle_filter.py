@@ -28,8 +28,8 @@ class MultiCarParticleFilter(object):
     def __init__(self, **kwargs):
         self.Np = kwargs.get("num_particles", 100)
         self.Ncars = kwargs.get("num_cars", 3)
-        self.Ndim = kwargs.get("num_state_dim", 5)
-        self.Nmeas = kwargs.get("num_measurements", 5)
+        self.Ndim = kwargs.get("num_state_dim", 4)
+        self.Nmeas = kwargs.get("num_measurements", 6)
         self.x0 = kwargs.get(
             "x0", np.array([[0, 0], [2, 1], [0, 1]]))
         self.x_cov = kwargs.get(
@@ -75,13 +75,12 @@ class MultiCarParticleFilter(object):
 
     def state_transition_model(self, state, u):
         u_d, u_a, = u
-        x, y, phi, delta, v = state
+        x, y, phi, v = state
         dx = v*math.cos(phi)
         dy = v*math.sin(phi)
-        dphi = (v/3.)*math.tan(delta)
-        ddelta = u_d
+        dphi = (v/3.)*math.tan(u_d)
         dv = u_a
-        return np.array([dx, dy, dphi, ddelta, dv])
+        return np.array([dx, dy, dphi, dv])
 
     # x0 = np.array([0, 0, math.pi/2.0, 0.2, 1.0])
     # dt = 3.0
@@ -108,7 +107,7 @@ class MultiCarParticleFilter(object):
                 # 'gps measurements'
                 p_means[k, :2] = self.particles[j, k, :2]
                 # p_means[k, 6] = self.particles[j, k, 4]
-                p_means[k, 5] = self.particles[j, k, 3]
+                #p_means[k, 5] = self.particles[j, k, 3]
                 # 'uwb measurements'
                 for l in xrange(self.Ncars):
                     if k != l:
@@ -140,21 +139,21 @@ if __name__ == "__main__":
 
     Np = 150
     Ncars = 3
-    Ndim = 5
+    Ndim = 4
     Nmeas = 6
     dt = 0.1
-    x0 = np.array([[0, 0, math.pi, 0, 0],
-                   [2, 1, math.pi/3., 0, 0],
-                   [0, 1, 0, 0, 0]],
+    x0 = np.array([[0, 0, math.pi, 0],
+                   [2, 1, math.pi/3., 0],
+                   [0, 1, 0, 0]],
                   dtype=np.float64)
-    init_cov = np.diag(Ncars * [0.6, 0.6, 0.1, 0.00, 0.00])
-    x_cov = np.diag(Ncars * [0.1, 0.1, 0.1, 0.04, 0.0])
+    init_cov = np.diag(Ncars * [0.6, 0.6, 0.1, 0.00])
+    x_cov = np.diag(Ncars * [0.1, 0.1, 0.1, 0.0])
     measurement_cov = np.diag(Ncars * [0.6, 0.6, 0.1, 0.1, 0.1, 0.01])
     actual_meas_cov = measurement_cov
     # actual_meas_cov = np.diag(Ncars * [0.001, 0.001, 0.01, 0.01, 0.01])
     u_func = lambda t: np.array([
-        [0, 0.1],
-        [-0.01, 0.1],
+        [0.1, 0.1],
+        [-0.2, 0.1],
         [0.03, 0.1]])
     Nsecs = 20.0
     Nsteps = int(Nsecs / dt)
@@ -192,6 +191,7 @@ if __name__ == "__main__":
             # velocity
             #means[j, 6] = xs[i, j, 4]
             # steering angle
+            # velocity
             means[j, 5] = xs[i, j, 3]
             # uwbs
             for k in xrange(Ncars):
@@ -218,9 +218,9 @@ if __name__ == "__main__":
     axes[0].scatter(xs_pred[:, 1, 0], xs_pred[:, 1, 1], c="g")
     axes[0].scatter(xs_pred[:, 2, 0], xs_pred[:, 2, 1], c="b")
 
-    axes[0].scatter(measurements[:, 0, 0], measurements[:, 0, 1], c="r", marker="*")
-    axes[0].scatter(measurements[:, 1, 0], measurements[:, 1, 1], c="g", marker="*")
-    axes[0].scatter(measurements[:, 2, 0], measurements[:, 2, 1], c="b", marker="*")
+    # axes[0].scatter(measurements[:, 0, 0], measurements[:, 0, 1], c="r", marker="*")
+    # axes[0].scatter(measurements[:, 1, 0], measurements[:, 1, 1], c="g", marker="*")
+    # axes[0].scatter(measurements[:, 2, 0], measurements[:, 2, 1], c="b", marker="*")
 
     axes[1].plot(error)
     plt.show()

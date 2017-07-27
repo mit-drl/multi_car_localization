@@ -49,23 +49,22 @@ class Measurements(object):
 
 	def meas_cb(self, meas):
 		for uwb in meas.ranges:
-			receiver = gps.car_id
-			transmitter = gps.other_id
-			self.uwb_ranges[(transmitter, reciever)] = uwb
+			receiver = meas.header.frame_id
+			transmitter = uwb.header.frame_id
+			self.uwb_ranges[(transmitter, receiver)] = uwb
 		for gps in meas.gps:
 			ID = gps.header.frame_id
 			self.gps_data[ID] = gps
 
 
 	def publish_measurements(self):
-		self.meas = CarMeasurement()
 		self.meas.header.stamp = rospy.Time.now()
-		if len(self.uwb_ranges) == self.num_cars - 1:
-			if len(self.gps_data) == (self.num_cars - 1)*self.num_uwbs:
-				for ID in self.uwb_ranges:
-					self.meas.ranges.append(self.uwb_ranges[ID])
-				for ID in self.gps_data:
-					self.meas.gps.append(self.gps_data[ID])
+		#if len(self.uwb_ranges) == self.num_cars - 1:
+			#if len(self.gps_data) == (self.num_cars - 1)*self.num_uwbs:
+		for ID in self.uwb_ranges:
+			self.meas.ranges.append(self.uwb_ranges[ID])
+		for ID in self.gps_data:
+			self.meas.gps.append(self.gps_data[ID])
 		self.meas_pub.publish(self.meas)
 		for pub in self.outside_pub:
 			pub.publish(self.meas)

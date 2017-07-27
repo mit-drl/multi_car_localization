@@ -10,11 +10,6 @@ d
 
  	<include file="$(find multi_car_localization)/launch/particle_filter.launch">
  		<arg name="car_frame_id" value="$(arg car_frame_id)" />
-		<arg name="num_particles" value="300" />
-		<arg name="num_cars" value="3" />
-		<arg name="num_state_dim" value="5" />
-		<arg name="num_measurements" value="6" />
-		<arg name="resample_perc" value="0.3" />
 	</include>
 
 	<include file="$(find multi_car_localization)/launch/measurements.launch">
