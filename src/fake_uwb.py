@@ -3,8 +3,10 @@
 import math
 import rospy
 from sensor_msgs.msg import Range
+from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped
 from multi_car_localization.msg import CarMeasurement
+from multi_car_localization.msg import UWBMsg
 import random
 import copy
 
@@ -17,6 +19,7 @@ class FakeUWB(object):
 
         self.ranges = {}
         self.rng = Range()
+        self.rng.header = Header()
         self.rng.field_of_view = math.pi * 0.1
         self.rng.min_range = 0
         self.rng.max_range = 300
@@ -27,7 +30,7 @@ class FakeUWB(object):
 
         self.position = None
 
-        self.range_pub = rospy.Publisher('~measurements', CarMeasurement, queue_size=1)
+        self.range_pub = rospy.Publisher('uwb', Range, queue_size=1)
         self.range_sub = rospy.Subscriber('/range_position', PoseStamped, self.range_sub_cb)
 
     def range_sub_cb(self, ps):
@@ -47,11 +50,9 @@ class FakeUWB(object):
     def publish_range(self):
         if len(self.ranges) == 0:
             return
-        meas = CarMeasurement()
         for ID in self.ranges:
-            rng = self.ranges[ID]
-            meas.ranges.append(rng)
-        self.range_pub.publish(meas)
+            self.ranges[ID].header.stamp = rospy.Time.now()
+            self.range_pub.publish(self.ranges[ID])
 
     def run(self):
         while not rospy.is_shutdown():

@@ -53,12 +53,10 @@ class FakeCar(object):
 		self.gps = None
 
 		self.pose_pub = rospy.Publisher("/range_position", PoseStamped, queue_size=1)
-		self.range_sub = rospy.Subscriber("/" + self.uwb_id + "/measurements", CarMeasurement, self.range_sub_cb)
-		self.gps_sub = rospy.Subscriber("gps", PoseStamped, self.gps_sub_cb)
+		#self.range_sub = rospy.Subscriber("/" + self.uwb_id + "/measurements", CarMeasurement, self.range_sub_cb)
+		#self.gps_sub = rospy.Subscriber("gps", PoseStamped, self.gps_sub_cb)
 
 		self.ranges = {}
-		self.xi_prior = 0
-		self.Ji_prior = 0
 
 	def publish_pose(self):
 		ps = PoseStamped()
@@ -82,7 +80,6 @@ class FakeCar(object):
 			self.rate.sleep()
 
 if __name__ == "__main__":
-	uwb_id = rospy.get_param("~uwb_id", "uwb0")
 	frame_id = rospy.get_param("~frame_id", "car0")
 
 	rospy.init_node("fakecar", anonymous=False)

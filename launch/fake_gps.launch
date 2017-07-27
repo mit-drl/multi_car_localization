@@ -3,7 +3,7 @@
 
 	<arg name="car_frame_id" default="car0" />
 
-    <node pkg="multi_car_localization" type="fake_uwb.py" name="uwb" output="screen">
+    <node pkg="multi_car_localization" type="fake_gps.py" name="gps" output="screen">
 		<param name="frame_id" value="$(arg car_frame_id)" />
     </node>
 </launch>

@@ -1,4 +1,4 @@
 Header header
-sensor_msgs/NavSatFix fix
+geometry_msgs/PoseStamped[] gps
 std_msgs/String[] ids
-sensor_msgs/Range[] ranges
+UWBMsg[] ranges

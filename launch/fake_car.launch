@@ -2,16 +2,33 @@
 <launch>
 
 	<arg name="car_frame_id" default="car0" />
-	<arg name="uwb_id" default="fake_uwb0" />
-
+d
     <node pkg="multi_car_localization" type="fake_car.py" name="$(arg car_frame_id)" output="screen">
-    	<param name="uwb_id" value="$(arg uwb_id)"/>
 		<param name="frame_id" value="$(arg car_frame_id)"/>
     </node>
 
+
+ 	<include file="$(find multi_car_localization)/launch/particle_filter.launch">
+ 		<arg name="car_frame_id" value="$(arg car_frame_id)" />
+		<arg name="num_particles" value="300" />
+		<arg name="num_cars" value="3" />
+		<arg name="num_state_dim" value="5" />
+		<arg name="num_measurements" value="6" />
+		<arg name="resample_perc" value="0.3" />
+	</include>
+
+	<include file="$(find multi_car_localization)/launch/measurements.launch">
+		<arg name="car_frame_id" value="$(arg car_frame_id)" />
+		<arg name="num_uwbs" value="3" />
+		<arg name="num_cars" value="3" />
+	</include>
+
     <include file="$(find multi_car_localization)/launch/fake_uwb.launch">
     	<arg name="car_frame_id" value="$(arg car_frame_id)" />
-    	<arg name="uwb_id" value="$(arg uwb_id)" />
+    </include>
+
+    <include file="$(find multi_car_localization)/launch/fake_gps.launch">
+    	<arg name="car_frame_id" value="$(arg car_frame_id)" />
     </include>
 
 </launch>

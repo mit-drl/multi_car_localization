@@ -198,6 +198,6 @@ class ParticleFilter(object):
             self.rate.sleep()
 
 if __name__ == "__main__":
-    rospy.init_node("filter0", anonymous=False)
+    rospy.init_node("filter", anonymous=False)
     pf = ParticleFilter()
     pf.run()

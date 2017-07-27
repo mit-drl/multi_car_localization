@@ -52,6 +52,7 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    CarMeasurement.msg
    CarState.msg
+   UWBMsg.msg
  )
 
 ## Generate services in the 'srv' folder

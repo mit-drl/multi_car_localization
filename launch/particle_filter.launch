@@ -8,10 +8,10 @@
 	<arg name="num_measurements" default="6" />
 	<arg name="resample_perc" default="0.3" />
 
-    <node pkg="tf" type="static_transform_publisher" name="$(arg car_frame_id)"
+    <node pkg="tf" type="static_transform_publisher" name="$(arg car_frame_id)_tf"
         args="0 0 0 0 0 1 map $(arg car_frame_id) 100" />
 
-    <node pkg="multi_car_localization" type="measurement_filter.py" name="$(arg car_frame_id)filter" output="screen">
+    <node pkg="multi_car_localization" type="measurement_filter.py" name="filter" output="screen">
     	<param name="num_particles" value="$(arg num_particles)"/>
 		<param name="num_cars" value="$(arg num_cars)"/>
 		<param name="num_state_dim" value="$(arg num_state_dim)"/>
