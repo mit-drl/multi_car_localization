@@ -5,11 +5,13 @@ import rospy
 from sensor_msgs.msg import Range
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseArray
 from multi_car_localization.msg import CarMeasurement
 from multi_car_localization.msg import CarState
 from nav_msgs.msg import Path
 from std_msgs.msg import Header
 import tf
+from tf.transformations import quaternion_from_euler
 
 
 import particle_filter as pf
@@ -23,19 +25,22 @@ class ParticleFilter(object):
     def __init__(self):
         self.Np = rospy.get_param("~num_particles", 100)
         self.Ncars = rospy.get_param("~num_cars", 3)
-        self.Ndim = rospy.get_param("~num_state_dim", 4)
+        self.Ndim = rospy.get_param("~num_state_dim", 3)
         self.Nmeas = rospy.get_param("~num_measurements", 5)
         self.Ninputs = rospy.get_param("~num_inputs", 2)
         self.frame_id = rospy.get_param("~car_frame_id", "car0")
 
         self.x0 = None
+
+        self.init_cov = np.diag(self.Ncars * [1.0, 1.0, 0.0])
+        self.x_cov = np.diag(self.Ncars * [0.1, 0.1, 0.1])
+        self.meas_cov = np.diag(self.Ncars * [0.6, 0.6, 0.15, 0.15, 0.15])
         
-        self.init_cov = np.diag(self.Ncars * [0.6, 0.6, 0.0, 0.00])
-        self.x_cov = np.diag(self.Ncars * [0.05, 0.05, 0.05, 0.01])
-        self.meas_cov = np.diag(self.Ncars * [0.6, 0.6, 0.1, 0.1, 0.1])
+        # self.init_cov = np.diag(self.Ncars * [1.0, 1.0, 0.05, 0.00])
+        # self.x_cov = np.diag(self.Ncars * [0.05, 0.05, 0.05, 0.01])
+        # self.meas_cov = np.diag(self.Ncars * [0.6, 0.6, 0.15, 0.15, 0.15])
         #self.control_cov = np.diag(self.Ncars * self.Ndim * [0.1])
         self.resample_perc = rospy.get_param("~resample_perc", 0.3)
-        self.particles = None
 
         self.prev_time = rospy.get_time()
         self.current_time = 0
@@ -60,7 +65,7 @@ class ParticleFilter(object):
         self.meas_sub = rospy.Subscriber("measurements", CarMeasurement, self.meas_cb)
 
         self.pos_sub = rospy.Subscriber("/range_position", CarState, self.pos_cb)
-
+        self.pa_pub = rospy.Publisher("particles", PoseArray, queue_size=1)
 
         self.gps = {}
         self.uwbs = {}
@@ -76,12 +81,6 @@ class ParticleFilter(object):
                 p = self.true_pos[ID]
                 idx = int(ID[-1])
                 self.x0[idx] = np.array(p, dtype=np.float64)
-
-            self.particles = np.random.multivariate_normal(
-                self.x0.flatten(),
-                self.x_cov,
-                size=self.Np).reshape((self.Np, self.Ncars, self.Ndim))
-            self.weights = 1.0 / self.Np * np.ones((self.Np,))
 
             self.xs[0] = self.x0
             self.xs_pred[0] = self.x0
@@ -136,13 +135,16 @@ class ParticleFilter(object):
                 start_time = rospy.get_time()
                 i = 1
             else:
+                #rospy.loginfo(self.frame_id)
                 self.current_time = rospy.get_time()
                 dt = self.current_time - self.prev_time
+                print "%s %f" % (self.frame_id, dt)
                 
                 us = self.u#self.u_func(self.current_time - start_time)
                 self.xs = np.append(self.xs, [np.zeros((self.Ncars,self.Ndim))], axis=0)
                 for j in xrange(self.Ncars):
                     self.xs[i, j] = self.true_pos["car" + str(j)]
+                    #print "%s %d fakeeeeeeee yaw: %f" % (self.frame_id, j, self.xs[i, j, 2]*180.0/math.pi)
                     #self.filter.state_transition(self.xs[i - 1, j], us[j], dt)
 
 
@@ -180,7 +182,23 @@ class ParticleFilter(object):
                             means[j, k + 2] = np.linalg.norm(self.xs[i, j, :2] - self.xs[i, k, :2])
                 meas = np.random.multivariate_normal(
                     means.flatten(), self.meas_cov).reshape(self.Ncars, self.Nmeas)
-                self.filter.update_particles(us, dt)
+                particles = self.filter.update_particles(us, dt)
+                pa = PoseArray()
+                pa.header = Header()
+                pa.header.stamp = rospy.Time.now()
+                pa.header.frame_id = "map"
+                for p in particles:
+                    for j in range(self.Ncars):
+                        pose = Pose()
+                        quat = quaternion_from_euler(0, 0, p[j, 2])
+                        pose.position.x = p[j, 0]
+                        pose.position.y = p[j, 1]
+                        pose.orientation.x = quat[0]
+                        pose.orientation.y = quat[1]
+                        pose.orientation.z = quat[2]
+                        pose.orientation.w = quat[3]
+                        pa.poses.append(pose)
+                self.pa_pub.publish(pa)
                 self.filter.update_weights(meas)
                 self.xs_pred = np.append(self.xs_pred, [self.filter.predicted_state()], axis=0)
 
@@ -209,8 +227,18 @@ class ParticleFilter(object):
                 pose22.pose.orientation.w = 1
                 path22.poses.append(pose22)
 
-                # if len(path00.poses) > 20:
-                #     path00.poses.pop(0)
+                if len(path0.poses) > 30:
+                    path0.poses.pop(0)
+                if len(path00.poses) > 30:
+                    path00.poses.pop(0)
+                if len(path1.poses) > 30:
+                    path1.poses.pop(0)
+                if len(path11.poses) > 30:
+                    path11.poses.pop(0)
+                if len(path2.poses) > 30:
+                    path2.poses.pop(0)
+                if len(path22.poses) > 30:
+                    path22.poses.pop(0)
 
                 self.filter.resample()
                 self.error = np.append(self.error, np.zeros((1,)))

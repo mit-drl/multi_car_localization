@@ -2,7 +2,7 @@
 <launch>
 
 	<arg name="car_frame_id" default="car0" />
-d
+
     <node pkg="multi_car_localization" type="fake_car.py" name="$(arg car_frame_id)" output="screen">
 		<param name="frame_id" value="$(arg car_frame_id)"/>
     </node>

@@ -4,6 +4,7 @@ import math
 import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 from scipy.stats import rv_discrete
+import rospy
 
 """
 State:
@@ -30,17 +31,13 @@ class MultiCarParticleFilter(object):
         self.Ncars = kwargs.get("num_cars", 3)
         self.Ndim = kwargs.get("num_state_dim", 4)
         self.Nmeas = kwargs.get("num_measurements", 6)
-        self.x0 = kwargs.get(
-            "x0", np.array([[0, 0], [2, 1], [0, 1]]))
+        self.x0 = kwargs.get("x0")
         self.x_cov = kwargs.get(
-            "x_cov",
-            np.diag(self.Ncars * self.Ndim * [0.1]))
+            "x_cov")
         self.init_cov = kwargs.get(
-            "init_cov",
-            np.diag(self.Ncars * self.Ndim * [0.1]))
+            "init_cov")
         self.meas_cov = kwargs.get(
-            "measurement_cov",
-            np.diag(self.Ncars * [0.1, 0.1, 0.01, 0.01, 0.01]))
+            "measurement_cov")
         self.control_cov = kwargs.get(
             "control_cov",
             np.diag(self.Ncars * self.Ndim * [0.1]))
@@ -50,6 +47,7 @@ class MultiCarParticleFilter(object):
             self.init_cov,
             size=self.Np).reshape((self.Np, self.Ncars, self.Ndim))
         self.weights = 1.0 / self.Np * np.ones((self.Np,))
+        self.prev_angle_estimate = 0
 
     def pdf(self, meas, mean, cov):
         return multivariate_normal.pdf(
@@ -61,46 +59,42 @@ class MultiCarParticleFilter(object):
 
     def state_transition(self, x, u, dt):
         # u is a tuple (u_d, u_a)
-        steps = 1.
-        h = dt/steps
+        steps = max(int(dt / 0.1),1.0)
+        h = dt/float(steps)
         x = [x]
         for i in range(0, int(steps)):
             k1 = self.state_transition_model(x[i], u)
             k2 = self.state_transition_model(x[i] + 0.5*h*k1, u)
             k3 = self.state_transition_model(x[i] + 0.5*h*k2, u)
             k4 = self.state_transition_model(x[i] + k3*h, u)
-            new_x = x[i] + (h/6)*(k1 + 2*k2 + 2*k3 + k4)
+            new_x = x[i] + (h/6.0)*(k1 + 2.0*k2 + 2.0*k3 + k4)
             x.append(new_x)
         return x[-1]
 
     def state_transition_model(self, state, u):
-        u_d, u_a, = u
-        x, y, phi, v = state
-        dx = v*math.cos(phi)
-        dy = v*math.sin(phi)
-        dphi = (v/3.)*math.tan(u_d)
-        dv = u_a
-        return np.array([dx, dy, dphi, dv])
-
-    # x0 = np.array([0, 0, math.pi/2.0, 0.2, 1.0])
-    # dt = 3.0
-    # u = (-0.2, 1.0)
-    # steps = 100
-    #
-    # states = erk4(f, x0, dt, u, steps)
+        u_d, u_v, = u
+        x, y, phi = state
+        dx = u_v*math.cos(phi)
+        dy = u_v*math.sin(phi)
+        dphi = (u_v/3.)*math.tan(u_d)
+        return np.array([dx, dy, dphi])
 
     def update_particles(self, u, dt):
         for i in xrange(self.Np):
             u_noise = self.sample(np.zeros_like(self.x0), self.x_cov)
+            new_particle = np.zeros_like(self.x0)
             # new_particle = self.particles[j] + u * dt
             # self.particles[j] = new_particle + u_noise
             for j in xrange(self.Ncars):
-                self.particles[i, j] = self.state_transition(
+                new_particle[j] = self.state_transition(
                     self.particles[i, j], u[j], dt)
-            self.particles[i] += u_noise
-        return self
+            self.weights[i] *= self.pdf(new_particle + u_noise, new_particle, self.x_cov)
+            self.particles[i] = new_particle + u_noise
+        return self.particles
 
     def update_weights(self, meas):
+        #print self.weights
+        avg_error = np.zeros_like(meas)
         for j in xrange(self.Np):
             p_means = np.zeros((self.Ncars, self.Nmeas))
             for k in xrange(self.Ncars):
@@ -113,48 +107,75 @@ class MultiCarParticleFilter(object):
                     if k != l:
                         p_means[k, l + 2] = np.linalg.norm(
                             self.particles[j, k, :2] - self.particles[j, l, :2])
+            avg_error += np.abs(meas - p_means) / self.Np
             self.weights[j] *= self.pdf(meas, p_means, self.meas_cov)
-        self.weights += 1e-32
-        self.weights /= self.weights.sum()
+            #print self.pdf(meas, p_means, self.meas_cov)
+        #self.weights += 1e-32
+        #print avg_error
+        #print self.weights.sum()
+        if self.weights.sum() != 0:
+            self.weights /= self.weights.sum()
+            # print "after: %f" % (self.weights.sum())
+        else:
+            self.weights = np.ones_like(self.weights) / self.Np
+            self.resample()
         return self
 
     def resample(self):
         n_eff = 1.0 / (self.weights ** 2).sum()
+        #rospy.loginfo("n_eff: %f" % (n_eff))
         if n_eff < self.resample_perc * self.Np:
             distr = rv_discrete(values=(np.arange(self.Np), self.weights))
             self.particles = self.particles[distr.rvs(size=self.Np)]
-            self.weights = 1.0 / self.Np * np.ones_like(self.weights)
+            for i, _ in enumerate(self.particles):
+                u_noise = self.sample(np.zeros_like(self.x0), self.x_cov)
+                self.particles[i] += u_noise
+            self.weights = np.ones_like(self.weights) / self.Np
         return self
 
     def predicted_state(self):
         pred = np.zeros_like(self.x0)
-        total_weight = self.weights.sum()
-        for i in xrange(self.Np):
+        a_x = 0
+        a_y = 0
+        #total_weight = self.weights.sum()
+        top_weight_indices = np.flipud(np.argsort(self.weights))[:10]
+        total_weight = self.weights[top_weight_indices].sum()
+        pred[2] -= self.prev_angle_estimate
+        for i in top_weight_indices:
+            #a_x += (self.weights[i] / total_weight)*np.cos(self.particles[i, 2])
+            #a_y += (self.weights[i] / total_weight)*np.sin(self.particles[i, 2])
             pred += (self.weights[i] / total_weight) * self.particles[i]
+        #angle = np.arctan2(a_y, a_x)
+        #pred[2] = angle
+        pred[2] += self.prev_angle_estimate
+        self.prev_angle_estimate = pred[2]
         return pred
-
 
 if __name__ == "__main__":
     from tqdm import trange
 
     Np = 150
     Ncars = 3
-    Ndim = 4
-    Nmeas = 6
+    Ndim = 3
+    Nmeas = 5
     dt = 0.1
-    x0 = np.array([[0, 0, math.pi, 0],
-                   [2, 1, math.pi/3., 0],
-                   [0, 1, 0, 0]],
+    x0 = np.array([[0, 0, math.pi],
+                   [2, 1, math.pi/3.],
+                   [0, 1, 0]],
                   dtype=np.float64)
-    init_cov = np.diag(Ncars * [0.6, 0.6, 0.1, 0.00])
-    x_cov = np.diag(Ncars * [0.1, 0.1, 0.1, 0.0])
-    measurement_cov = np.diag(Ncars * [0.6, 0.6, 0.1, 0.1, 0.1, 0.01])
+    init_cov = np.diag(Ncars * [0.6, 0.6, 0.1])
+    x_cov = np.diag(Ncars * [0.1, 0.1, 0.1])
+    measurement_cov = np.diag(Ncars * [0.6, 0.6, 0.1, 0.1, 0.1])
     actual_meas_cov = measurement_cov
     # actual_meas_cov = np.diag(Ncars * [0.001, 0.001, 0.01, 0.01, 0.01])
     u_func = lambda t: np.array([
-        [0.1, 0.1],
-        [-0.2, 0.1],
-        [0.03, 0.1]])
+        [0.5, 7.0],
+        [-0.2, 7.0],
+        [0.03, 7.0]])
+    # u_func = lambda t: np.array([
+    #     [0.5, 0.0],
+    #     [-0.2, 0.0],
+    #     [0.03, 0.0]])
     Nsecs = 20.0
     Nsteps = int(Nsecs / dt)
     xs = np.zeros((Nsteps, Ncars, Ndim))
@@ -192,7 +213,7 @@ if __name__ == "__main__":
             #means[j, 6] = xs[i, j, 4]
             # steering angle
             # velocity
-            means[j, 5] = xs[i, j, 3]
+            #means[j, 5] = xs[i, j, 3]
             # uwbs
             for k in xrange(Ncars):
                 if j != k:

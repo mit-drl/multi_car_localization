@@ -50,9 +50,9 @@ class FakeCar(object):
 		self.frame_id = rospy.get_param("~frame_id", "car0")
 
 		self.x0 = np.array([10*random.random(), 10*random.random(),
-							math.pi*(random.random()-0.5), 0.5], dtype=np.float64)
+							math.pi*(random.random()-0.5)], dtype=np.float64)
 		self.x = self.x0
-		self.u = (0.1*(random.random()-0.5), 0.05)
+		self.u = (0.1*(random.random()-0.5), 7.0)
 		self.current_time = rospy.get_time()
 		self.prev_time = self.current_time
 
@@ -70,9 +70,9 @@ class FakeCar(object):
 
 		self.state.state = self.x.tolist()
 
+		#print "%s real yaw: %f" % (self.frame_id, self.x[2]*180./math.pi)
+
 		self.pose_pub.publish(self.state)
-		dt = self.current_time - self.prev_time
-		self.x = self.state_transition(self.x, self.u, dt)
 
 
 	def state_transition(self, x, u, dt):
@@ -85,23 +85,24 @@ class FakeCar(object):
 			k2 = self.state_transition_model(x[i] + 0.5*h*k1, u)
 			k3 = self.state_transition_model(x[i] + 0.5*h*k2, u)
 			k4 = self.state_transition_model(x[i] + k3*h, u)
-			new_x = x[i] + (h/6)*(k1 + 2*k2 + 2*k3 + k4)
+			new_x = x[i] + (h/6.0)*(k1 + 2.0*k2 + 2.0*k3 + k4)
 			x.append(new_x)
 		return x[-1]
 
 	def state_transition_model(self, state, u):
-		u_d, u_a, = u
-		x, y, phi, v = state
-		dx = v*math.cos(phi)
-		dy = v*math.sin(phi)
-		dphi = (v/3.)*math.tan(u_d)
-		dv = u_a
-		return np.array([dx, dy, dphi, dv])
+		u_d, u_v, = u
+		x, y, phi = state
+		dx = u_v*math.cos(phi)
+		dy = u_v*math.sin(phi)
+		dphi = (u_v/3.)*math.tan(u_d)
+		return np.array([dx, dy, dphi])
 
 	def run(self):
 		while not rospy.is_shutdown():
 			self.current_time = rospy.get_time()
 			self.publish_pose()
+			dt = self.current_time - self.prev_time
+			self.x = self.state_transition(self.x, self.u, dt)
 			self.prev_time = self.current_time
 			self.rate.sleep()
 
