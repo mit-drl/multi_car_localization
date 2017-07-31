@@ -61,6 +61,7 @@ class FakeCar(object):
 		self.state.header.frame_id = self.frame_id
 		self.state.u.append(self.u[0])
 		self.state.u.append(self.u[1])
+		self.state.car_id = 0
 
 		self.pose_pub = rospy.Publisher("/range_position", CarState, queue_size=1)
 
