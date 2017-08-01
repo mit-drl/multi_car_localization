@@ -26,4 +26,7 @@
     	<arg name="car_frame_id" value="$(arg car_frame_id)" />
     </include>
 
+    <node pkg="multi_car_localization" type="consensus_test.py" name="consensus_test" output="screen">
+    </node>
+
 </launch>

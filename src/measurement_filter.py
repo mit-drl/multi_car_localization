@@ -44,6 +44,7 @@ class ParticleFilter(object):
         self.u = np.zeros((self.Ncars, self.Ninputs))
         self.xs = np.zeros((self.Ncars, self.Ndim))
         self.xs_pred = np.zeros_like(self.xs)
+        self.xs_pred_prev = np.zeros_like(self.xs)
 
         self.filter = None
 
@@ -108,6 +109,7 @@ class ParticleFilter(object):
     def run(self):
         true_paths = []
         filter_paths = []
+        infs = [None] * self.Ncars
         for j in range(self.Ncars):
             true_path = Path()
             true_path.header = Header()
@@ -127,7 +129,7 @@ class ParticleFilter(object):
             else:
                 self.current_time = rospy.get_time()
                 dt = self.current_time - self.prev_time
-                print "%s %f" % (self.frame_id, dt)
+                # print "%s %f" % (self.frame_id, dt)
                 
                 us = self.u
                 
@@ -145,6 +147,10 @@ class ParticleFilter(object):
                 meas = np.random.multivariate_normal(
                     means.flatten(), self.meas_cov).reshape(self.Ncars, self.Nmeas)
                 particles = self.filter.update_particles(us, dt)
+
+                for j in range(self.Ncars):
+                    infs[j] = np.linalg.inv(np.cov(particles[:, j, :].T))
+
                 pa = PoseArray()
                 pa.header = Header()
                 pa.header.stamp = rospy.Time.now()
@@ -199,7 +205,10 @@ class ParticleFilter(object):
                     state.header.frame_id = self.frame_id
                     state.header.stamp = rospy.Time.now()
                     state.car_id = j
+                    state.inf = infs[j].flatten().tolist()
                     self.state_pub.publish(state)
+
+                self.xs_pred_prev = self.xs_pred
 
                 self.filter.resample()
                 #self.error = np.append(self.error, np.zeros((1,)))
