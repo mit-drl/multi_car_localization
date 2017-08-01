@@ -3,6 +3,5 @@ Header header
 float32[] u
 float32[] state
 # car_id contains id of the car whose state this is
-int8 car_id
-# the 3x3 information matrix (inverse of the covariance matrix)
+# the 9x9 information matrix (inverse of the covariance matrix)
 float32[] inf

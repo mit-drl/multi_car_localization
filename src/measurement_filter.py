@@ -8,6 +8,7 @@ from geometry_msgs.msg import Pose
 from geometry_msgs.msg import PoseArray
 from multi_car_localization.msg import CarMeasurement
 from multi_car_localization.msg import CarState
+from multi_car_localization.msg import CombinedState
 from nav_msgs.msg import Path
 from std_msgs.msg import Header
 import tf
@@ -19,6 +20,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 from scipy.stats import rv_discrete
+from scipy.linalg import block_diag
 
 class ParticleFilter(object):
 
@@ -58,6 +60,7 @@ class ParticleFilter(object):
         self.pa_pub = rospy.Publisher("particles", PoseArray, queue_size=1)
 
         self.state_pub = rospy.Publisher("states", CarState, queue_size=1)
+        self.combined_pub = rospy.Publisher("combined", CombinedState, queue_size=1)
 
         self.gps = {}
         self.uwbs = {}
@@ -109,7 +112,7 @@ class ParticleFilter(object):
     def run(self):
         true_paths = []
         filter_paths = []
-        infs = [None] * self.Ncars
+        infs = np.zeros((self.Ncars, self.Ndim, self.Ndim))
         for j in range(self.Ncars):
             true_path = Path()
             true_path.header = Header()
@@ -207,6 +210,14 @@ class ParticleFilter(object):
                     state.car_id = j
                     state.inf = infs[j].flatten().tolist()
                     self.state_pub.publish(state)
+
+                    combined = CombinedState()
+                    combined.u = us.flatten().tolist() 
+                    combined.state = self.xs_pred.flatten().tolist()
+                    combined.header = state.header
+                    combined.inf = block_diag(*infs).flatten().tolist()
+                    self.combined_pub.publish(combined)
+
 
                 self.xs_pred_prev = self.xs_pred
 

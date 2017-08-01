@@ -28,7 +28,7 @@ zi
 Bi
 
 # STEP 2:
-# computer consensus proposals
+# compute consensus proposals
 Vi = Ji_prior/N + Hi.T*Bi*Hi
 vi = Ji_prior*xi_prior/N + Hi.T*Bi*zi
 

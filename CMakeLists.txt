@@ -52,6 +52,8 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    CarMeasurement.msg
    CarState.msg
+   CombinedState.msg
+   ConsensusMsg.msg
    UWBMsg.msg
  )
 
