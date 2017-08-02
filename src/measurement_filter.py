@@ -132,7 +132,10 @@ class ParticleFilter(object):
             else:
                 self.current_time = rospy.get_time()
                 dt = self.current_time - self.prev_time
-                # print "%s %f" % (self.frame_id, dt)
+                self.prev_time = self.current_time
+                if dt > 1.0:
+                    print "PF DT BIG: %f" % (dt)
+                #print "%s %f" % (self.frame_id, dt)
                 
                 us = self.u
                 
@@ -175,29 +178,31 @@ class ParticleFilter(object):
 
                 for j in range(self.Ncars):
 
-                    pose = PoseStamped()
-                    pose.header = Header()
-                    pose.header.stamp = rospy.Time(0)
-                    pose.header.frame_id = "car" + str(j)
-                    pose.pose.position.x = self.xs[j, 0]
-                    pose.pose.position.y = self.xs[j, 1]
-                    pose.pose.orientation.w = 1                    
-                    true_paths[j].poses.append(pose)
-                    if len(true_paths[j].poses) > 30:
-                        true_paths[j].poses.pop(0)
+                    if self.frame_id == "car0":
+                        pose = PoseStamped()
+                        pose.header = Header()
+                        pose.header.stamp = rospy.Time(0)
+                        pose.header.frame_id = "car" + str(j)
+                        pose.pose.position.x = self.xs[j, 0]
+                        pose.pose.position.y = self.xs[j, 1]
+                        pose.pose.orientation.w = 1                    
+                        true_paths[j].poses.append(pose)
+                        if len(true_paths[j].poses) > 30:
+                            true_paths[j].poses.pop(0)
 
-                    self.true_path_pub[j].publish(true_paths[j])
+                        self.true_path_pub[j].publish(true_paths[j])
 
-                    pose2 = PoseStamped()
-                    pose2.header = Header()
-                    pose2.header.stamp = rospy.Time(0)
-                    pose2.header.frame_id = "car" + str(j)
-                    pose2.pose.position.x = self.xs_pred[j, 0]
-                    pose2.pose.position.y = self.xs_pred[j, 1]
-                    pose2.pose.orientation.w = 1
-                    filter_paths[j].poses.append(pose2)
-                    if len(filter_paths[j].poses) > 30:
-                        filter_paths[j].poses.pop(0)
+                    if j == 0:
+                        pose2 = PoseStamped()
+                        pose2.header = Header()
+                        pose2.header.stamp = rospy.Time(0)
+                        pose2.header.frame_id = "car" + str(j)
+                        pose2.pose.position.x = self.xs_pred[j, 0]
+                        pose2.pose.position.y = self.xs_pred[j, 1]
+                        pose2.pose.orientation.w = 1
+                        filter_paths[j].poses.append(pose2)
+                        if len(filter_paths[j].poses) > 30:
+                            filter_paths[j].poses.pop(0)
 
                     self.filter_path_pub[j].publish(filter_paths[j])
 
@@ -209,7 +214,7 @@ class ParticleFilter(object):
                     state.header.stamp = rospy.Time.now()
                     state.car_id = j
                     state.inf = infs[j].flatten().tolist()
-                    self.state_pub.publish(state)
+                    #self.state_pub.publish(state)
 
                     combined = CombinedState()
                     combined.u = us.flatten().tolist() 
@@ -226,7 +231,7 @@ class ParticleFilter(object):
                 #for j in xrange(self.Ncars):
                 #    self.error[i] += np.linalg.norm(self.xs_pred[j, :2] - self.xs[j, :2]) / self.Ncars
 
-                self.prev_time = self.current_time
+                # self.prev_time = self.current_time
 
                 #self.rate.sleep()
 

@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   std_msgs
+  multi_car_msgs
   message_generation
 )
 
@@ -54,7 +55,6 @@ find_package(catkin REQUIRED COMPONENTS
    CarState.msg
    CombinedState.msg
    ConsensusMsg.msg
-   UWBMsg.msg
  )
 
 ## Generate services in the 'srv' folder
