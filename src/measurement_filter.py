@@ -54,9 +54,11 @@ class ParticleFilter(object):
 
         self.rate = rospy.Rate(rospy.get_param("~frequency", 10))
 
-        self.meas_sub = rospy.Subscriber("measurements", CarMeasurement, self.meas_cb)
+        #self.meas_sub = rospy.Subscriber("measurements", CarMeasurement, self.meas_cb,
+        #    queue_size=1)
 
-        self.pos_sub = rospy.Subscriber("/range_position", CarState, self.pos_cb)
+        self.pos_sub = rospy.Subscriber("/range_position", CarState, self.pos_cb,
+            queue_size=1)
         self.pa_pub = rospy.Publisher("particles", PoseArray, queue_size=1)
 
         self.state_pub = rospy.Publisher("states", CarState, queue_size=1)
@@ -127,6 +129,7 @@ class ParticleFilter(object):
             filter_paths.append(filter_path)
 
         while not rospy.is_shutdown():
+            
             if self.x0 == None or self.filter == None:
                 start_time = rospy.get_time()
             else:
@@ -134,7 +137,7 @@ class ParticleFilter(object):
                 dt = self.current_time - self.prev_time
                 self.prev_time = self.current_time
                 if dt > 1.0:
-                    print "PF DT BIG: %f" % (dt)
+                   print "PF DT BIG: %f" % (dt)
                 #print "%s %f" % (self.frame_id, dt)
                 
                 us = self.u
@@ -152,10 +155,21 @@ class ParticleFilter(object):
                             means[j, k + 2] = np.linalg.norm(self.xs[j, :2] - self.xs[k, :2])
                 meas = np.random.multivariate_normal(
                     means.flatten(), self.meas_cov).reshape(self.Ncars, self.Nmeas)
-                particles = self.filter.update_particles(us, dt)
+                
 
+                # about 0.1-0.2 seconds
+                # much shorter now that i reduced the rate of
+                # the callbacks - i think they were interrupting
+                # this function and causing it to take longer
+                st0 = rospy.get_time()
+                particles = self.filter.update_particles(us, dt)
+                tim0 = rospy.get_time() - st0
+                print "FWD SIMULATE:     %f" % (tim0)
+
+                # negligible time
                 for j in range(self.Ncars):
                     infs[j] = np.linalg.inv(np.cov(particles[:, j, :].T))
+
 
                 pa = PoseArray()
                 pa.header = Header()
@@ -173,8 +187,15 @@ class ParticleFilter(object):
                         pose.orientation.w = quat[3]
                         pa.poses.append(pose)
                 self.pa_pub.publish(pa)
+
+                
+                # these two are usually 0.05 seconds
+                # could take up to 0.2 seconds though
+                st1 = rospy.get_time()
                 self.filter.update_weights(meas)
                 self.xs_pred = self.filter.predicted_state()
+                tim1 = rospy.get_time() - st1
+                print "update weights:   %f" % (tim1)
 
                 for j in range(self.Ncars):
 
@@ -216,17 +237,24 @@ class ParticleFilter(object):
                     state.inf = infs[j].flatten().tolist()
                     #self.state_pub.publish(state)
 
-                    combined = CombinedState()
-                    combined.u = us.flatten().tolist() 
-                    combined.state = self.xs_pred.flatten().tolist()
-                    combined.header = state.header
-                    combined.inf = block_diag(*infs).flatten().tolist()
-                    self.combined_pub.publish(combined)
+
+                combined = CombinedState()
+                combined.u = us.flatten().tolist() 
+                combined.state = self.xs_pred.flatten().tolist()
+                combined.header = state.header
+                combined.inf = block_diag(*infs).flatten().tolist()
+                self.combined_pub.publish(combined)
 
 
                 self.xs_pred_prev = self.xs_pred
 
+                # can take up to 0.1 seconds
+                # usually around 0.05 seconds
+                st2 = rospy.get_time()
                 self.filter.resample()
+                tim2 = rospy.get_time() - st2
+                print "RESAMPLE     :    %f" % (tim2)
+
                 #self.error = np.append(self.error, np.zeros((1,)))
                 #for j in xrange(self.Ncars):
                 #    self.error[i] += np.linalg.norm(self.xs_pred[j, :2] - self.xs[j, :2]) / self.Ncars

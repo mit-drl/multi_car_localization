@@ -46,7 +46,7 @@ lineared H0 = [1  0  0  0  0  0
 class FakeCar(object):
 
 	def __init__(self):
-		self.rate = rospy.Rate(rospy.get_param("frequency", 50))
+		self.rate = rospy.Rate(rospy.get_param("~frequency", 20))
 		self.frame_id = rospy.get_param("~frame_id", "car0")
 
 		self.x0 = np.array([10*random.random(), 10*random.random(),

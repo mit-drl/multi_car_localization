@@ -59,7 +59,7 @@ class MultiCarParticleFilter(object):
 
     def state_transition(self, x, u, dt):
         # u is a tuple (u_d, u_a)
-        steps = max(int(dt / 0.1),1.0)
+        steps = 1.0 #max(int(dt / 0.1),1.0)
         h = dt/float(steps)
         x = [x]
         for i in range(0, int(steps)):
@@ -74,9 +74,9 @@ class MultiCarParticleFilter(object):
     def state_transition_model(self, state, u):
         u_d, u_v, = u
         x, y, phi = state
-        dx = u_v*math.cos(phi)
-        dy = u_v*math.sin(phi)
-        dphi = (u_v/3.)*math.tan(u_d)
+        dx = u_v*np.cos(phi)
+        dy = u_v*np.sin(phi)
+        dphi = (u_v/3.)*np.tan(u_d)
         return np.array([dx, dy, dphi])
 
     def update_particles(self, u, dt):
@@ -94,7 +94,7 @@ class MultiCarParticleFilter(object):
 
     def update_weights(self, meas):
         #print self.weights
-        avg_error = np.zeros_like(meas)
+        #avg_error = np.zeros_like(meas)
         for j in xrange(self.Np):
             p_means = np.zeros((self.Ncars, self.Nmeas))
             for k in xrange(self.Ncars):
@@ -107,7 +107,7 @@ class MultiCarParticleFilter(object):
                     if k != l:
                         p_means[k, l + 2] = np.linalg.norm(
                             self.particles[j, k, :2] - self.particles[j, l, :2])
-            avg_error += np.abs(meas - p_means) / self.Np
+            #avg_error += np.abs(meas - p_means) / self.Np
             self.weights[j] *= self.pdf(meas, p_means, self.meas_cov)
             #print self.pdf(meas, p_means, self.meas_cov)
         #self.weights += 1e-32
@@ -118,6 +118,7 @@ class MultiCarParticleFilter(object):
             # print "after: %f" % (self.weights.sum())
         else:
             self.weights = np.ones_like(self.weights) / self.Np
+            print "NEEDED TO RESAMPLEEE"
             self.resample()
         return self
 
