@@ -6,7 +6,7 @@ from std_msgs.msg import Header
 from sensor_msgs.msg import Range
 from geometry_msgs.msg import PoseStamped
 from multi_car_localization.msg import CarMeasurement
-from multi_car_localization.msg import UWBMsg
+from multi_car_msgs.msg import UWBRange
 
 class Measurements(object):
 
@@ -24,10 +24,10 @@ class Measurements(object):
 		self.uwb_ranges = {}
 		self.gps_data = {}
 
-		self.uwb_sub = rospy.Subscriber("uwb", Range, self.range_cb)
-		self.gps_sub = rospy.Subscriber("gps", PoseStamped, self.gps_cb)
+		self.uwb_sub = rospy.Subscriber("uwb", UWBRange, self.range_cb, queue_size=1)
+		self.gps_sub = rospy.Subscriber("gps", PoseStamped, self.gps_cb, queue_size=1)
 		self.meas_sub = rospy.Subscriber(
-			"outside_measurements", CarMeasurement, self.meas_cb)
+			"outside_measurements", CarMeasurement, self.meas_cb, queue_size=1)
 
 		self.meas_pub = rospy.Publisher(
 			"measurements", CarMeasurement, queue_size=1)
@@ -37,11 +37,11 @@ class Measurements(object):
 			if i != int(self.frame_id[-1]):
 				self.outside_pub.append(
 					rospy.Publisher("/car" + str(i) + "/outside_measurements",
-						CarMeasurement, queue_size=2))
+						CarMeasurement, queue_size=1))
 
 	def range_cb(self, uwb):
-		receiver = self.frame_id
-		transmitter = uwb.header.frame_id
+		receiver = uwb.header.to_id
+		transmitter = uwb.header.from_id
 		self.uwb_ranges[(transmitter, receiver)] = uwb
 
 	def gps_cb(self, gps):

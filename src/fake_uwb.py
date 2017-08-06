@@ -7,22 +7,22 @@ from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped
 from multi_car_localization.msg import CarMeasurement
 from multi_car_localization.msg import CarState
+from multi_car_msgs.msg import UWBRange
+from multi_car_msgs.msg import PairwiseHeader
 import random
 import copy
 
 class FakeUWB(object):
 
     def __init__(self):
-        self.rate = rospy.Rate(rospy.get_param("~frequency", 50))
+        self.rate = rospy.Rate(rospy.get_param("~frequency", 20))
         self.frame_id = rospy.get_param("~frame_id", "car0")
         self.ID = int(self.frame_id[-1])
 
         self.ranges = {}
-        self.rng = Range()
-        self.rng.header = Header()
-        self.rng.field_of_view = math.pi * 0.1
-        self.rng.min_range = 0
-        self.rng.max_range = 300
+        self.rng = UWBRange()
+        self.rng.header = PairwiseHeader()
+        self.rng.header.to_id = self.frame_id
 
         self.sigma = 0.01
         self.num_cars = 3
@@ -30,7 +30,7 @@ class FakeUWB(object):
 
         self.position = None
 
-        self.range_pub = rospy.Publisher('uwb', Range, queue_size=1)
+        self.range_pub = rospy.Publisher('uwb', UWBRange, queue_size=1)
         self.range_sub = rospy.Subscriber('/range_position', CarState, self.range_sub_cb)
 
     def range_sub_cb(self, cs):
@@ -44,14 +44,14 @@ class FakeUWB(object):
             y = cs.state[1]
             dist = math.sqrt((self.position[0] - x)**2 + (self.position[1] - y)**2)
             self.ranges[ID] = copy.deepcopy(self.rng)
-            self.ranges[ID].range = dist + random.gauss(0.0, self.sigma)
-            self.ranges[ID].header.frame_id = frame_id        
+            self.ranges[ID].distance = dist + random.gauss(0.0, self.sigma)
+            self.ranges[ID].header.from_id = frame_id        
 
     def publish_range(self):
         if len(self.ranges) == 0:
             return
         for ID in self.ranges:
-            self.ranges[ID].header.stamp = rospy.Time.now()
+            self.ranges[ID].header.header.stamp = rospy.Time.now()
             self.range_pub.publish(self.ranges[ID])
 
     def run(self):
