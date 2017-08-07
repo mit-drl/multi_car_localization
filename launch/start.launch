@@ -1,0 +1,7 @@
+<launch>
+
+    <include file="$(find turtlebot_bringup)/launch/minimal.launch"/>
+    <include file="$(find turtlebot_teleop)/launch/logitech.launch"/>
+    <include file="$(find pozyx_comm)/launch/sensors.launch"/>
+
+</launch>
