@@ -15,6 +15,7 @@ import math
 import random
 from scipy.linalg import block_diag
 import pdb
+from dynamics import RoombaDynamics
 
 """
 State:
@@ -52,6 +53,8 @@ class Consensus(object):
 		self.N = rospy.get_param("~number_of_nodes", 3)
 		self.Ncars = rospy.get_param("~number_of_cars", 3)
 		self.Ndim = rospy.get_param("~num_state_dim", 3)
+
+		self.robot = RoombaDynamics()
 
 		self.frame_id = rospy.get_param("~frame_id", "car0")
 
@@ -96,23 +99,6 @@ class Consensus(object):
 		self.prev_time = rospy.get_time()
 		self.new_meas = False
 
-	def mini_phi(self, state, u, dt):
-
-		theta = state[2]
-		v = u[1]
-
-		return np.array([[1, 0, -v*np.sin(theta)*dt],
-						 [0, 1, v*np.cos(theta)*dt],
-						 [0, 0, 1]])
-
-	def phi(self, state, u, dt):
-		phis = []
-		for i in range(self.Ncars):
-			phis.append(self.mini_phi(state[i*self.Ndim:(i+1)*self.Ndim], u[i*2:(i+1)*2], dt))
-
-		phi = block_diag(*phis)
-		return phi
-
 	def x_cb(self, cs):
 		frame_id = cs.header.frame_id
 		self.u = np.array(cs.u)
@@ -145,9 +131,9 @@ class Consensus(object):
 		self.prev_time = rospy.get_time()
 		if self.x_post is not None:
 			for i in range(self.Ncars):
-				self.xi_prior[i*self.Ndim:(i+1)*self.Ndim] = self.state_transition(
+				self.xi_prior[i*self.Ndim:(i+1)*self.Ndim] = self.robot.state_transition(
 					self.x_post[i*self.Ndim:(i+1)*self.Ndim], self.u[i*2:i*2+2], dt)
-			phi = self.phi(self.x_post, self.u, dt)
+			phi = self.robot.phi(self.x_post, self.u, dt, self.Ncars, self.Ndim)
 			self.Ji_prior = np.linalg.inv(phi*np.linalg.inv(self.J_post)*phi.T + self.Q)
 
 		self.Vi = self.Ji_prior/self.Ncars + np.dot(self.Hi.T,np.dot(self.Bi,self.Hi))
@@ -193,28 +179,6 @@ class Consensus(object):
 		v_msg.states = self.vi.flatten().tolist()
 		v_msg.confidences = self.Vi.flatten().tolist()
 		self.v_pub.publish(v_msg)
-
-	def state_transition(self, x, u, dt):
-		# u is a tuple (u_d, u_a)
-		steps = 1.
-		h = dt/steps
-		x = [x]
-		for i in range(0, int(steps)):
-			k1 = self.state_transition_model(x[i], u)
-			k2 = self.state_transition_model(x[i] + 0.5*h*k1, u)
-			k3 = self.state_transition_model(x[i] + 0.5*h*k2, u)
-			k4 = self.state_transition_model(x[i] + k3*h, u)
-			new_x = x[i] + (h/6.0)*(k1 + 2.0*k2 + 2.0*k3 + k4)
-			x.append(new_x)
-		return x[-1]
-
-	def state_transition_model(self, state, u):
-		u_d, u_v, = u
-		x, y, phi = state
-		dx = u_v*np.cos(phi)
-		dy = u_v*np.sin(phi)
-		dphi = (u_v/3.)*np.tan(u_d)
-		return np.array([dx, dy, dphi])
 
 	def run(self):
 		while not rospy.is_shutdown():

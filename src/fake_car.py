@@ -10,6 +10,7 @@ import math
 import numpy as np
 import random
 import tf
+from dynamics import RoombaDynamics
 
 """
 State:
@@ -52,7 +53,7 @@ class FakeCar(object):
 		self.x0 = np.array([10*random.random(), 10*random.random(),
 							math.pi*(random.random()-0.5)], dtype=np.float64)
 		self.x = self.x0
-		self.u = (0.1*(random.random()-0.5), 7.0)
+		self.u = (1.2*(random.random()-0.5), 7.0)
 		self.current_time = rospy.get_time()
 		self.prev_time = self.current_time
 
@@ -62,6 +63,8 @@ class FakeCar(object):
 		self.state.u.append(self.u[0])
 		self.state.u.append(self.u[1])
 		self.state.car_id = 0
+
+		self.robot = RoombaDynamics()
 
 		self.pose_pub = rospy.Publisher("/range_position", CarState, queue_size=1)
 
@@ -75,35 +78,12 @@ class FakeCar(object):
 
 		self.pose_pub.publish(self.state)
 
-
-	def state_transition(self, x, u, dt):
-		# u is a tuple (u_d, u_a)
-		steps = 1.
-		h = dt/steps
-		x = [x]
-		for i in range(0, int(steps)):
-			k1 = self.state_transition_model(x[i], u)
-			k2 = self.state_transition_model(x[i] + 0.5*h*k1, u)
-			k3 = self.state_transition_model(x[i] + 0.5*h*k2, u)
-			k4 = self.state_transition_model(x[i] + k3*h, u)
-			new_x = x[i] + (h/6.0)*(k1 + 2.0*k2 + 2.0*k3 + k4)
-			x.append(new_x)
-		return x[-1]
-
-	def state_transition_model(self, state, u):
-		u_d, u_v, = u
-		x, y, phi = state
-		dx = u_v*math.cos(phi)
-		dy = u_v*math.sin(phi)
-		dphi = (u_v/3.)*math.tan(u_d)
-		return np.array([dx, dy, dphi])
-
 	def run(self):
 		while not rospy.is_shutdown():
 			self.current_time = rospy.get_time()
 			self.publish_pose()
 			dt = self.current_time - self.prev_time
-			self.x = self.state_transition(self.x, self.u, dt)
+			self.x = self.robot.state_transition(self.x, self.u, dt)
 			self.prev_time = self.current_time
 			self.rate.sleep()
 

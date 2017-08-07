@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 from scipy.stats import rv_discrete
 import rospy
+from dynamics import RoombaDynamics
 
 """
 State:
@@ -48,6 +49,7 @@ class MultiCarParticleFilter(object):
             size=self.Np).reshape((self.Np, self.Ncars, self.Ndim))
         self.weights = 1.0 / self.Np * np.ones((self.Np,))
         self.prev_angle_estimate = 0
+        self.robot = RoombaDynamics()
 
     def pdf(self, meas, mean, cov):
         return multivariate_normal.pdf(
@@ -57,28 +59,6 @@ class MultiCarParticleFilter(object):
         return np.random.multivariate_normal(
             mean.flatten(), cov).reshape(mean.shape)
 
-    def state_transition(self, x, u, dt):
-        # u is a tuple (u_d, u_a)
-        steps = 1.0 #max(int(dt / 0.1),1.0)
-        h = dt/float(steps)
-        x = [x]
-        for i in range(0, int(steps)):
-            k1 = self.state_transition_model(x[i], u)
-            k2 = self.state_transition_model(x[i] + 0.5*h*k1, u)
-            k3 = self.state_transition_model(x[i] + 0.5*h*k2, u)
-            k4 = self.state_transition_model(x[i] + k3*h, u)
-            new_x = x[i] + (h/6.0)*(k1 + 2.0*k2 + 2.0*k3 + k4)
-            x.append(new_x)
-        return x[-1]
-
-    def state_transition_model(self, state, u):
-        u_d, u_v, = u
-        x, y, phi = state
-        dx = u_v*np.cos(phi)
-        dy = u_v*np.sin(phi)
-        dphi = (u_v/3.)*np.tan(u_d)
-        return np.array([dx, dy, dphi])
-
     def update_particles(self, u, dt):
         for i in xrange(self.Np):
             u_noise = self.sample(np.zeros_like(self.x0), self.x_cov)
@@ -86,7 +66,7 @@ class MultiCarParticleFilter(object):
             # new_particle = self.particles[j] + u * dt
             # self.particles[j] = new_particle + u_noise
             for j in xrange(self.Ncars):
-                new_particle[j] = self.state_transition(
+                new_particle[j] = self.robot.state_transition(
                     self.particles[i, j], u[j], dt)
             self.weights[i] *= self.pdf(new_particle + u_noise, new_particle, self.x_cov)
             self.particles[i] = new_particle + u_noise
@@ -202,7 +182,7 @@ if __name__ == "__main__":
         us = u_func(i * dt)
 
         for j in xrange(Ncars):
-            xs[i, j] = mcpf.state_transition(xs[i - 1, j], us[j], dt)
+            xs[i, j] = mcpf.robot.state_transition(xs[i - 1, j], us[j], dt)
             #xs[i] += mcpf.sample(np.zeros_like(x0), x_cov)
 
         means = np.zeros((Ncars, Nmeas))
