@@ -6,9 +6,9 @@ from sensor_msgs.msg import Range
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import PoseArray
-from multi_car_localization.msg import CarMeasurement
-from multi_car_localization.msg import CarState
-from multi_car_localization.msg import CombinedState
+from multi_car_msgs.msg import CarMeasurement
+from multi_car_msgs.msg import CarState
+from multi_car_msgs.msg import CombinedState
 from nav_msgs.msg import Path
 from std_msgs.msg import Header
 import tf

@@ -5,10 +5,10 @@ import numpy as np
 from sensor_msgs.msg import Range
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Header
-from multi_car_localization.msg import CarMeasurement
-from multi_car_localization.msg import CarState
-from multi_car_localization.msg import CombinedState
-from multi_car_localization.msg import ConsensusMsg
+from multi_car_msgs.msg import CarMeasurement
+from multi_car_msgs.msg import CarState
+from multi_car_msgs.msg import CombinedState
+from multi_car_msgs.msg import ConsensusMsg
 from nav_msgs.msg import Path
 from geometry_msgs.msg import  Pose
 import math
@@ -126,8 +126,8 @@ class Consensus(object):
 
 	def v_cb(self, v):
 		frame_id = v.header.frame_id
-		self.vj[frame_id] = np.array(v.vj)
-		self.Vj[frame_id] = np.array(v.Vj).reshape((self.Ncars*self.Ndim, self.Ncars*self.Ndim))
+		self.vj[frame_id] = np.array(v.states)
+		self.Vj[frame_id] = np.array(v.confidences).reshape((self.Ncars*self.Ndim, self.Ncars*self.Ndim))
 
 	def consensus(self, vi, Vi, vj, Vj):
 		new_Vi = Vi
@@ -190,8 +190,8 @@ class Consensus(object):
 		v_msg.header = Header()
 		v_msg.header.stamp = rospy.Time.now()
 		v_msg.header.frame_id = self.frame_id
-		v_msg.vj = self.vi.flatten().tolist()
-		v_msg.Vj = self.Vi.flatten().tolist()
+		v_msg.states = self.vi.flatten().tolist()
+		v_msg.confidences = self.Vi.flatten().tolist()
 		self.v_pub.publish(v_msg)
 
 	def state_transition(self, x, u, dt):

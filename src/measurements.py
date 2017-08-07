@@ -5,7 +5,7 @@ import rospy
 from std_msgs.msg import Header
 from sensor_msgs.msg import Range
 from geometry_msgs.msg import PoseStamped
-from multi_car_localization.msg import CarMeasurement
+from multi_car_msgs.msg import CarMeasurement
 from multi_car_msgs.msg import UWBRange
 
 class Measurements(object):
@@ -22,12 +22,13 @@ class Measurements(object):
 		self.meas.header.frame_id = self.frame_id
 
 		self.uwb_ranges = {}
-		self.gps_data = {}
+		self.gps = None
+		#self.gps_data = {}
 
 		self.uwb_sub = rospy.Subscriber("uwb", UWBRange, self.range_cb, queue_size=1)
 		self.gps_sub = rospy.Subscriber("gps", PoseStamped, self.gps_cb, queue_size=1)
-		self.meas_sub = rospy.Subscriber(
-			"outside_measurements", CarMeasurement, self.meas_cb, queue_size=1)
+		# self.meas_sub = rospy.Subscriber(
+		# 	"outside_measurements", CarMeasurement, self.meas_cb, queue_size=1)
 
 		self.meas_pub = rospy.Publisher(
 			"measurements", CarMeasurement, queue_size=1)
@@ -40,21 +41,23 @@ class Measurements(object):
 						CarMeasurement, queue_size=1))
 
 	def range_cb(self, uwb):
-		receiver = uwb.header.to_id
-		transmitter = uwb.header.from_id
+		receiver = uwb.to_id
+		transmitter = uwb.from_id
 		self.uwb_ranges[(transmitter, receiver)] = uwb
 
 	def gps_cb(self, gps):
-		self.gps_data[gps.header.frame_id] = gps
+		self.gps = gps
+		#self.gps_data[gps.header.frame_id] = gps
 
-	def meas_cb(self, meas):
-		for uwb in meas.ranges:
-			receiver = meas.header.frame_id
-			transmitter = uwb.header.frame_id
-			self.uwb_ranges[(transmitter, receiver)] = uwb
-		for gps in meas.gps:
-			ID = gps.header.frame_id
-			self.gps_data[ID] = gps
+	# def meas_cb(self, meas):
+	# 	for uwb in meas.range:
+	# 		receiver = uwb.to_id
+	# 		transmitter = uwb.from_id
+	# 		self.uwb_ranges[(transmitter, receiver)] = uwb
+	# 	self.gps_data[meas.header.frame_id] = meas.gps
+		#for gps in meas.gps:
+		#	ID = gps.header.frame_id
+		#	self.gps_data[ID] = gps
 
 
 	def publish_measurements(self):
@@ -62,9 +65,10 @@ class Measurements(object):
 		#if len(self.uwb_ranges) == self.num_cars - 1:
 			#if len(self.gps_data) == (self.num_cars - 1)*self.num_uwbs:
 		for ID in self.uwb_ranges:
-			self.meas.ranges.append(self.uwb_ranges[ID])
-		for ID in self.gps_data:
-			self.meas.gps.append(self.gps_data[ID])
+			self.meas.range.append(self.uwb_ranges[ID])
+		self.meas.gps = self.gps
+		# for ID in self.gps_data:
+		# 	self.meas.gps.append(self.gps_data[ID])
 		self.meas_pub.publish(self.meas)
 		for pub in self.outside_pub:
 			pub.publish(self.meas)

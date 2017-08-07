@@ -5,8 +5,8 @@ import rospy
 from sensor_msgs.msg import Range
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped
-from multi_car_localization.msg import CarMeasurement
-from multi_car_localization.msg import CarState
+from multi_car_msgs.msg import CarMeasurement
+from multi_car_msgs.msg import CarState
 import random
 import copy
 
