@@ -6,6 +6,7 @@ from std_msgs.msg import Header
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import NavSatFix
+from gps_common.msg import GPSFix
 import numpy as np
 import tf
 import copy
@@ -23,10 +24,14 @@ class ViconToGPS(object):
         self.vicon_pub = rospy.Publisher("vicon_path", Path, queue_size=1)
         self.fake_gps_pub = rospy.Publisher("spoofed_gps", PoseStamped, queue_size=1)
         self.fake_gps_pub_coords = rospy.Publisher("spoofed_gps_coords", NavSatFix, queue_size=1)
+        self.spoof_gps_fix = rospy.Publisher("spoofed_gps_fix", GPSFix, queue_size=1)
+        
         self.var = 0.8
         self.path = Path()
         self.path.header = Header()
+        
         self.spoof = PoseStamped()
+        self.spoof_fix = GPSFix()
         self.tru = PoseStamped()
         self.spoof_coords = NavSatFix()
         self.csail_coords = (42.361826, -71.090607)
@@ -50,7 +55,9 @@ class ViconToGPS(object):
                                 + self.spoof.pose.position.x / 111111
         self.spoof_coords.longitude = self.csail_coords[1] \
                                 + self.spoof.pose.position.y / (111111 * math.cos(self.spoof_coords.latitude))
-
+        self.spoof_fix.latitude = self.spoof_coords.latitude
+        self.spoof_fix.longitude = self.spoof_coords.longitude
+         
     def run(self):
         while not rospy.is_shutdown():
             if self.spoof is not None:
@@ -58,6 +65,7 @@ class ViconToGPS(object):
                 self.tru.header.stamp = rospy.Time.now()
                 self.spoof.header.stamp = rospy.Time.now()
                 self.spoof_coords.header.stamp = rospy.Time.now()
+                self.spoof_fix.header.stamp = rospy.Time.now()
                 self.fake_gps_pub.publish(self.spoof)
                 self.fake_gps_pub_coords.publish(self.spoof_coords)
                 self.path.poses.append(copy.deepcopy(self.tru))
