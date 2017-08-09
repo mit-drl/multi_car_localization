@@ -7,6 +7,7 @@ from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped
 from multi_car_msgs.msg import CarMeasurement
 from multi_car_msgs.msg import CarState
+from sensor_msgs.msg import NavSatFix
 import random
 import copy
 
@@ -19,11 +20,12 @@ class FakeGPS(object):
 
         self.sigma = 0.6
 
-        self.ps = PoseStamped()
+
+        self.ps = NavSatFix()
         self.ps.header = Header()
         self.ps.header.frame_id = self.frame_id
 
-        self.gps_pub = rospy.Publisher('gps', PoseStamped, queue_size=1)
+        self.gps_pub = rospy.Publisher('gps', NavSatFix, queue_size=1)
         self.range_sub = rospy.Subscriber('/range_position', CarState, self.range_sub_cb)
 
     def range_sub_cb(self, cs):
@@ -32,11 +34,11 @@ class FakeGPS(object):
 
         if ID == self.ID:
             self.ps.header.stamp = rospy.Time.now()
-            self.ps.pose.position.x = cs.state[0] + random.gauss(0.0, self.sigma)
-            self.ps.pose.position.y = cs.state[1] + random.gauss(0.0, self.sigma)
+            self.ps.latitude = cs.state[0] + random.gauss(0.0, self.sigma)
+            self.ps.longitude = cs.state[1] + random.gauss(0.0, self.sigma)
 
     def publish_range(self):
-        if self.ps.pose.position.x == 0:
+        if self.ps.latitude == 0:
             return
         self.gps_pub.publish(self.ps)
 
