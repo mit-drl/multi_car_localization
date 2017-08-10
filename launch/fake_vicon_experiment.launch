@@ -14,10 +14,22 @@
         </node>
 
         <node pkg="gps_common" type="utm_odometry_node" name="gps_to_utm" output="screen">
-            <param name="frame_id" value="world"/>
-            <param name="child_frame_id" value="car0"/>
+            <param name="frame_id" value="gps"/>
+            <param name="child_frame_id" value="utm"/>
         </node>
 
     </group>
+
+    <node pkg="tf" type="static_transform_publisher" name="map_to_gps"
+        args="0 0 0 0 0 0 map gps 100" />
+
+    <node pkg="tf" type="static_transform_publisher" name="map_to_utm"
+        args="0 0 0 0 0 0 map utm 100" />
+
+    <node pkg="tf" type="static_transform_publisher" name="utm_to_local"
+        args="327967 4692073 0 0 0 0 utm local 100" />
+
+    <node pkg="tf" type="static_transform_publisher" name="utm_to_car0"
+        args="327967 4692073 0 0 0 0 utm car0 100" />
 
 </launch>
