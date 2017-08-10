@@ -69,7 +69,7 @@ class ViconToGPS(object):
             # lat/long into map coord (meters)
             # self.gps_to_map.pose.position.x = (self.spoof_coords.latitude-self.csail_coords[0]) * 111111
             # self.gps_to_map.pose.position.y = (self.spoof_coords.longitude-self.csail_coords[1]) * 111111 \
-            #                           * math.cos(self.spoof_coords.latitude)
+            # 							* math.cos(self.spoof_coords.latitude)
 
          
     def run(self):
@@ -97,4 +97,4 @@ class ViconToGPS(object):
 if __name__ == "__main__":
     rospy.init_node("spoof_vicon", anonymous=False)
     spoofed = ViconToGPS()
-spoofed.run()
+    spoofed.run()
