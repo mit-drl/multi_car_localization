@@ -7,6 +7,8 @@ from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import NavSatFix
 from gps_common.msg import GPSFix
+from sensor_msgs.msg import Imu
+from nav_msgs.msg import Odometry
 import numpy as np
 import tf
 import copy
@@ -24,9 +26,12 @@ class ViconToGPS(object):
 
         self.vicon_pub = rospy.Publisher("vicon_path", Path, queue_size=1)
         self.fake_gps_pub = rospy.Publisher("spoofed_gps", PoseStamped, queue_size=1)
-        self.fake_gps_pub_coords = rospy.Publisher("fix", NavSatFix, queue_size=1)
+        self.fake_gps_pub_coords = rospy.Publisher("gps/fix", NavSatFix, queue_size=1)
         self.spoof_gps_pub_fix = rospy.Publisher("spoofed_gps_fix", GPSFix, queue_size=1)
         self.gps_to_map_pub = rospy.Publisher("gps_to_map", PoseStamped, queue_size=1)
+
+        self.odom_pub = rospy.Publisher("odometry/filtered", Odometry, queue_size=1)
+        self.imu_pub = rospy.Publisher("imu/data", Imu, queue_size=1)
 
         self.var = 0.8
         self.path = Path()
@@ -37,6 +42,10 @@ class ViconToGPS(object):
         self.tru = PoseStamped()
         self.spoof_coords = NavSatFix()
         self.gps_to_map = PoseStamped()
+
+        self.odom = Odometry()
+        self.imu = Imu()
+
         self.csail_coords = (42.361826, -71.090607)
       
 
@@ -68,6 +77,8 @@ class ViconToGPS(object):
         self.gps_to_map.pose.position.y = (self.spoof_coords.longitude-self.csail_coords[1]) * 111111 \
         							* math.cos(self.spoof_coords.latitude)
 
+        self.odom.pose.pose.position.x = self.spoof.pose.position.x
+        self.odom.pose.pose.position.y = self.spoof.pose.position.y
          
     def run(self):
         while not rospy.is_shutdown():
@@ -82,6 +93,9 @@ class ViconToGPS(object):
                 self.fake_gps_pub.publish(self.spoof)
                 self.fake_gps_pub_coords.publish(self.spoof_coords)
                 self.spoof_gps_pub_fix.publish(self.spoof_fix)
+                self.odom_pub.publish(self.odom)
+                self.imu_pub.publish(self.imu)
+
                 self.path.poses.append(copy.deepcopy(self.tru))
 
                 if len(self.path.poses) > 60:
