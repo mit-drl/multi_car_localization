@@ -20,6 +20,7 @@ class FakeGPS(object):
 
         self.sigma = 0.6
 
+
         self.ps = NavSatFix()
         self.ps.header = Header()
         self.ps.header.frame_id = self.frame_id
