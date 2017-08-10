@@ -9,6 +9,7 @@ from multi_car_msgs.msg import CarMeasurement
 from multi_car_msgs.msg import UWBRange
 from multi_car_msgs.msg import CarControl
 from sensor_msgs.msg import NavSatFix
+from nav_msgs.msg import Odometry
 
 class Measurements(object):
 
@@ -29,7 +30,8 @@ class Measurements(object):
 		#self.gps_data = {}
 
 		self.uwb_sub = rospy.Subscriber("uwb", UWBRange, self.range_cb, queue_size=1)
-		self.gps_sub = rospy.Subscriber("gps", NavSatFix, self.gps_cb, queue_size=1)
+		#self.gps_sub = rospy.Subscriber("gps", NavSatFix, self.gps_cb, queue_size=1)
+		self.gps_sub = rospy.Subscriber("odom", Odometry, self.gps_cb, queue_size=1)
 		self.control_sub = rospy.Subscriber("control", CarControl, self.control_cb, queue_size=1)
 		# self.meas_sub = rospy.Subscriber(
 		# 	"outside_measurements", CarMeasurement, self.meas_cb, queue_size=1)
