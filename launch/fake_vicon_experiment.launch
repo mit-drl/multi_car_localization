@@ -7,8 +7,17 @@
         <param name="num_cars" value="3" />
     </node>
 
-    <node pkg="multi_car_localization" type="vicon_to_gps.py" name="vicon_to_gps" output="screen" ns="car0">
-        <param name="frame_id" value="car0" />
-    </node>
+    <group ns="car0">
+
+        <node pkg="multi_car_localization" type="vicon_to_gps.py" name="vicon_to_gps" output="screen">
+            <param name="frame_id" value="car0" />
+        </node>
+
+        <node pkg="gps_common" type="utm_odometry_node" name="gps_to_utm" output="screen">
+            <param name="frame_id" value="world"/>
+            <param name="child_frame_id" value="car0"/>
+        </node>
+
+    </group>
 
 </launch>

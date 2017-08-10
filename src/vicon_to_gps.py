@@ -21,10 +21,10 @@ class ViconToGPS(object):
         self.vicon_sub = rospy.Subscriber(
             "/vicon/" + self.frame_id + "/" + self.frame_id, 
             TransformStamped, self.vicon_cb, queue_size=1)
-        
+
         self.vicon_pub = rospy.Publisher("vicon_path", Path, queue_size=1)
         self.fake_gps_pub = rospy.Publisher("spoofed_gps", PoseStamped, queue_size=1)
-        self.fake_gps_pub_coords = rospy.Publisher("spoofed_gps_coords", NavSatFix, queue_size=1)
+        self.fake_gps_pub_coords = rospy.Publisher("fix", NavSatFix, queue_size=1)
         self.spoof_gps_pub_fix = rospy.Publisher("spoofed_gps_fix", GPSFix, queue_size=1)
         self.gps_to_map_pub = rospy.Publisher("gps_to_map", PoseStamped, queue_size=1)
 
