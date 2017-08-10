@@ -37,7 +37,7 @@ class ViconToGPS(object):
         self.tru = PoseStamped()
         self.spoof_coords = NavSatFix()
         self.spoof_coords.header = Header()
-        self.spoof_coords.header.frame_id = "earth"
+        self.spoof_coords.header.frame_id = "gps"
         # self.gps_to_map = PoseStamped()
         self.csail_coords = (42.361826, -71.090607)
       
@@ -59,9 +59,9 @@ class ViconToGPS(object):
             # 111,111 meters in y direction is ~1 degree latitude
             # 111,111 * cos(latitude) meters in x direction is ~1 degree longitude
             self.spoof_coords.latitude = self.csail_coords[0] \
-                                    + self.spoof.pose.position.y / 111111.0
+                                    + self.spoof.pose.position.x / 111111.0
             self.spoof_coords.longitude = self.csail_coords[1] \
-                                    + self.spoof.pose.position.x / (111111.0 * math.cos(self.spoof_coords.latitude*math.pi/180.0))
+                                    + self.spoof.pose.position.y / (111111.0 * math.cos(self.spoof_coords.latitude))
             
             # self.spoof_fix.latitude = self.spoof_coords.latitude
             # self.spoof_fix.longitude = self.spoof_coords.longitude
