@@ -22,10 +22,6 @@
     	<arg name="car_frame_id" value="$(arg car_frame_id)" />
     </include>
 
-    <include file="$(find multi_car_localization)/launch/fake_gps.launch">
-    	<arg name="car_frame_id" value="$(arg car_frame_id)" />
-    </include>
-
     <node pkg="multi_car_localization" type="consensus_test.py" name="consensus_test" output="screen">
     	<param name="frame_id" value="$(arg car_frame_id)"/>
     </node>

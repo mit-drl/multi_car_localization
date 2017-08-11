@@ -92,8 +92,8 @@ class Measurements(object):
 			# for ID in self.gps_data:
 			# 	self.meas.gps.append(self.gps_data[ID])
 			self.meas_pub.publish(self.meas)
-			for pub in self.outside_pub:
-				pub.publish(self.meas)
+			# for pub in self.outside_pub:
+			# 	pub.publish(self.meas)
 
 	def run(self):
 		while not rospy.is_shutdown():

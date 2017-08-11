@@ -70,6 +70,15 @@ class ParticleFilter(object):
         self.uwbs = {}
         self.true_pos = {}
 
+        self.trans = None
+
+        try:
+            self.listener.waitForTransform("/utm", "/map", rospy.Time(), rospy.Duration(4.0))
+            (self.trans,rot) = self.listener.lookupTransform('/utm', '/map', rospy.Time(0))
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            print "TRANSFORM FAILEDDDDDDDDDDDDDDDDDDD"
+            pass
+
         self.true_path_pub = []
         self.filter_path_pub = []
         for i in range(self.Ncars):
@@ -78,18 +87,23 @@ class ParticleFilter(object):
             self.filter_path_pub.append(
                 rospy.Publisher("path" + str(i) + str(i), Path, queue_size=1))
 
-
-
     def pos_cb(self, cs):
         self.true_pos[cs.header.frame_id] = cs.state
         self.u[int(cs.header.frame_id[-1])] = cs.u
-        
-        if self.x0 == None and len(self.true_pos) == 3:
+
+        good_gps = True
+        for gps in self.gps:
+            if gps == None:
+                good_gps = False
+
+        if self.x0 == None and len(self.true_pos) == 3 and good_gps:
             self.x0 = np.zeros((self.Ncars, self.Ndim))
             for ID in self.true_pos:
                 p = self.true_pos[ID]
                 idx = int(ID[-1])
                 self.x0[idx] = np.array(p, dtype=np.float64)
+                self.x0[idx, 0] = self.gps[idx].pose.pose.position.x - self.trans[0]
+                self.x0[idx, 1] = self.gps[idx].pose.pose.position.y - self.trans[1]
 
             self.xs = self.x0
             self.xs_pred = self.x0
@@ -131,9 +145,16 @@ class ParticleFilter(object):
             filter_path.header.frame_id = "map"
             filter_paths.append(filter_path)
 
+        gps_good = False
+
         while not rospy.is_shutdown():
+            if not gps_good:
+                gps_good = True
+                for gps in self.gps:
+                    if gps == None:
+                        gps_good = False
             
-            if self.x0 == None or self.filter == None or self.gps[0] == None:
+            if self.x0 == None or self.filter == None or not gps_good:
                 start_time = rospy.get_time()
             else:
                 self.current_time = rospy.get_time()
@@ -144,20 +165,15 @@ class ParticleFilter(object):
                 #print "%s %f" % (self.frame_id, dt)
                 
                 us = self.u
-
-                try:
-                    (trans,rot) = self.listener.lookupTransform('/utm', '/map', rospy.Time(0))
-                except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-                    continue
             
                 for j in xrange(self.Ncars):
                     self.xs[j] = self.true_pos["car" + str(j)]
 
                 means = np.zeros((self.Ncars, self.Nmeas))
                 for j in xrange(self.Ncars):
-                    # means[j, :2] = self.xs[j, :2]
-                    means[j, 0] = self.gps[j].pose.pose.position.x - trans[0]
-                    means[j, 1] = self.gps[j].pose.pose.position.y - trans[1]
+                    means[j, :2] = self.xs[j, :2]
+                    # means[j, 0] = self.gps[j].pose.pose.position.x - self.trans[0]
+                    # means[j, 1] = self.gps[j].pose.pose.position.y - self.trans[1]
                     #means[j, :2] = self.xs[i, j, :2]
                     #means[j, 5] = self.xs[i, j, 3]
                     for k in xrange(self.Ncars):
@@ -166,9 +182,9 @@ class ParticleFilter(object):
                 meas = np.random.multivariate_normal(
                     means.flatten(), self.meas_cov).reshape(self.Ncars, self.Nmeas)
 
-                # for j in xrange(self.Ncars):
-                #     meas[j, 0] = self.gps[j].pose.pose.position.x - trans[0]
-                #     meas[j, 1] = self.gps[j].pose.pose.position.y - trans[1]
+                for j in xrange(self.Ncars):
+                    meas[j, 0] = self.gps[j].pose.pose.position.x - self.trans[0]
+                    meas[j, 1] = self.gps[j].pose.pose.position.y - self.trans[1]
                 
                 # about 0.1-0.2 seconds
                 # much shorter now that i reduced the rate of

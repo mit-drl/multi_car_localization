@@ -26,6 +26,10 @@ class ViconToGPS(object):
         self.tru = []
         self.spoof_coords = []
 
+        self.var = 0.8           
+        
+        self.csail_coords = (42.361826, -71.090607)
+
         for i in range(self.Ncars):
             self.vicon_sub.append(
                 rospy.Subscriber(
@@ -49,10 +53,6 @@ class ViconToGPS(object):
         # self.fake_gps_pub = rospy.Publisher("spoofed_gps", PoseStamped, queue_size=1)
         # self.spoof_gps_pub_fix = rospy.Publisher("spoofed_gps_fix", GPSFix, queue_size=1)
         # self.gps_to_map_pub = rospy.Publisher("gps_to_map", PoseStamped, queue_size=1)
-
-        self.var = 0.8           
-        
-        self.csail_coords = (42.361826, -71.090607)
 
     def vicon_cb(self, tr, args):
         car_id = args[0]
