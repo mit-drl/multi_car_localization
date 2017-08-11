@@ -33,7 +33,7 @@ class FakeVicon(object):
 
     def pose_cb(self, cs):
         self.transform.header.stamp = rospy.Time.now()
-        self.transform.header.frame_id = cs.header.frame_id
+        self.transform.header.frame_id = "vicon"
         self.transform.transform.translation.x = cs.state[0]
         self.transform.transform.translation.y = cs.state[1]
         quaternion = tf.transformations.quaternion_from_euler(0, 0, cs.state[2])
@@ -41,14 +41,15 @@ class FakeVicon(object):
         self.transform.transform.rotation.y = quaternion[1]
         self.transform.transform.rotation.z = quaternion[2]
         self.transform.transform.rotation.w = quaternion[3]
+        car_id = int(cs.header.frame_id[-1])
+        self.pose_pub[car_id].publish(self.transform)
 
-    def run(self):
-        while not rospy.is_shutdown():
-            for i in range(self.Ncars):
-                self.pose_pub[i].publish(self.transform)
-            self.rate.sleep()
+    # def run(self):
+    #     while not rospy.is_shutdown():
+    #         self.rate.sleep()
 
 if __name__ == "__main__":
     rospy.init_node("fakevicon", anonymous=False)
     vicon = FakeVicon()
-    vicon.run()
+    # vicon.run()
+    rospy.spin()

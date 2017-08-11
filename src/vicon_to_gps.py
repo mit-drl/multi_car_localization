@@ -6,7 +6,7 @@ from std_msgs.msg import Header
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import NavSatFix
-from gps_common.msg import GPSFix
+from multi_car_msgs.msg import GPS
 import numpy as np
 import tf
 import copy
@@ -16,83 +16,93 @@ class ViconToGPS(object):
 
     def __init__(self):
         self.rate = rospy.Rate(rospy.get_param("~frequency", 7))
-        self.frame_id = rospy.get_param("~frame_id", "car0")
+        self.Ncars = rospy.get_param("~num_cars", 3)
 
-        self.vicon_sub = rospy.Subscriber(
-            "/vicon/" + self.frame_id + "/" + self.frame_id, 
-            TransformStamped, self.vicon_cb, queue_size=1)
+        self.vicon_sub = []
+        self.vicon_pub = []
+        self.path = []
 
-        self.vicon_pub = rospy.Publisher("vicon_path", Path, queue_size=1)
-        self.fake_gps_pub = rospy.Publisher("spoofed_gps", PoseStamped, queue_size=1)
-        self.fake_gps_pub_coords = rospy.Publisher("fix", NavSatFix, queue_size=1)
+        self.spoof = []
+        self.tru = []
+        self.spoof_coords = []
+
+        for i in range(self.Ncars):
+            self.vicon_sub.append(
+                rospy.Subscriber(
+                "/vicon/car" + str(i) + "/car" + str(i), 
+                TransformStamped, self.vicon_cb, (i,),queue_size=1))
+            self.vicon_pub.append(
+                rospy.Publisher(
+                "vicon_path" + str(i), Path, queue_size=1))
+            self.path.append(Path())
+            self.path[i].header = Header()
+
+            self.spoof.append(PoseStamped())
+            self.tru.append(PoseStamped())
+            self.spoof_coords.append(GPS())
+            self.spoof_coords[i].fix = NavSatFix()
+            self.spoof_coords[i].header = Header()
+            self.spoof_coords[i].header.frame_id = "earth"
+
+        self.fake_gps_pub_coords = rospy.Publisher("fixes", GPS, queue_size=1)
+
+        # self.fake_gps_pub = rospy.Publisher("spoofed_gps", PoseStamped, queue_size=1)
         # self.spoof_gps_pub_fix = rospy.Publisher("spoofed_gps_fix", GPSFix, queue_size=1)
         # self.gps_to_map_pub = rospy.Publisher("gps_to_map", PoseStamped, queue_size=1)
 
-        self.var = 0.8
-        self.path = Path()
-        self.path.header = Header()
+        self.var = 0.8           
         
-        self.spoof = PoseStamped()
-        # self.spoof_fix = GPSFix()
-        self.tru = PoseStamped()
-        self.spoof_coords = NavSatFix()
-        self.spoof_coords.header = Header()
-        self.spoof_coords.header.frame_id = "earth"
-        # self.gps_to_map = PoseStamped()
         self.csail_coords = (42.361826, -71.090607)
-      
 
-    def vicon_cb(self, tr):
-        if tr.header.frame_id == self.frame_id:
-            self.tru.header = tr.header
-            self.tru.pose.position.x = tr.transform.translation.x
-            self.tru.pose.position.y = tr.transform.translation.y
-            self.path.header = tr.header
+    def vicon_cb(self, tr, args):
+        car_id = args[0]
 
-            self.spoof.header = tr.header
-            self.spoof.pose.position.x = tr.transform.translation.x \
-                                    + np.random.normal(0, self.var)
-            self.spoof.pose.position.y = tr.transform.translation.y \
-                                    + np.random.normal(0, self.var)
+        tr.header.frame_id = "car" + str(car_id)
 
-            # spoof map coords (meters) to lat/long
-            # 111,111 meters in y direction is ~1 degree latitude
-            # 111,111 * cos(latitude) meters in x direction is ~1 degree longitude
-            self.spoof_coords.latitude = self.csail_coords[0] \
-                                    + self.spoof.pose.position.y / 111111.0
-            self.spoof_coords.longitude = self.csail_coords[1] \
-                                    + self.spoof.pose.position.x / (111111.0 * math.cos(self.spoof_coords.latitude*math.pi/180.0))
-            
-            # self.spoof_fix.latitude = self.spoof_coords.latitude
-            # self.spoof_fix.longitude = self.spoof_coords.longitude
+        self.tru[car_id].header = tr.header
+        self.tru[car_id].pose.position.x = tr.transform.translation.x
+        self.tru[car_id].pose.position.y = tr.transform.translation.y
+        self.path[car_id].header = tr.header
 
-            # lat/long into map coord (meters)
-            # self.gps_to_map.pose.position.x = (self.spoof_coords.latitude-self.csail_coords[0]) * 111111
-            # self.gps_to_map.pose.position.y = (self.spoof_coords.longitude-self.csail_coords[1]) * 111111 \
-            # 							* math.cos(self.spoof_coords.latitude)
+        self.spoof[car_id].header = tr.header
+        self.spoof[car_id].pose.position.x = tr.transform.translation.x \
+                                + np.random.normal(0, self.var)
+        self.spoof[car_id].pose.position.y = tr.transform.translation.y \
+                                + np.random.normal(0, self.var)
 
+
+        self.spoof_coords[car_id].car_id = car_id
+        # spoof map coords (meters) to lat/long
+        # 111,111 meters in y direction is ~1 degree latitude
+        # 111,111 * cos(latitude) meters in x direction is ~1 degree longitude
+        self.spoof_coords[car_id].fix.latitude = self.csail_coords[0] \
+                                + self.spoof[car_id].pose.position.y / 111111.0
+        self.spoof_coords[car_id].fix.longitude = self.csail_coords[1] \
+                                + self.spoof[car_id].pose.position.x / (111111.0 * math.cos(self.spoof_coords[car_id].fix.latitude*math.pi/180.0))
          
     def run(self):
         while not rospy.is_shutdown():
-            if self.spoof is not None:
-                self.path.header.stamp = rospy.Time.now()
-                self.tru.header.stamp = rospy.Time.now()
-                self.spoof.header.stamp = rospy.Time.now()
-                self.spoof_coords.header.stamp = rospy.Time.now()
+            for i in range(self.Ncars):
+                self.tru[i].header.stamp = rospy.Time.now()
+                self.spoof[i].header.stamp = rospy.Time.now()
+                self.spoof_coords[i].fix.header = self.spoof_coords[i].header
+                self.spoof_coords[i].header.stamp = rospy.Time.now()
                 # self.spoof_fix.header.stamp = rospy.Time.now()
                 # self.gps_to_map.header.stamp = rospy.Time.now()
 
                 # self.fake_gps_pub.publish(self.spoof)
-                self.fake_gps_pub_coords.publish(self.spoof_coords)
+                self.fake_gps_pub_coords.publish(self.spoof_coords[i])
                 # self.spoof_gps_pub_fix.publish(self.spoof_fix)
-                self.path.poses.append(copy.deepcopy(self.tru))
+                
+                if len(self.path[i].poses) > 60:
+                    self.path[i].poses.pop(0)
 
-                if len(self.path.poses) > 60:
-                    self.path.poses.pop(0)
+                self.path[i].header.stamp = rospy.Time.now()
+                self.path[i].poses.append(copy.deepcopy(self.tru[i]))
 
-                self.vicon_pub.publish(self.path)
+                self.vicon_pub[i].publish(self.path[i])
 
-                self.rate.sleep()
+            self.rate.sleep()
 
 if __name__ == "__main__":
     rospy.init_node("spoof_vicon", anonymous=False)

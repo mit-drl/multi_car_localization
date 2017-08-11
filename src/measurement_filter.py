@@ -32,6 +32,8 @@ class ParticleFilter(object):
         self.Ninputs = rospy.get_param("~num_inputs", 2)
         self.frame_id = rospy.get_param("~car_frame_id", "car0")
 
+        self.listener = tf.TransformListener()
+
         self.x0 = None
 
         self.init_cov = np.diag(self.Ncars * [1.0, 1.0, 0.0])
@@ -54,8 +56,8 @@ class ParticleFilter(object):
 
         self.rate = rospy.Rate(rospy.get_param("~frequency", 10))
 
-        #self.meas_sub = rospy.Subscriber("measurements", CarMeasurement, self.meas_cb,
-        #    queue_size=1)
+        self.meas_sub = rospy.Subscriber("measurements", CarMeasurement, self.meas_cb,
+           queue_size=1)
 
         self.pos_sub = rospy.Subscriber("/range_position", CarState, self.pos_cb,
             queue_size=1)
@@ -64,7 +66,7 @@ class ParticleFilter(object):
         self.state_pub = rospy.Publisher("states", CarState, queue_size=1)
         self.combined_pub = rospy.Publisher("combined", CombinedState, queue_size=1)
 
-        self.gps = {}
+        self.gps = [None]*self.Ncars
         self.uwbs = {}
         self.true_pos = {}
 
@@ -104,9 +106,10 @@ class ParticleFilter(object):
                 resample_perc=self.resample_perc)
 
     def meas_cb(self, meas):
-        for gps in meas.gps:
-            self.gps[gps.header.frame_id] = gps
-        for uwb in meas.ranges:
+        self.gps = meas.gps
+        # for gps in meas.gps:
+        #     self.gps[gps.header.frame_id] = gps
+        for uwb in meas.range:
             receiver = meas.header.frame_id
             transmitter = uwb.header.frame_id
             self.uwbs[(transmitter, receiver)] = uwb
@@ -130,7 +133,7 @@ class ParticleFilter(object):
 
         while not rospy.is_shutdown():
             
-            if self.x0 == None or self.filter == None:
+            if self.x0 == None or self.filter == None or self.gps[0] == None:
                 start_time = rospy.get_time()
             else:
                 self.current_time = rospy.get_time()
@@ -141,13 +144,20 @@ class ParticleFilter(object):
                 #print "%s %f" % (self.frame_id, dt)
                 
                 us = self.u
-                
+
+                try:
+                    (trans,rot) = self.listener.lookupTransform('/utm', '/map', rospy.Time(0))
+                except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+                    continue
+            
                 for j in xrange(self.Ncars):
                     self.xs[j] = self.true_pos["car" + str(j)]
 
                 means = np.zeros((self.Ncars, self.Nmeas))
                 for j in xrange(self.Ncars):
-                    means[j, :2] = self.xs[j, :2]
+                    # means[j, :2] = self.xs[j, :2]
+                    means[j, 0] = self.gps[j].pose.pose.position.x - trans[0]
+                    means[j, 1] = self.gps[j].pose.pose.position.y - trans[1]
                     #means[j, :2] = self.xs[i, j, :2]
                     #means[j, 5] = self.xs[i, j, 3]
                     for k in xrange(self.Ncars):
@@ -155,8 +165,11 @@ class ParticleFilter(object):
                             means[j, k + 2] = np.linalg.norm(self.xs[j, :2] - self.xs[k, :2])
                 meas = np.random.multivariate_normal(
                     means.flatten(), self.meas_cov).reshape(self.Ncars, self.Nmeas)
-                
 
+                # for j in xrange(self.Ncars):
+                #     meas[j, 0] = self.gps[j].pose.pose.position.x - trans[0]
+                #     meas[j, 1] = self.gps[j].pose.pose.position.y - trans[1]
+                
                 # about 0.1-0.2 seconds
                 # much shorter now that i reduced the rate of
                 # the callbacks - i think they were interrupting

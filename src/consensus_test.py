@@ -152,6 +152,10 @@ class Consensus(object):
 				self.vj = {}
 				self.Vj = {}
 				self.current_counter += 1
+			# this is meant to break out of the loop
+			# if you kill the node
+			if rospy.get_time() - st0 > 1.0:
+				break
 		tim3 = rospy.get_time() - st0
 		print "consensus loops:  %f" % (tim3)
 
