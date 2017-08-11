@@ -36,6 +36,7 @@ class Measurements(object):
 			self.gps_sub.append(
 				rospy.Subscriber(
 				"odom" + str(i), Odometry, self.gps_cb, (i,), queue_size=1))
+		#self.initial_gps = None
 
 		self.control_sub = rospy.Subscriber("control", CarControl, self.control_cb, queue_size=1)
 		# self.meas_sub = rospy.Subscriber(
@@ -51,6 +52,8 @@ class Measurements(object):
 					rospy.Publisher("/car" + str(i) + "/outside_measurements",
 						CarMeasurement, queue_size=1))
 
+		#self.br = tf.TransformBroadcaster()
+
 	def control_cb(self, control):
 		self.control = control
 
@@ -62,7 +65,15 @@ class Measurements(object):
 	def gps_cb(self, gps, args):
 		car_id = args[0]
 		self.gps[car_id] = gps
-		#self.gps_data[gps.header.frame_id] = gps
+		# if self.initial_gps == None and car_id == int(self.frame_id[-1]):
+		# 	self.initial_gps = (gps.pose.pose.position.x, gps.pose.pose.position.y)
+		# 	gps.pose.pose.position.x -= self.initial_gps[0]
+		# 	gps.pose.pose.position.y -= self.initial_gps[1]
+		# 	self.gps[car_id] = gps
+		# elif self.initial_gps is not None:
+		# 	gps.pose.pose.position.x -= self.initial_gps[0]
+		# 	gps.pose.pose.position.y -= self.initial_gps[1]
+		# 	self.gps[car_id] = gps
 
 	# def meas_cb(self, meas):
 	# 	for uwb in meas.range:
@@ -82,6 +93,7 @@ class Measurements(object):
 				wait_for_gps = True
 
 		if len(self.uwb_ranges) > 1 and not wait_for_gps:
+
 			self.meas.header.stamp = rospy.Time.now()
 			#if len(self.uwb_ranges) == self.Ncars - 1:
 				#if len(self.gps_data) == (self.Ncars - 1)*self.num_uwbs:
@@ -101,6 +113,6 @@ class Measurements(object):
 			self.rate.sleep()
 
 if __name__ == "__main__":
-    rospy.init_node("measurements", anonymous=False)
-    measurements = Measurements()
-    measurements.run()
+	rospy.init_node("measurements", anonymous=False)
+	measurements = Measurements()
+	measurements.run()

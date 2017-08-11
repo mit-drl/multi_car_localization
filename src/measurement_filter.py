@@ -39,7 +39,7 @@ class ParticleFilter(object):
         self.init_cov = np.diag(self.Ncars * [1.0, 1.0, 0.0])
         self.x_cov = np.diag(self.Ncars * [0.1, 0.1, 0.1])
         self.meas_cov = np.diag(self.Ncars * [0.6, 0.6, 0.15, 0.15, 0.15])
-        
+
         self.resample_perc = rospy.get_param("~resample_perc", 0.3)
 
         self.prev_time = rospy.get_time()
