@@ -51,7 +51,10 @@ class FakeCar(object):
         self.frame_id = rospy.get_param("~frame_id", "car0")
 
         self.x0 = np.array([10*random.random(), 10*random.random(),
-                            math.pi*(random.random()-0.5)], dtype=np.float64)
+                            0.1*(random.random()-0.5)], dtype=np.float64)
+
+        # self.x0 = np.array([10*random.random(), 10*random.random(),
+        #                     math.pi*(random.random()-0.5)], dtype=np.float64)
         self.x = self.x0
         self.u = (1.2*(random.random()-0.5), 7.0)
         self.current_time = rospy.get_time()

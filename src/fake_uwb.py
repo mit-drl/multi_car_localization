@@ -24,10 +24,12 @@ class FakeUWB(object):
         self.rng.to_id = self.ID
 
         self.sigma = 0.01
-        self.num_cars = 3
+        self.Ncars = 3
         self.uwbs_per_car = 1
 
         self.position = None
+
+        self.positions = [None]*self.Ncars
 
         self.range_pub = rospy.Publisher('uwb', UWBRange, queue_size=1)
         self.range_sub = rospy.Subscriber('/range_position', CarState, self.range_sub_cb)
@@ -36,22 +38,44 @@ class FakeUWB(object):
         frame_id = cs.header.frame_id
         ID = int(frame_id[-1])
 
-        if self.position == None and ID == self.ID:
-            self.position = (cs.state[0], cs.state[1])
-        elif self.position is not None and ID != self.ID:
-            x = cs.state[0]
-            y = cs.state[1]
-            dist = math.sqrt((self.position[0] - x)**2 + (self.position[1] - y)**2)
-            self.ranges[ID] = copy.deepcopy(self.rng)
-            self.ranges[ID].distance = dist + random.gauss(0.0, self.sigma)
-            self.ranges[ID].from_id = int(frame_id[-1])        
+        self.positions[ID] = (cs.state[0], cs.state[1])
+
+    # def range_sub_cb(self, cs):
+    #     frame_id = cs.header.frame_id
+    #     ID = int(frame_id[-1])
+
+    #     if ID == self.ID:
+    #         self.position = (cs.state[0], cs.state[1])
+    #     elif self.position is not None and ID != self.ID:
+    #         x = cs.state[0]
+    #         y = cs.state[1]
+    #         dist = math.sqrt((self.position[0] - x)**2 + (self.position[1] - y)**2)
+    #         self.ranges[ID] = copy.deepcopy(self.rng)
+    #         self.ranges[ID].distance = dist + random.gauss(0.0, self.sigma)
+    #         self.ranges[ID].from_id = int(frame_id[-1])    
+    #         self.range_pub.publish(self.ranges[ID])    
 
     def publish_range(self):
-        if len(self.ranges) == 0:
-            return
-        for ID in self.ranges:
-            self.ranges[ID].header.stamp = rospy.Time.now()
-            self.range_pub.publish(self.ranges[ID])
+        pos_good = True
+        for pos in self.positions:
+            if pos == None:
+                pos_good = False
+
+        if pos_good:
+            for j, pos1 in enumerate(self.positions):
+                for k, pos2 in enumerate(self.positions):
+                    if k > j:
+                        x = pos2[0]
+                        y = pos2[1]
+                        dist = math.sqrt((pos1[0] - x)**2 + (pos1[1] - y)**2)
+                        rng = UWBRange()
+                        rng.header = Header()
+                        rng.header.stamp = rospy.Time.now()
+                        rng.header.frame_id = self.frame_id
+                        rng.to_id = j
+                        rng.from_id = k
+                        rng.distance = max(0.0, dist + random.gauss(0.0, self.sigma))
+                        self.range_pub.publish(rng)   
 
     def run(self):
         while not rospy.is_shutdown():
@@ -62,3 +86,4 @@ if __name__ == "__main__":
     rospy.init_node("uwb", anonymous=False)
     uwb = FakeUWB()
     uwb.run()
+    #rospy.spin()

@@ -25,7 +25,7 @@ from scipy.linalg import block_diag
 class ParticleFilter(object):
 
     def __init__(self):
-        self.Np = rospy.get_param("~num_particles", 100)
+        self.Np = rospy.get_param("~num_particles", 150)
         self.Ncars = rospy.get_param("~num_cars", 3)
         self.Ndim = rospy.get_param("~num_state_dim", 3)
         self.Nmeas = rospy.get_param("~num_measurements", 5)
@@ -96,7 +96,7 @@ class ParticleFilter(object):
             if gps == None:
                 good_gps = False
 
-        if self.x0 == None and len(self.true_pos) == 3 and good_gps:
+        if self.x0 == None and len(self.true_pos) == self.Ncars and len(self.uwbs) == self.Ncars and good_gps:
             self.x0 = np.zeros((self.Ncars, self.Ndim))
             for ID in self.true_pos:
                 p = self.true_pos[ID]
@@ -121,12 +121,9 @@ class ParticleFilter(object):
 
     def meas_cb(self, meas):
         self.gps = meas.gps
-        # for gps in meas.gps:
-        #     self.gps[gps.header.frame_id] = gps
+
         for uwb in meas.range:
-            receiver = meas.header.frame_id
-            transmitter = uwb.header.frame_id
-            self.uwbs[(transmitter, receiver)] = uwb
+            self.uwbs[(uwb.to_id, uwb.from_id)] = uwb
 
     def run(self):
         true_paths = []
@@ -169,23 +166,31 @@ class ParticleFilter(object):
                 for j in xrange(self.Ncars):
                     self.xs[j] = self.true_pos["car" + str(j)]
 
-                means = np.zeros((self.Ncars, self.Nmeas))
-                for j in xrange(self.Ncars):
-                    means[j, :2] = self.xs[j, :2]
-                    # means[j, 0] = self.gps[j].pose.pose.position.x - self.trans[0]
-                    # means[j, 1] = self.gps[j].pose.pose.position.y - self.trans[1]
-                    #means[j, :2] = self.xs[i, j, :2]
-                    #means[j, 5] = self.xs[i, j, 3]
-                    for k in xrange(self.Ncars):
-                        if j != k:
-                            means[j, k + 2] = np.linalg.norm(self.xs[j, :2] - self.xs[k, :2])
-                meas = np.random.multivariate_normal(
-                    means.flatten(), self.meas_cov).reshape(self.Ncars, self.Nmeas)
+                # means = np.zeros((self.Ncars, self.Nmeas))
+                # for j in xrange(self.Ncars):
+                #     means[j, :2] = self.xs[j, :2]
+                #     # means[j, 0] = self.gps[j].pose.pose.position.x - self.trans[0]
+                #     # means[j, 1] = self.gps[j].pose.pose.position.y - self.trans[1]
+                #     #means[j, :2] = self.xs[i, j, :2]
+                #     #means[j, 5] = self.xs[i, j, 3]
+                #     for k in xrange(self.Ncars):
+                #         if j != k:
+                #             means[j, k + 2] = np.linalg.norm(self.xs[j, :2] - self.xs[k, :2])
+                # meas = np.random.multivariate_normal(
+                #     means.flatten(), self.meas_cov).reshape(self.Ncars, self.Nmeas)
+                # for j in xrange(self.Ncars):
+                #     meas[j, j+2] = 0.0
 
+                meas = np.zeros((self.Ncars, self.Nmeas))
                 for j in xrange(self.Ncars):
                     meas[j, 0] = self.gps[j].pose.pose.position.x - self.trans[0]
                     meas[j, 1] = self.gps[j].pose.pose.position.y - self.trans[1]
-                
+
+                    for k in xrange(self.Ncars):
+                        if k > j:
+                            meas[j, k + 2] = self.uwbs[(j, k)].distance
+                            meas[k, j + 2] = self.uwbs[(j, k)].distance
+
                 # about 0.1-0.2 seconds
                 # much shorter now that i reduced the rate of
                 # the callbacks - i think they were interrupting
@@ -198,7 +203,6 @@ class ParticleFilter(object):
                 # negligible time
                 for j in range(self.Ncars):
                     infs[j] = np.linalg.inv(np.cov(particles[:, j, :].T))
-
 
                 pa = PoseArray()
                 pa.header = Header()
@@ -217,7 +221,6 @@ class ParticleFilter(object):
                         pa.poses.append(pose)
                 self.pa_pub.publish(pa)
 
-                
                 # these two are usually 0.05 seconds
                 # could take up to 0.2 seconds though
                 st1 = rospy.get_time()

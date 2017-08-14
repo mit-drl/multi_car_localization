@@ -24,7 +24,7 @@ class Measurements(object):
 		self.meas.header = Header()
 		self.meas.header.frame_id = self.frame_id
 
-		self.uwb_ranges = {}
+		self.uwb_ranges = self.init_uwb()
 		self.gps = [None]*self.Ncars
 		self.control = CarControl()
 		#self.gps_data = {}
@@ -54,45 +54,38 @@ class Measurements(object):
 
 		#self.br = tf.TransformBroadcaster()
 
+	def init_uwb(self):
+		uwbs = {}
+		for j in range(self.Ncars):
+			for k in range(self.Ncars):
+				if k > j:
+					uwbs[(j, k)] = -1
+		return uwbs
+
 	def control_cb(self, control):
 		self.control = control
 
 	def range_cb(self, uwb):
-		receiver = uwb.to_id
-		transmitter = uwb.from_id
-		self.uwb_ranges[(transmitter, receiver)] = uwb
+		self.uwb_ranges[(uwb.to_id, uwb.from_id)] = uwb
+		# if self.frame_id == "car0":	
+		# 	print self.uwb_ranges
 
 	def gps_cb(self, gps, args):
 		car_id = args[0]
 		self.gps[car_id] = gps
-		# if self.initial_gps == None and car_id == int(self.frame_id[-1]):
-		# 	self.initial_gps = (gps.pose.pose.position.x, gps.pose.pose.position.y)
-		# 	gps.pose.pose.position.x -= self.initial_gps[0]
-		# 	gps.pose.pose.position.y -= self.initial_gps[1]
-		# 	self.gps[car_id] = gps
-		# elif self.initial_gps is not None:
-		# 	gps.pose.pose.position.x -= self.initial_gps[0]
-		# 	gps.pose.pose.position.y -= self.initial_gps[1]
-		# 	self.gps[car_id] = gps
-
-	# def meas_cb(self, meas):
-	# 	for uwb in meas.range:
-	# 		receiver = uwb.to_id
-	# 		transmitter = uwb.from_id
-	# 		self.uwb_ranges[(transmitter, receiver)] = uwb
-	# 	self.gps_data[meas.header.frame_id] = meas.gps
-		#for gps in meas.gps:
-		#	ID = gps.header.frame_id
-		#	self.gps_data[ID] = gps
-
 
 	def publish_measurements(self):
-		wait_for_gps = False
+		gps_good = True
 		for gps in self.gps:
 			if gps == None:
-				wait_for_gps = True
+				gps_good = False
 
-		if len(self.uwb_ranges) > 1 and not wait_for_gps:
+		uwb_good = True
+		for uwb in self.uwb_ranges:
+			if self.uwb_ranges[uwb] == -1:
+				uwb_good = False
+
+		if gps_good and uwb_good:
 
 			self.meas.header.stamp = rospy.Time.now()
 			#if len(self.uwb_ranges) == self.Ncars - 1:
