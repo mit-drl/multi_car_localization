@@ -94,7 +94,7 @@ class ViconToGPS(object):
                 self.fake_gps_pub_coords.publish(self.spoof_coords[i])
                 # self.spoof_gps_pub_fix.publish(self.spoof_fix)
                 
-                if len(self.path[i].poses) > 60:
+                if len(self.path[i].poses) > 500:
                     self.path[i].poses.pop(0)
 
                 self.path[i].header.stamp = rospy.Time.now()

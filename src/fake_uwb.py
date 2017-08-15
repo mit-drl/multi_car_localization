@@ -14,7 +14,7 @@ import copy
 class FakeUWB(object):
 
     def __init__(self):
-        self.rate = rospy.Rate(rospy.get_param("~frequency", 20))
+        self.rate = rospy.Rate(rospy.get_param("~frequency", 60))
         self.frame_id = rospy.get_param("~frame_id", "car0")
         self.ID = int(self.frame_id[-1])
 
@@ -23,7 +23,7 @@ class FakeUWB(object):
         self.rng.header = Header()
         self.rng.to_id = self.ID
 
-        self.sigma = 0.01
+        self.sigma = 0.1
         self.Ncars = 3
         self.uwbs_per_car = 1
 
@@ -39,21 +39,6 @@ class FakeUWB(object):
         ID = int(frame_id[-1])
 
         self.positions[ID] = (cs.state[0], cs.state[1])
-
-    # def range_sub_cb(self, cs):
-    #     frame_id = cs.header.frame_id
-    #     ID = int(frame_id[-1])
-
-    #     if ID == self.ID:
-    #         self.position = (cs.state[0], cs.state[1])
-    #     elif self.position is not None and ID != self.ID:
-    #         x = cs.state[0]
-    #         y = cs.state[1]
-    #         dist = math.sqrt((self.position[0] - x)**2 + (self.position[1] - y)**2)
-    #         self.ranges[ID] = copy.deepcopy(self.rng)
-    #         self.ranges[ID].distance = dist + random.gauss(0.0, self.sigma)
-    #         self.ranges[ID].from_id = int(frame_id[-1])    
-    #         self.range_pub.publish(self.ranges[ID])    
 
     def publish_range(self):
         pos_good = True
@@ -76,6 +61,11 @@ class FakeUWB(object):
                         rng.from_id = k
                         rng.distance = max(0.0, dist + random.gauss(0.0, self.sigma))
                         self.range_pub.publish(rng)   
+
+                        rng.to_id = k
+                        rng.from_id = j
+                        rng.distance = max(0.0, dist + random.gauss(0.0, self.sigma))
+                        self.range_pub.publish(rng)
 
     def run(self):
         while not rospy.is_shutdown():

@@ -15,7 +15,7 @@ class Measurements(object):
 
 	def __init__(self):
 
-		self.rate = rospy.Rate(rospy.get_param("~frequency", 15))
+		self.rate = rospy.Rate(rospy.get_param("~frequency", 60))
 		self.num_uwbs = rospy.get_param("~num_uwbs", 3)
 		self.Ncars = rospy.get_param("~num_cars", 3)
 		self.frame_id = rospy.get_param("~car_frame_id", "car0")
@@ -60,6 +60,7 @@ class Measurements(object):
 			for k in range(self.Ncars):
 				if k > j:
 					uwbs[(j, k)] = -1
+					uwbs[(k, j)] = -1
 		return uwbs
 
 	def control_cb(self, control):
@@ -99,6 +100,8 @@ class Measurements(object):
 			self.meas_pub.publish(self.meas)
 			# for pub in self.outside_pub:
 			# 	pub.publish(self.meas)
+			self.gps = [None]*self.Ncars
+			self.uwb_ranges = self.init_uwb()
 
 	def run(self):
 		while not rospy.is_shutdown():

@@ -2,7 +2,7 @@
 <launch>
 
 	<arg name="car_frame_id" default="car0" />
-	<arg name="num_particles" default="200" />
+	<arg name="num_particles" default="150" />
 	<arg name="num_cars" default="3" />
 	<arg name="num_state_dim" default="3" />
 	<arg name="num_measurements" default="5" />

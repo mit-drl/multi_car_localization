@@ -50,21 +50,26 @@ class FakeCar(object):
         self.rate = rospy.Rate(rospy.get_param("~frequency", 20))
         self.frame_id = rospy.get_param("~frame_id", "car0")
 
-        self.x0 = np.array([10*random.random(), 10*random.random(),
+        self.x0 = np.array([50.*random.random(), 50.*random.random(),
                             0.1*(random.random()-0.5)], dtype=np.float64)
+        self.init_angle = [-0.1, 1.0, 2.5]
+        ID = int(self.frame_id[-1])
+        self.x0[2] = self.init_angle[ID]
 
         # self.x0 = np.array([10*random.random(), 10*random.random(),
         #                     math.pi*(random.random()-0.5)], dtype=np.float64)
         self.x = self.x0
-        self.u = (1.2*(random.random()-0.5), 7.0)
+        self.u = [0.6*(random.random()-0.5), 7.0]
         self.current_time = rospy.get_time()
         self.prev_time = self.current_time
 
         self.state = CarState()
         self.state.header = Header()
         self.state.header.frame_id = self.frame_id
-        self.state.u.append(self.u[0])
-        self.state.u.append(self.u[1])
+        self.state.u.append(0.0)
+        self.state.u.append(0.0)
+        # self.state.u.append(self.u[0])
+        # self.state.u.append(self.u[1])
         self.state.car_id = 0
 
         self.robot = RoombaDynamics()
@@ -72,21 +77,32 @@ class FakeCar(object):
         self.pose_pub = rospy.Publisher("/range_position", CarState, queue_size=1)
 
     def publish_pose(self):
-        #self.state.ps.pose.position.x = self.x[0]
-        #self.state.ps.pose.position.y = self.x[1]
-
         self.state.state = self.x.tolist()
 
-        #print "%s real yaw: %f" % (self.frame_id, self.x[2]*180./math.pi)
+        # if self.frame_id == "car0":
+        #     print "THE TRUE POSE ISSSSSSS:"
+        #     print self.x
 
         self.pose_pub.publish(self.state)
 
     def run(self):
+        maxcounts = 180
+        count = 0
         while not rospy.is_shutdown():
             self.current_time = rospy.get_time()
             self.publish_pose()
-            dt = self.current_time - self.prev_time
-            self.x = self.robot.state_transition(self.x, self.u, dt)
+            if count < maxcounts:
+                self.x = self.x0
+                count += 1
+                if count == maxcounts:
+                    self.state.u[0] = self.u[0]
+                    self.state.u[1] = self.u[1]
+            else:
+                dt = self.current_time - self.prev_time
+                u1 = self.u[0] + np.random.normal(0, 6.0*dt)
+                u2 = self.u[1] + np.random.normal(0, 10.0*dt)
+                new_u = (u1, u2)
+                self.x = self.robot.state_transition(self.x, new_u, dt)
             self.prev_time = self.current_time
             self.rate.sleep()
 

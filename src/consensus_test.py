@@ -49,7 +49,7 @@ class Consensus(object):
 		self.rate = rospy.Rate(rospy.get_param("~frequency", 10))
 
 		self.epsilon = rospy.get_param("~epsilon", 0.2)
-		self.K = rospy.get_param("~consensus_iterations", 10)
+		self.K = rospy.get_param("~consensus_iterations", 15)
 		self.N = rospy.get_param("~number_of_nodes", 3)
 		self.Ncars = rospy.get_param("~number_of_cars", 3)
 		self.Ndim = rospy.get_param("~num_state_dim", 3)
@@ -170,7 +170,7 @@ class Consensus(object):
 			pose.pose.position.x = self.x_post[i*self.Ndim]
 			pose.pose.position.y = self.x_post[i*self.Ndim + 1]
 			self.paths[i].poses.append(pose)
-			if len(self.paths[i].poses) > 100:
+			if len(self.paths[i].poses) > 300:
 				self.paths[i].poses.pop(0)
 			self.consensus_pub[i].publish(self.paths[i])
 		#self.state_pub.publish(self.x_post, self.J_post)
