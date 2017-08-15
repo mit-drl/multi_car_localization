@@ -64,8 +64,8 @@ class ParticleFilter(object):
         self.meas_sub = rospy.Subscriber("measurements", CarMeasurement, self.meas_cb,
            queue_size=1)
 
-        self.pos_sub = rospy.Subscriber("/range_position", CarState, self.pos_cb,
-            queue_size=1)
+        # self.pos_sub = rospy.Subscriber("/range_position", CarState, self.pos_cb,
+        #     queue_size=1)
         self.pa_pub = rospy.Publisher("particles", PoseArray, queue_size=1)
 
         self.state_pub = rospy.Publisher("states", CarState, queue_size=1)
@@ -74,7 +74,7 @@ class ParticleFilter(object):
         #self.true_pos = {}
 
         self.trans = None
-        self.new_meas = True
+        self.new_meas = False
 
         try:
             self.listener.waitForTransform("/utm", "/map", rospy.Time(), rospy.Duration(4.0))
@@ -91,30 +91,27 @@ class ParticleFilter(object):
             self.filter_path_pub.append(
                 rospy.Publisher("path" + str(i) + str(i), Path, queue_size=1))
 
-    def pos_cb(self, cs):
-        #self.true_pos[cs.header.frame_id] = cs.state
-        self.u[int(cs.header.frame_id[-1])] = cs.u
+    # def pos_cb(self, cs):
+    #     #self.true_pos[cs.header.frame_id] = cs.state
+    #     self.u[int(cs.header.frame_id[-1])] = cs.u
 
-        good_gps = True
-        for gps in self.gps:
-            if gps == None:
-                good_gps = False
+    def meas_cb(self, meas):
+        self.gps = meas.gps
 
-#        if self.x0 == None and len(self.true_pos) == self.Ncars and len(self.uwbs) == self.Ncars and good_gps:
-            # self.x0 = np.zeros((self.Ncars, self.Ndim))
-            # for ID in self.true_pos:
-            #     p = self.true_pos[ID]        
-        if self.x0 == None and len(self.uwbs) == 2*self.Ncars and good_gps:
+        for i, control in enumerate(meas.control):
+            self.u[i, 0] = meas.control[i].steering_angle
+            self.u[i, 1] = meas.control[i].velocity
+
+        for uwb in meas.range:
+            self.uwbs[(uwb.to_id, uwb.from_id)] = uwb
+      
+        if self.x0 == None:
             self.x0 = np.zeros((self.Ncars, self.Ndim))
             for i in range(self.Ncars):
                 self.x0[i, 0] = self.gps[i].pose.pose.position.x - self.trans[0]
                 self.x0[i, 1] = self.gps[i].pose.pose.position.y - self.trans[1]
                 self.x0[i, 2] = self.init_angle[i]
-            # if self.frame_id == "car0":
-            #     print "INITIALLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL POSE IS:"
-            #     print self.x0
 
-            # self.xs = self.x0
             self.xs_pred = self.x0
 
             self.filter = pf.MultiCarParticleFilter(
@@ -128,11 +125,6 @@ class ParticleFilter(object):
                 measurement_cov=self.meas_cov,
                 resample_perc=self.resample_perc)
 
-    def meas_cb(self, meas):
-        self.gps = meas.gps
-
-        for uwb in meas.range:
-            self.uwbs[(uwb.to_id, uwb.from_id)] = uwb
         self.new_meas = True
 
     def run(self):
@@ -238,7 +230,7 @@ class ParticleFilter(object):
                 self.filter.update_weights(meas)
                 self.xs_pred = self.filter.predicted_state()
                 tim1 = rospy.get_time() - st1
-                print "update weights:   %f" % (tim1)
+                # print "update weights:   %f" % (tim1)
 
                 for j in range(self.Ncars):
 
@@ -296,7 +288,7 @@ class ParticleFilter(object):
                 st2 = rospy.get_time()
                 self.filter.resample()
                 tim2 = rospy.get_time() - st2
-                print "RESAMPLE     :    %f" % (tim2)
+                # print "RESAMPLE     :    %f" % (tim2)
 
                 #self.error = np.append(self.error, np.zeros((1,)))
                 #for j in xrange(self.Ncars):

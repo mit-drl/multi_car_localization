@@ -26,7 +26,7 @@ class Measurements(object):
 
 		self.uwb_ranges = self.init_uwb()
 		self.gps = [None]*self.Ncars
-		self.control = CarControl()
+		self.control = [None] * self.Ncars
 		#self.gps_data = {}
 
 		self.uwb_sub = rospy.Subscriber("uwb", UWBRange, self.range_cb, queue_size=1)
@@ -38,19 +38,10 @@ class Measurements(object):
 				"odom" + str(i), Odometry, self.gps_cb, (i,), queue_size=1))
 		#self.initial_gps = None
 
-		self.control_sub = rospy.Subscriber("control", CarControl, self.control_cb, queue_size=1)
-		# self.meas_sub = rospy.Subscriber(
-		# 	"outside_measurements", CarMeasurement, self.meas_cb, queue_size=1)
+		self.control_sub = rospy.Subscriber("/control", CarControl, self.control_cb, queue_size=1)
 
 		self.meas_pub = rospy.Publisher(
 			"measurements", CarMeasurement, queue_size=1)
-
-		self.outside_pub = list()
-		for i in range(self.Ncars):
-			if i != int(self.frame_id[-1]):
-				self.outside_pub.append(
-					rospy.Publisher("/car" + str(i) + "/outside_measurements",
-						CarMeasurement, queue_size=1))
 
 		#self.br = tf.TransformBroadcaster()
 
@@ -64,7 +55,7 @@ class Measurements(object):
 		return uwbs
 
 	def control_cb(self, control):
-		self.control = control
+		self.control[control.car_id] = control
 
 	def range_cb(self, uwb):
 		self.uwb_ranges[(uwb.to_id, uwb.from_id)] = uwb
@@ -76,17 +67,15 @@ class Measurements(object):
 		self.gps[car_id] = gps
 
 	def publish_measurements(self):
-		gps_good = True
-		for gps in self.gps:
-			if gps == None:
-				gps_good = False
+		gps_good = None not in self.gps
+		control_good = None not in self.control
 
 		uwb_good = True
 		for uwb in self.uwb_ranges:
 			if self.uwb_ranges[uwb] == -1:
 				uwb_good = False
 
-		if gps_good and uwb_good:
+		if gps_good and uwb_good and control_good:
 
 			self.meas.header.stamp = rospy.Time.now()
 			#if len(self.uwb_ranges) == self.Ncars - 1:
@@ -102,6 +91,7 @@ class Measurements(object):
 			# 	pub.publish(self.meas)
 			self.gps = [None]*self.Ncars
 			self.uwb_ranges = self.init_uwb()
+			self.control = [None]*self.Ncars
 
 	def run(self):
 		while not rospy.is_shutdown():

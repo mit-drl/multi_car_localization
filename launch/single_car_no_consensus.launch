@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+
+	<arg name="car_frame_id" default="car0" />
+
+ 	<include file="$(find multi_car_localization)/launch/particle_filter.launch">
+ 		<arg name="car_frame_id" value="$(arg car_frame_id)" />
+	</include>
+
+	<include file="$(find multi_car_localization)/launch/measurements.launch">
+		<arg name="car_frame_id" value="$(arg car_frame_id)" />
+		<arg name="num_uwbs" value="3" />
+		<arg name="num_cars" value="3" />
+	</include>
+
+	<node pkg="tf" type="static_transform_publisher" name="map_to_$(arg car_frame_id)"
+        args="0 0 0 0 0 0 map $(arg car_frame_id) 100" />
+
+</launch>

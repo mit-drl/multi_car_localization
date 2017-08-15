@@ -5,6 +5,7 @@ from sensor_msgs.msg import Range
 from geometry_msgs.msg import PoseStamped
 from multi_car_msgs.msg import CarMeasurement
 from multi_car_msgs.msg import CarState
+from multi_car_msgs.msg import CarControl
 from std_msgs.msg import Header
 import math
 import numpy as np
@@ -72,18 +73,26 @@ class FakeCar(object):
         # self.state.u.append(self.u[1])
         self.state.car_id = 0
 
+        self.control = CarControl()
+        self.control.header = Header()
+        self.control.header.frame_id = self.frame_id
+        self.control.car_id = int(self.frame_id[-1])
+
         self.robot = RoombaDynamics()
 
         self.pose_pub = rospy.Publisher("/range_position", CarState, queue_size=1)
+        self.control_pub = rospy.Publisher("/control", CarControl, queue_size=1)
 
     def publish_pose(self):
         self.state.state = self.x.tolist()
+        self.state.header.stamp = rospy.Time.now()
 
-        # if self.frame_id == "car0":
-        #     print "THE TRUE POSE ISSSSSSS:"
-        #     print self.x
+        self.control.header.stamp = rospy.Time.now()
+        self.control.steering_angle = self.state.u[0]
+        self.control.velocity = self.state.u[1]
 
         self.pose_pub.publish(self.state)
+        self.control_pub.publish(self.control)
 
     def run(self):
         maxcounts = 180
