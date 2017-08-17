@@ -64,15 +64,14 @@ class Measurements(object):
 		self.control[car_id] = control
 
 	def range_cb(self, uwb):
-		uwb.to_id = self.id_dict{uwb.to_id}
-		uwb.from_id = self.id_dict{uwb.from_id}
+		uwb.to_id = self.id_dict[uwb.to_id]
+		uwb.from_id = self.id_dict[uwb.from_id]
 		self.uwb_ranges[(uwb.to_id, uwb.from_id)] = uwb
 		# if self.frame_id == "car0":	
 		# 	print self.uwb_ranges
 
 	def gps_cb(self, gps, args):
 		car_id = args[0]
-		gps.car_id = self.id_dict{gps.car_id}
 		self.gps[car_id] = gps
 
 	def publish_measurements(self):
@@ -101,6 +100,23 @@ class Measurements(object):
 			self.gps = [None]*self.Ncars
 			self.uwb_ranges = self.init_uwb()
 			self.control = [None]*self.Ncars
+		else:
+			num_uwb = 0
+			for uwb in self.uwb_ranges:
+				if self.uwb_ranges[uwb] != -1:
+					num_uwb += 1
+			num_gps = 0
+			for gps in self.gps:
+				if gps is not None:
+					num_gps += 1
+			print "NUM UWB: %d" % (num_uwb)
+			print "NUM GPS: %d" % (num_gps)
+			num_control = 0
+			for cont in self.control:
+				if cont is not None:
+					num_control += 1
+			print "NUM CON: %d" % (num_control)
+
 
 	def run(self):
 		while not rospy.is_shutdown():

@@ -18,6 +18,10 @@
         <param name="child_frame_id" value="map"/>
     </node>
 
+    <node pkg="multi_car_localization" type="fake_control.py" name="fake_control" output="screen">
+    	<param name="num_cars" value="3"/>
+    </node>
+
 	<node pkg="tf" type="static_transform_publisher" name="map_to_$(arg car_frame_id)"
         args="0 0 0 0 0 0 map $(arg car_frame_id) 100" />
 
@@ -25,6 +29,6 @@
         args="0 0 0 0 0 0 earth utm 100" />
 
     <node pkg="tf" type="static_transform_publisher" name="map_to_utm"
-        args="327841.212895 4692094.36513 0 0 0 0 utm map 100" />
+        args="327929.638478 4692092.20129 0 0 0 0 utm map 100" />
 
 </launch>
