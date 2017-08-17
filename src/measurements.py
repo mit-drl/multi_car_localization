@@ -29,7 +29,7 @@ class Measurements(object):
 		self.control = [None] * self.Ncars
 		#self.gps_data = {}
 
-		self.uwb_sub = rospy.Subscriber("uwb", UWBRange, self.range_cb, queue_size=1)
+		self.uwb_sub = rospy.Subscriber("ranges", UWBRange, self.range_cb, queue_size=1)
 		#self.gps_sub = rospy.Subscriber("gps", NavSatFix, self.gps_cb, queue_size=1)
 		self.gps_sub = []
 		for i in range(self.Ncars):
