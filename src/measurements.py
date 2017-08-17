@@ -43,6 +43,10 @@ class Measurements(object):
 		self.meas_pub = rospy.Publisher(
 			"measurements", CarMeasurement, queue_size=1)
 
+		self.id_dict = {0 : 0, 26677 : 0, 26626 : 0,
+						1 : 1, 26727 : 1, 26630 : 1, 
+						2 : 2, 26715 : 2, 26663 : 2}
+
 		#self.br = tf.TransformBroadcaster()
 
 	def init_uwb(self):
@@ -55,15 +59,20 @@ class Measurements(object):
 		return uwbs
 
 	def control_cb(self, control):
-		self.control[control.car_id] = control
+		car_id = self.id_dict[control.car_id]
+		control.car_id = car_id
+		self.control[car_id] = control
 
 	def range_cb(self, uwb):
+		uwb.to_id = self.id_dict{uwb.to_id}
+		uwb.from_id = self.id_dict{uwb.from_id}
 		self.uwb_ranges[(uwb.to_id, uwb.from_id)] = uwb
 		# if self.frame_id == "car0":	
 		# 	print self.uwb_ranges
 
 	def gps_cb(self, gps, args):
 		car_id = args[0]
+		gps.car_id = self.id_dict{gps.car_id}
 		self.gps[car_id] = gps
 
 	def publish_measurements(self):
