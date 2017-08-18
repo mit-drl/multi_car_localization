@@ -43,6 +43,7 @@ class ParticleFilter(object):
         self.x_cov = np.diag(self.Ncars * [0.1, 0.1, 0.01])
         # self.meas_cov = np.diag(self.Ncars * [0.6, 0.6, 0.1, 0.1, 0.1])
         self.meas_cov = 3.*np.diag(self.Ncars * [1.0, 1.0, 0.2, 0.2, 0.2])
+        self.actual_meas_cov = self.meas_cov
 
         self.resample_perc = rospy.get_param("~resample_perc", 0.3)
 
@@ -184,24 +185,36 @@ class ParticleFilter(object):
                 # for j in xrange(self.Ncars):
                 #     meas[j, j+2] = 0.0
 
+                new_meas_cov = self.meas_cov
+
                 meas = np.zeros((self.Ncars, self.Nmeas))
                 for j in xrange(self.Ncars):
                     meas[j, 0] = self.gps[j].pose.pose.position.x - self.trans[0]
                     meas[j, 1] = self.gps[j].pose.pose.position.y - self.trans[1]
 
+                    # j k
+                    # 0 1
+                    # 0 2
+                    # 1 0
+                    # 1 2
+                    # 2 0
+                    # 2 1
                     for k in xrange(self.Ncars):
-                        if k > j:
+                        if k != j:
                             meas[j, k + 2] = self.uwbs[(j, k)].distance
-                            meas[k, j + 2] = self.uwbs[(j, k)].distance
+                            if self.uwbs[(j, k)].distance == -1:
+                                self.uwbs[(j, k)].distance = self.uwbs[(k, j)].distance
+                                new_meas_cov[j*self.Ndim + k + 2, j*self.Ndim + k + 2] = 12345.0
 
                 # about 0.1-0.2 seconds
                 # much shorter now that i reduced the rate of
                 # the callbacks - i think they were interrupting
                 # this function and causing it to take longer
                 st0 = rospy.get_time()
+                self.filter.set_meas_cov(new_meas_cov)
                 particles = self.filter.update_particles(us, dt)
                 tim0 = rospy.get_time() - st0
-                print "FWD SIMULATE:     %f" % (tim0)
+                # print "FWD SIMULATE:     %f" % (tim0)
 
                 # negligible time
                 for j in range(self.Ncars):

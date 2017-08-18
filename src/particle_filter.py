@@ -72,6 +72,9 @@ class MultiCarParticleFilter(object):
             self.particles[i] = new_particle + u_noise
         return self.particles
 
+    def set_meas_cov(self, new_meas_cov):
+        self.meas_cov = new_meas_cov
+
     def update_weights(self, meas):
         #print self.weights
         #avg_error = np.zeros_like(meas)
@@ -89,7 +92,6 @@ class MultiCarParticleFilter(object):
                             self.particles[j, k, :2] - self.particles[j, l, :2])
             #avg_error += np.abs(meas - p_means) / self.Np
             self.weights[j] *= self.pdf(meas, p_means, self.meas_cov)
-            #print self.pdf(meas, p_means, self.meas_cov)
         #self.weights += 1e-32
         #print avg_error
         #print self.weights.sum()

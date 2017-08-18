@@ -53,9 +53,12 @@ class Measurements(object):
 		uwbs = {}
 		for j in range(self.Ncars):
 			for k in range(self.Ncars):
-				if k > j:
-					uwbs[(j, k)] = -1
-					uwbs[(k, j)] = -1
+				if k != j:
+					null_uwb = UWBRange()
+					null_uwb.distance = -1
+					null_uwb.to_id = j
+					null_uwb.from_id = k
+					uwbs[(j, k)] = null_uwb
 		return uwbs
 
 	def control_cb(self, control):
@@ -67,8 +70,8 @@ class Measurements(object):
 		uwb.to_id = self.id_dict[uwb.to_id]
 		uwb.from_id = self.id_dict[uwb.from_id]
 		self.uwb_ranges[(uwb.to_id, uwb.from_id)] = uwb
-		if self.uwb_ranges[(uwb.from_id, uwb.to_id)] == -1:
-			self.uwb_ranges[(uwb.from_id, uwb.to_id)] = uwb
+		# if self.uwb_ranges[(uwb.from_id, uwb.to_id)] == -1:
+		# 	self.uwb_ranges[(uwb.from_id, uwb.to_id)] = uwb
 		# if self.frame_id == "car0":	
 		# 	print self.uwb_ranges
 
@@ -81,12 +84,22 @@ class Measurements(object):
 		control_good = None not in self.control
 
 		uwb_good = True
-		for uwb in self.uwb_ranges:
-			if self.uwb_ranges[uwb] == -1:
-				uwb_good = False
+		for i in range(self.Ncars):
+			for j in range(self.Ncars):
+				if i < j:
+					if self.uwb_ranges[(i, j)].distance == -1 and self.uwb_ranges[(j, i)].distance == -1:
+						uwb_good = False
+
+		# for uwb in self.uwb_ranges:
+		# 	if self.uwb_ranges[uwb] == -1:
+		# 		uwb_good = False
 
 		if gps_good and uwb_good and control_good:
-
+			num_uwb = 0
+			for uwb in self.uwb_ranges:
+				if self.uwb_ranges[uwb].distance != -1:
+					num_uwb += 1
+			print "NUM UWB: %d" % (num_uwb)
 			self.meas.header.stamp = rospy.Time.now()
 			#if len(self.uwb_ranges) == self.Ncars - 1:
 				#if len(self.gps_data) == (self.Ncars - 1)*self.num_uwbs:
@@ -102,22 +115,22 @@ class Measurements(object):
 			self.gps = [None]*self.Ncars
 			self.uwb_ranges = self.init_uwb()
 			self.control = [None]*self.Ncars
-		else:
-			num_uwb = 0
-			for uwb in self.uwb_ranges:
-				if self.uwb_ranges[uwb] != -1:
-					num_uwb += 1
-			num_gps = 0
-			for gps in self.gps:
-				if gps is not None:
-					num_gps += 1
-			print "NUM UWB: %d" % (num_uwb)
-			print "NUM GPS: %d" % (num_gps)
-			num_control = 0
-			for cont in self.control:
-				if cont is not None:
-					num_control += 1
-			print "NUM CON: %d" % (num_control)
+		# else:
+		# 	num_uwb = 0
+		# 	for uwb in self.uwb_ranges:
+		# 		if self.uwb_ranges[uwb].distance != -1:
+		# 			num_uwb += 1
+		# 	num_gps = 0
+		# 	for gps in self.gps:
+		# 		if gps is not None:
+		# 			num_gps += 1
+		# 	print "NUM UWB: %d" % (num_uwb)
+		# 	print "NUM GPS: %d" % (num_gps)
+		# 	num_control = 0
+		# 	for cont in self.control:
+		# 		if cont is not None:
+		# 			num_control += 1
+		# 	print "NUM CON: %d" % (num_control)
 
 
 	def run(self):

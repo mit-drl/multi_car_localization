@@ -157,7 +157,7 @@ class Consensus(object):
 			if rospy.get_time() - st0 > 1.0:
 				break
 		tim3 = rospy.get_time() - st0
-		print "consensus loops:  %f" % (tim3)
+		#print "consensus loops:  %f" % (tim3)
 
 		self.x_post = np.dot(np.linalg.inv(self.Vi),self.vi)
 		self.J_post = self.Ncars*self.Vi
@@ -193,7 +193,7 @@ class Consensus(object):
 					self.icf()
 
 					tim3 = rospy.get_time() - st3
-					print "CONSENSUS:        %f" % (tim3)	
+					#print "CONSENSUS:        %f" % (tim3)	
 
 			#self.rate.sleep()
 
