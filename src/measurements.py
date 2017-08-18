@@ -67,6 +67,8 @@ class Measurements(object):
 		uwb.to_id = self.id_dict[uwb.to_id]
 		uwb.from_id = self.id_dict[uwb.from_id]
 		self.uwb_ranges[(uwb.to_id, uwb.from_id)] = uwb
+		if self.uwb_ranges[(uwb.from_id, uwb.to_id)] == -1:
+			self.uwb_ranges[(uwb.from_id, uwb.to_id)] = uwb
 		# if self.frame_id == "car0":	
 		# 	print self.uwb_ranges
 

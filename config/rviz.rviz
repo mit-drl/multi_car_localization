@@ -6,7 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /Path1
+        - /PoseArray2
       Splitter Ratio: 0.5
     Tree Height: 895
   - Class: rviz/Selection
@@ -52,75 +52,6 @@ Visualization Manager:
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
-      Color: 255; 255; 255
-      Enabled: true
-      Head Diameter: 0.3
-      Head Length: 0.2
-      Length: 0.3
-      Line Style: Lines
-      Line Width: 0.03
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.03
-      Shaft Diameter: 0.1
-      Shaft Length: 0.1
-      Topic: /car0/path0
-      Unreliable: false
-      Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 25; 255; 0
-      Enabled: false
-      Head Diameter: 0.3
-      Head Length: 0.2
-      Length: 0.3
-      Line Style: Lines
-      Line Width: 0.03
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.03
-      Shaft Diameter: 0.1
-      Shaft Length: 0.1
-      Topic: /car1/path1
-      Unreliable: false
-      Value: false
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 25; 255; 0
-      Enabled: false
-      Head Diameter: 0.3
-      Head Length: 0.2
-      Length: 0.3
-      Line Style: Lines
-      Line Width: 0.03
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.03
-      Shaft Diameter: 0.1
-      Shaft Length: 0.1
-      Topic: /car1/path2
-      Unreliable: false
-      Value: false
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
       Color: 0; 255; 0
       Enabled: true
       Head Diameter: 0.3
@@ -141,121 +72,6 @@ Visualization Manager:
       Topic: /car0/path00
       Unreliable: false
       Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 255; 255; 127
-      Enabled: false
-      Head Diameter: 0.3
-      Head Length: 0.2
-      Length: 0.3
-      Line Style: Lines
-      Line Width: 0.03
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.03
-      Shaft Diameter: 0.1
-      Shaft Length: 0.1
-      Topic: /car0/path11
-      Unreliable: false
-      Value: false
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 255; 85; 127
-      Enabled: false
-      Head Diameter: 0.3
-      Head Length: 0.2
-      Length: 0.3
-      Line Style: Lines
-      Line Width: 0.03
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.03
-      Shaft Diameter: 0.1
-      Shaft Length: 0.1
-      Topic: /car0/path22
-      Unreliable: false
-      Value: false
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 25; 255; 0
-      Enabled: false
-      Head Diameter: 0.3
-      Head Length: 0.2
-      Length: 0.3
-      Line Style: Lines
-      Line Width: 0.03
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.03
-      Shaft Diameter: 0.1
-      Shaft Length: 0.1
-      Topic: /car2/path11
-      Unreliable: false
-      Value: false
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 25; 255; 0
-      Enabled: false
-      Head Diameter: 0.3
-      Head Length: 0.2
-      Length: 0.3
-      Line Style: Billboards
-      Line Width: 0.03
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.03
-      Shaft Diameter: 0.1
-      Shaft Length: 0.1
-      Topic: /car2/path00
-      Unreliable: false
-      Value: false
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 25; 255; 0
-      Enabled: false
-      Head Diameter: 0.3
-      Head Length: 0.2
-      Length: 0.3
-      Line Style: Lines
-      Line Width: 0.03
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.03
-      Shaft Diameter: 0.1
-      Shaft Length: 0.1
-      Topic: /car2/path22
-      Unreliable: false
-      Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 255; 25; 0
@@ -264,124 +80,9 @@ Visualization Manager:
       Topic: /car0/particles
       Unreliable: false
       Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 255; 0; 255
-      Enabled: false
-      Head Diameter: 0.3
-      Head Length: 0.2
-      Length: 0.3
-      Line Style: Lines
-      Line Width: 0.03
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.03
-      Shaft Diameter: 0.1
-      Shaft Length: 0.1
-      Topic: /car0/consensus0
-      Unreliable: false
-      Value: false
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 170; 0; 255
-      Enabled: false
-      Head Diameter: 0.3
-      Head Length: 0.2
-      Length: 0.3
-      Line Style: Lines
-      Line Width: 0.03
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.03
-      Shaft Diameter: 0.1
-      Shaft Length: 0.1
-      Topic: /car0/consensus1
-      Unreliable: false
-      Value: false
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 170; 85; 255
-      Enabled: false
-      Head Diameter: 0.3
-      Head Length: 0.2
-      Length: 0.3
-      Line Style: Lines
-      Line Width: 0.03
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.03
-      Shaft Diameter: 0.1
-      Shaft Length: 0.1
-      Topic: /car0/consensus2
-      Unreliable: false
-      Value: false
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 25; 255; 0
-      Enabled: false
-      Head Diameter: 0.3
-      Head Length: 0.2
-      Length: 0.3
-      Line Style: Billboards
-      Line Width: 0.03
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.03
-      Shaft Diameter: 0.1
-      Shaft Length: 0.1
-      Topic: /car1/path00
-      Unreliable: false
-      Value: false
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 25; 255; 0
-      Enabled: false
-      Head Diameter: 0.3
-      Head Length: 0.2
-      Length: 0.3
-      Line Style: Lines
-      Line Width: 0.03
-      Name: Path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.03
-      Shaft Diameter: 0.1
-      Shaft Length: 0.1
-      Topic: /car2/path11
-      Unreliable: false
-      Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
-      Color: 0; 255; 255
+      Color: 255; 255; 0
       Enabled: true
       Name: PoseArray
       Topic: /car1/particles
@@ -510,6 +211,29 @@ Visualization Manager:
       Topic: /car2/path00
       Unreliable: false
       Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.3
+      Head Length: 0.2
+      Length: 0.3
+      Line Style: Lines
+      Line Width: 0.03
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.03
+      Shaft Diameter: 0.1
+      Shaft Length: 0.1
+      Topic: /car0/vicon_path0
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -534,16 +258,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 245.474
+      Distance: 351.198
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -10.1493
-        Y: -17.4538
-        Z: -25.6197
+        X: 44.9338
+        Y: 39.0059
+        Z: -25.6818
       Name: Current View
       Near Clip Distance: 0.01
       Pitch: 1.5698
