@@ -19,23 +19,26 @@ class Measurements(object):
 		self.num_uwbs = rospy.get_param("~num_uwbs", 3)
 		self.Ncars = rospy.get_param("~num_cars", 3)
 		self.frame_id = rospy.get_param("~car_frame_id", "car0")
+		self.id_dict = rospy.get_param("/id_dict", None)
+		self.connections = rospy.get_param("/connections", None)
+		self.own_connections = self.connections[self.frame_id[-1]]
+		self.Nconn = len(self.own_connections)
 
 		self.meas = CarMeasurement()
 		self.meas.header = Header()
 		self.meas.header.frame_id = self.frame_id
 
 		self.uwb_ranges = self.init_uwb()
-		self.gps = [None]*self.Ncars
-		self.control = [None] * self.Ncars
-		#self.gps_data = {}
+		self.gps = [None]*self.Nconn
+		self.control = [None] * self.Nconn
 
 		self.uwb_sub = rospy.Subscriber("ranges", UWBRange, self.range_cb, queue_size=1)
 		#self.gps_sub = rospy.Subscriber("gps", NavSatFix, self.gps_cb, queue_size=1)
 		self.gps_sub = []
-		for i in range(self.Ncars):
+		for i, ID in enumerate(self.own_connections):
 			self.gps_sub.append(
 				rospy.Subscriber(
-				"odom" + str(i), Odometry, self.gps_cb, (i,), queue_size=1))
+				"odom" + str(ID), Odometry, self.gps_cb, (i,), queue_size=1))
 		#self.initial_gps = None
 
 		self.control_sub = rospy.Subscriber("/control", CarControl, self.control_cb, queue_size=1)
@@ -43,16 +46,12 @@ class Measurements(object):
 		self.meas_pub = rospy.Publisher(
 			"measurements", CarMeasurement, queue_size=1)
 
-		self.id_dict = {0 : 0, 26677 : 0, 26626 : 0,
-						1 : 1, 26727 : 1, 26630 : 1, 
-						2 : 2, 26715 : 2, 26663 : 2}
-
 		#self.br = tf.TransformBroadcaster()
 
 	def init_uwb(self):
 		uwbs = {}
-		for j in range(self.Ncars):
-			for k in range(self.Ncars):
+		for j in self.own_connections:
+			for k in self.own_connections:
 				if k != j:
 					null_uwb = UWBRange()
 					null_uwb.distance = -1
@@ -62,18 +61,14 @@ class Measurements(object):
 		return uwbs
 
 	def control_cb(self, control):
-		car_id = self.id_dict[control.car_id]
+		car_id = self.id_dict[str(control.car_id)]
 		control.car_id = car_id
 		self.control[car_id] = control
 
 	def range_cb(self, uwb):
-		uwb.to_id = self.id_dict[uwb.to_id]
-		uwb.from_id = self.id_dict[uwb.from_id]
+		uwb.to_id = self.id_dict[str(uwb.to_id)]
+		uwb.from_id = self.id_dict[str(uwb.from_id)]
 		self.uwb_ranges[(uwb.to_id, uwb.from_id)] = uwb
-		# if self.uwb_ranges[(uwb.from_id, uwb.to_id)] == -1:
-		# 	self.uwb_ranges[(uwb.from_id, uwb.to_id)] = uwb
-		# if self.frame_id == "car0":	
-		# 	print self.uwb_ranges
 
 	def gps_cb(self, gps, args):
 		car_id = args[0]
@@ -84,15 +79,11 @@ class Measurements(object):
 		control_good = None not in self.control
 
 		uwb_good = True
-		for i in range(self.Ncars):
-			for j in range(self.Ncars):
+		for i in self.own_connections:
+			for j in self.own_connections:
 				if i < j:
 					if self.uwb_ranges[(i, j)].distance == -1 and self.uwb_ranges[(j, i)].distance == -1:
 						uwb_good = False
-
-		# for uwb in self.uwb_ranges:
-		# 	if self.uwb_ranges[uwb] == -1:
-		# 		uwb_good = False
 
 		if gps_good and uwb_good and control_good:
 			num_uwb = 0
@@ -101,20 +92,17 @@ class Measurements(object):
 					num_uwb += 1
 			print "NUM UWB: %d" % (num_uwb)
 			self.meas.header.stamp = rospy.Time.now()
-			#if len(self.uwb_ranges) == self.Ncars - 1:
-				#if len(self.gps_data) == (self.Ncars - 1)*self.num_uwbs:
+
 			for ID in self.uwb_ranges:
 				self.meas.range.append(self.uwb_ranges[ID])
 			self.meas.gps = self.gps
 			self.meas.control = self.control
-			# for ID in self.gps_data:
-			# 	self.meas.gps.append(self.gps_data[ID])
+
 			self.meas_pub.publish(self.meas)
-			# for pub in self.outside_pub:
-			# 	pub.publish(self.meas)
-			self.gps = [None]*self.Ncars
+
+			self.gps = [None]*self.Nconn
 			self.uwb_ranges = self.init_uwb()
-			self.control = [None]*self.Ncars
+			self.control = [None]*self.Nconn
 		# else:
 		# 	num_uwb = 0
 		# 	for uwb in self.uwb_ranges:

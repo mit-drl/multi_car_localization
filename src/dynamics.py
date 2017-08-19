@@ -38,7 +38,7 @@ class Dynamics(object):
     def phi(self, state, u, dt, Ncars, Ndim):
         phis = []
         for i in range(Ncars):
-            phis.append(self.mini_phi(state[i*Ndim:(i+1)*Ndim], u[i*2:(i+1)*2], dt))
+            phis.append(self.mini_phi(state[i*Ndim:(i+1)*Ndim], u[i], dt))
 
         phi = block_diag(*phis)
         return phi

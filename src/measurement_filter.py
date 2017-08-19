@@ -32,17 +32,21 @@ class ParticleFilter(object):
         self.Ninputs = rospy.get_param("~num_inputs", 2)
         self.frame_id = rospy.get_param("~car_frame_id", "car0")
 
+        self.connections = rospy.get_param("/connections", None)
+        self.own_connections = self.connections[self.frame_id[-1]]
+        self.Nconn = len(self.own_connections)
+
         self.listener = tf.TransformListener()
 
         self.x0 = None
-        self.gps = [None]*self.Ncars
+        self.gps = [None]*self.Nconn
         self.uwbs = {}
-        self.init_angle = [-0.1, 1.0, 2.5]
+        self.init_angle = [-0.1, 1.0, 2.5, -0.5]
 
-        self.init_cov = np.diag(self.Ncars * [1.0, 1.0, 0.01])
-        self.x_cov = np.diag(self.Ncars * [0.1, 0.1, 0.01])
+        self.init_cov = np.diag(self.Nconn * [1.0, 1.0, 0.01])
+        self.x_cov = np.diag(self.Nconn * [0.1, 0.1, 0.01])
         # self.meas_cov = np.diag(self.Ncars * [0.6, 0.6, 0.1, 0.1, 0.1])
-        self.meas_cov = 3.*np.diag(self.Ncars * [1.0, 1.0, 0.2, 0.2, 0.2])
+        self.meas_cov = 3.*np.diag(self.Nconn * [1.0, 1.0, 0.2, 0.2, 0.2])
         self.actual_meas_cov = self.meas_cov
 
         self.resample_perc = rospy.get_param("~resample_perc", 0.3)
@@ -51,9 +55,9 @@ class ParticleFilter(object):
         self.prev_time = rospy.get_time()
         self.current_time = 0
 
-        self.u = np.zeros((self.Ncars, self.Ninputs))
+        self.u = np.zeros((self.Nconn, self.Ninputs))
         #self.xs = np.zeros((self.Ncars, self.Ndim))
-        self.xs_pred = np.zeros((self.Ncars, self.Ndim))
+        self.xs_pred = np.zeros((self.Nconn, self.Ndim))
         self.xs_pred_prev = np.zeros_like(self.xs_pred)
 
         self.filter = None
@@ -84,11 +88,8 @@ class ParticleFilter(object):
             print "TRANSFORM FAILEDDDDDDDDDDDDDDDDDDD"
             pass
 
-        self.true_path_pub = []
         self.filter_path_pub = []
-        for i in range(self.Ncars):
-            self.true_path_pub.append(
-                rospy.Publisher("path" + str(i), Path, queue_size=1))
+        for i in self.own_connections:
             self.filter_path_pub.append(
                 rospy.Publisher("path" + str(i) + str(i), Path, queue_size=1))
 
@@ -107,17 +108,17 @@ class ParticleFilter(object):
             self.uwbs[(uwb.to_id, uwb.from_id)] = uwb
       
         if self.x0 == None:
-            self.x0 = np.zeros((self.Ncars, self.Ndim))
-            for i in range(self.Ncars):
+            self.x0 = np.zeros((self.Nconn, self.Ndim))
+            for i, j in enumerate(self.own_connections):
                 self.x0[i, 0] = self.gps[i].pose.pose.position.x - self.trans[0]
                 self.x0[i, 1] = self.gps[i].pose.pose.position.y - self.trans[1]
-                self.x0[i, 2] = self.init_angle[i]
+                self.x0[i, 2] = self.init_angle[j]
 
             self.xs_pred = self.x0
 
             self.filter = pf.MultiCarParticleFilter(
                 num_particles=self.Np,
-                num_cars=self.Ncars,
+                num_cars=self.Nconn,
                 num_state_dim=self.Ndim,
                 num_measurements=self.Nmeas,
                 x0=self.x0,
@@ -129,15 +130,9 @@ class ParticleFilter(object):
         self.new_meas = True
 
     def run(self):
-        true_paths = []
         filter_paths = []
-        infs = np.zeros((self.Ncars, self.Ndim, self.Ndim))
-        for j in range(self.Ncars):
-            true_path = Path()
-            true_path.header = Header()
-            true_path.header.stamp = rospy.Time(0)
-            true_path.header.frame_id = "map"
-            true_paths.append(true_path)
+        infs = np.zeros((self.Nconn, self.Ndim, self.Ndim))
+        for j in range(self.Nconn):
 
             filter_path = Path()
             filter_path.header = Header()
@@ -145,14 +140,7 @@ class ParticleFilter(object):
             filter_path.header.frame_id = "map"
             filter_paths.append(filter_path)
 
-        gps_good = False
-
         while not rospy.is_shutdown():
-            # if not gps_good:
-            #     gps_good = True
-            #     for gps in self.gps:
-            #         if gps == None:
-            #             gps_good = False
             
             if self.x0 == None or self.filter == None or not self.new_meas:
                 start_time = rospy.get_time()
@@ -187,8 +175,8 @@ class ParticleFilter(object):
 
                 new_meas_cov = self.meas_cov
 
-                meas = np.zeros((self.Ncars, self.Nmeas))
-                for j in xrange(self.Ncars):
+                meas = np.zeros((self.Nconn, self.Nmeas))
+                for j in xrange(self.Nconn):
                     meas[j, 0] = self.gps[j].pose.pose.position.x - self.trans[0]
                     meas[j, 1] = self.gps[j].pose.pose.position.y - self.trans[1]
 
@@ -199,11 +187,13 @@ class ParticleFilter(object):
                     # 1 2
                     # 2 0
                     # 2 1
-                    for k in xrange(self.Ncars):
+                    for k in xrange(self.Nconn):
                         if k != j:
-                            meas[j, k + 2] = self.uwbs[(j, k)].distance
-                            if self.uwbs[(j, k)].distance == -1:
-                                self.uwbs[(j, k)].distance = self.uwbs[(k, j)].distance
+                            to_id = self.own_connections[j]
+                            from_id = self.own_connections[k]
+                            meas[j, k + 2] = self.uwbs[(to_id, from_id)].distance
+                            if self.uwbs[(to_id, from_id)].distance == -1:
+                                self.uwbs[(to_id, from_id)].distance = self.uwbs[(from_id, to_id)].distance
                                 new_meas_cov[j*self.Ndim + k + 2, j*self.Ndim + k + 2] = 12345.0
 
                 # about 0.1-0.2 seconds
@@ -217,7 +207,7 @@ class ParticleFilter(object):
                 # print "FWD SIMULATE:     %f" % (tim0)
 
                 # negligible time
-                for j in range(self.Ncars):
+                for j in range(self.Nconn):
                     infs[j] = np.linalg.inv(np.cov(particles[:, j, :].T))
 
                 pa = PoseArray()
@@ -225,7 +215,7 @@ class ParticleFilter(object):
                 pa.header.stamp = rospy.Time.now()
                 pa.header.frame_id = "map"
                 for p in particles:
-                    for j in range(self.Ncars):
+                    for j in range(self.Nconn):
                         pose = Pose()
                         quat = quaternion_from_euler(0, 0, p[j, 2])
                         pose.position.x = p[j, 0]
@@ -245,21 +235,7 @@ class ParticleFilter(object):
                 tim1 = rospy.get_time() - st1
                 # print "update weights:   %f" % (tim1)
 
-                for j in range(self.Ncars):
-
-                    # if self.frame_id == "car0":
-                    #     pose = PoseStamped()
-                    #     pose.header = Header()
-                    #     pose.header.stamp = rospy.Time(0)
-                    #     pose.header.frame_id = "car" + str(j)
-                    #     pose.pose.position.x = self.xs[j, 0]
-                    #     pose.pose.position.y = self.xs[j, 1]
-                    #     pose.pose.orientation.w = 1                    
-                    #     true_paths[j].poses.append(pose)
-                    #     if len(true_paths[j].poses) > 30:
-                    #         true_paths[j].poses.pop(0)
-
-                    #     self.true_path_pub[j].publish(true_paths[j])
+                for j in range(self.Nconn):
 
                     if j == 0:
                         pose2 = PoseStamped()
