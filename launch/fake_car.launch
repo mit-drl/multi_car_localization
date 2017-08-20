@@ -2,6 +2,7 @@
 <launch>
 
 	<arg name="car_frame_id" default="car0" />
+    <arg name="num_cars" default="3" />
 
     <node pkg="multi_car_localization" type="fake_car.py" name="$(arg car_frame_id)" output="screen">
 		<param name="frame_id" value="$(arg car_frame_id)"/>
@@ -10,24 +11,22 @@
 
  	<include file="$(find multi_car_localization)/launch/particle_filter.launch">
  		<arg name="car_frame_id" value="$(arg car_frame_id)" />
+        <arg name="num_cars" value="$(arg num_cars)" />
 	</include>
 
 	<include file="$(find multi_car_localization)/launch/measurements.launch">
 		<arg name="car_frame_id" value="$(arg car_frame_id)" />
-		<arg name="num_uwbs" value="3" />
-		<arg name="num_cars" value="3" />
+		<arg name="num_cars" value="$(arg num_cars)" />
 	</include>
-
-    <include file="$(find multi_car_localization)/launch/fake_uwb.launch">
-    	<arg name="car_frame_id" value="$(arg car_frame_id)" />
-    </include>
 
     <node pkg="multi_car_localization" type="consensus_test.py" name="consensus_test" output="screen">
     	<param name="frame_id" value="$(arg car_frame_id)"/>
+        <param name="num_cars" value="$(arg num_cars)" />
     </node>
 
     <node pkg="gps_common" type="utm_odometry_node" name="gps_to_utm" output="screen">
         <param name="frame_id" value="utm"/>
+        <param name="num_cars" value="$(arg num_cars)" />
         <param name="child_frame_id" value="map"/>
     </node>
 

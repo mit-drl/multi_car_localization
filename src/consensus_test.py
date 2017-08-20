@@ -17,6 +17,9 @@ from scipy.linalg import block_diag
 import pdb
 from dynamics import RoombaDynamics
 
+import dict_to_graph
+import networkx as nx
+
 """
 State:
 	[x0, y0
@@ -50,14 +53,17 @@ class Consensus(object):
 
 		self.epsilon = rospy.get_param("~epsilon", 0.2)
 		self.K = rospy.get_param("~consensus_iterations", 15)
-		self.N = rospy.get_param("~number_of_nodes", 3)
-		self.Ncars = rospy.get_param("~number_of_cars", 3)
+		self.Ncars = rospy.get_param("~num_cars", 3)
 		self.Ndim = rospy.get_param("~num_state_dim", 3)
 		self.frame_id = rospy.get_param("~frame_id", "car0")
 
 		self.connections = rospy.get_param("/connections", None)
 		self.own_connections = self.connections[self.frame_id[-1]]
 		self.Nconn = len(self.own_connections)
+
+		self.full_graph = dict_to_graph.convert(self.connections)
+		self.graph = dict_to_graph.prune(self.full_graph, int(self.frame_id[-1]))
+
 
 		self.robot = RoombaDynamics()
 
@@ -80,7 +86,9 @@ class Consensus(object):
 		identity = np.identity(self.Ndim)
 		for i, ID in enumerate(self.own_connections):
 			self.Hi[i*self.Ndim:(i+1)*self.Ndim, ID*self.Ndim:(ID+1)*self.Ndim] = identity
-			self.Q[ID*self.Ndim:(ID+1)*self.Ndim, ID*self.Ndim:(ID+1)*self.Ndim] = np.diag([100.0, 100.0, 3.14])
+		for i in range(self.Ncars):
+			if i not in self.own_connections:
+				self.Q[i*self.Ndim:(i+1)*self.Ndim, i*self.Ndim:(i+1)*self.Ndim] = np.diag([100.0, 100.0, 3.14])
 
 
 		self.x_sub = rospy.Subscriber("combined", CombinedState, self.x_cb)
@@ -90,11 +98,11 @@ class Consensus(object):
 
 		self.vj = {}
 		self.Vj = {}
-		self.v_sub = rospy.Subscriber("/consensus", ConsensusMsg, self.v_cb)
+		self.v_sub = rospy.Subscriber("/consensus", ConsensusMsg, self.consensus_cb)
 		# for i in self.own_connections:
 		# 	if i != int(self.frame_id[-1]):
 		# 		self.v_sub.append(
-		# 			rospy.Subscriber("/car" + str(i) + "/v", ConsensusMsg, self.v_cb))
+		# 			rospy.Subscriber("/car" + str(i) + "/v", ConsensusMsg, self.consensus_cb))
 
 		self.v_pub = rospy.Publisher("/consensus", ConsensusMsg, queue_size=1)
 		
@@ -127,8 +135,8 @@ class Consensus(object):
 
 		self.new_meas = True
 
-	def v_cb(self, v):
-		if v.header.frame_id != self.frame_id:
+	def consensus_cb(self, v):
+		if v.header.frame_id != self.frame_id and int(v.header.frame_id[-1]) in self.own_connections:
 			frame_id = v.header.frame_id
 			self.vj[frame_id] = np.array(v.states)
 			self.Vj[frame_id] = np.array(v.confidences).reshape((self.Ncars*self.Ndim, self.Ncars*self.Ndim))
@@ -139,6 +147,7 @@ class Consensus(object):
 		for key in Vj:
 			new_Vi += self.epsilon*(Vj[key] - Vi)
 			new_vi += self.epsilon*(vj[key] - vi)
+
 		return new_vi, new_Vi
 
 	def icf(self):

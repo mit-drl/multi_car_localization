@@ -53,14 +53,14 @@ class FakeCar(object):
 
         self.x0 = np.array([50.*random.random(), 50.*random.random(),
                             0.1*(random.random()-0.5)], dtype=np.float64)
-        self.init_angle = [-0.1, 1.0, 2.5]
+        self.init_angle = [-0.1, 1.0, 2.5, -0.5]
         ID = int(self.frame_id[-1])
         self.x0[2] = self.init_angle[ID]
 
         # self.x0 = np.array([10*random.random(), 10*random.random(),
         #                     math.pi*(random.random()-0.5)], dtype=np.float64)
         self.x = self.x0
-        self.u = [0.6*(random.random()-0.5), 7.0]
+        self.u = [0.6*(random.random()-0.5), 5.0]
         self.current_time = rospy.get_time()
         self.prev_time = self.current_time
 
@@ -71,7 +71,7 @@ class FakeCar(object):
         self.state.u.append(0.0)
         # self.state.u.append(self.u[0])
         # self.state.u.append(self.u[1])
-        self.state.car_id = 0
+        self.state.car_id = int(self.frame_id[-1])
 
         self.control = CarControl()
         self.control.header = Header()

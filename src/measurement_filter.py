@@ -22,19 +22,27 @@ from scipy.stats import multivariate_normal
 from scipy.stats import rv_discrete
 from scipy.linalg import block_diag
 
+import dict_to_graph
+import networkx as nx
+
 class ParticleFilter(object):
 
     def __init__(self):
         self.Np = rospy.get_param("~num_particles", 150)
         self.Ncars = rospy.get_param("~num_cars", 3)
         self.Ndim = rospy.get_param("~num_state_dim", 3)
-        self.Nmeas = rospy.get_param("~num_measurements", 5)
+        # self.Nmeas = rospy.get_param("~num_measurements", 5)
         self.Ninputs = rospy.get_param("~num_inputs", 2)
         self.frame_id = rospy.get_param("~car_frame_id", "car0")
 
         self.connections = rospy.get_param("/connections", None)
         self.own_connections = self.connections[self.frame_id[-1]]
         self.Nconn = len(self.own_connections)
+
+        self.full_graph = dict_to_graph.convert(self.connections)
+        self.graph = dict_to_graph.prune(self.full_graph, int(self.frame_id[-1]))
+
+        self.Nmeas = 2 + len(self.graph.neighbors(int(self.frame_id[-1]))) + 1
 
         self.listener = tf.TransformListener()
 
@@ -46,8 +54,10 @@ class ParticleFilter(object):
         self.init_cov = np.diag(self.Nconn * [1.0, 1.0, 0.01])
         self.x_cov = np.diag(self.Nconn * [0.1, 0.1, 0.01])
         # self.meas_cov = np.diag(self.Ncars * [0.6, 0.6, 0.1, 0.1, 0.1])
-        self.meas_cov = 3.*np.diag(self.Nconn * [1.0, 1.0, 0.2, 0.2, 0.2])
-        self.actual_meas_cov = self.meas_cov
+        cov_diags = [1.0, 1.0]
+        for i in range(self.Nmeas - 2):
+            cov_diags.append(0.2)
+        self.meas_cov = 3.*np.diag(self.Nconn * cov_diags)
 
         self.resample_perc = rospy.get_param("~resample_perc", 0.3)
 
@@ -58,7 +68,6 @@ class ParticleFilter(object):
         self.u = np.zeros((self.Nconn, self.Ninputs))
         #self.xs = np.zeros((self.Ncars, self.Ndim))
         self.xs_pred = np.zeros((self.Nconn, self.Ndim))
-        self.xs_pred_prev = np.zeros_like(self.xs_pred)
 
         self.filter = None
 
@@ -93,17 +102,15 @@ class ParticleFilter(object):
             self.filter_path_pub.append(
                 rospy.Publisher("path" + str(i) + str(i), Path, queue_size=1))
 
-    # def pos_cb(self, cs):
-    #     #self.true_pos[cs.header.frame_id] = cs.state
-    #     self.u[int(cs.header.frame_id[-1])] = cs.u
-
     def meas_cb(self, meas):
         self.gps = meas.gps
 
+        self.u = np.zeros((self.Nconn, self.Ninputs))
         for i, control in enumerate(meas.control):
             self.u[i, 0] = meas.control[i].steering_angle
             self.u[i, 1] = meas.control[i].velocity
 
+        self.uwbs = {}
         for uwb in meas.range:
             self.uwbs[(uwb.to_id, uwb.from_id)] = uwb
       
@@ -133,7 +140,6 @@ class ParticleFilter(object):
         filter_paths = []
         infs = np.zeros((self.Nconn, self.Ndim, self.Ndim))
         for j in range(self.Nconn):
-
             filter_path = Path()
             filter_path.header = Header()
             filter_path.header.stamp = rospy.Time(0)
@@ -150,28 +156,9 @@ class ParticleFilter(object):
                 dt = self.current_time - self.prev_time
                 self.prev_time = self.current_time
                 if dt > 1.0:
-                   print "PF DT BIG: %f" % (dt)
-                #print "%s %f" % (self.frame_id, dt)
-                
-                us = self.u
-            
-                # for j in xrange(self.Ncars):
-                #     self.xs[j] = self.true_pos["car" + str(j)]
+                   print "%s: PF DT BIG: %f" % (self.frame_id, dt)
 
-                # means = np.zeros((self.Ncars, self.Nmeas))
-                # for j in xrange(self.Ncars):
-                #     means[j, :2] = self.xs[j, :2]
-                #     # means[j, 0] = self.gps[j].pose.pose.position.x - self.trans[0]
-                #     # means[j, 1] = self.gps[j].pose.pose.position.y - self.trans[1]
-                #     #means[j, :2] = self.xs[i, j, :2]
-                #     #means[j, 5] = self.xs[i, j, 3]
-                #     for k in xrange(self.Ncars):
-                #         if j != k:
-                #             means[j, k + 2] = np.linalg.norm(self.xs[j, :2] - self.xs[k, :2])
-                # meas = np.random.multivariate_normal(
-                #     means.flatten(), self.meas_cov).reshape(self.Ncars, self.Nmeas)
-                # for j in xrange(self.Ncars):
-                #     meas[j, j+2] = 0.0
+                us = self.u
 
                 new_meas_cov = self.meas_cov
 
@@ -179,7 +166,12 @@ class ParticleFilter(object):
                 for j in xrange(self.Nconn):
                     meas[j, 0] = self.gps[j].pose.pose.position.x - self.trans[0]
                     meas[j, 1] = self.gps[j].pose.pose.position.y - self.trans[1]
-
+                    """
+                    Measurements:
+                        [gps_x0, gps_y0, uwb_00, uwb_01, uwb_02
+                         gps_x1, gps_y1, uwb_10, uwb_11, uwb_12
+                         gps_x2, gps_y2, uwb_20, uwb_21, uwb_22]
+                    """
                     # j k
                     # 0 1
                     # 0 2
@@ -188,13 +180,17 @@ class ParticleFilter(object):
                     # 2 0
                     # 2 1
                     for k in xrange(self.Nconn):
-                        if k != j:
-                            to_id = self.own_connections[j]
-                            from_id = self.own_connections[k]
+                        to_id = self.own_connections[j]
+                        from_id = self.own_connections[k]
+                        if (to_id, from_id) in self.graph.edges():
                             meas[j, k + 2] = self.uwbs[(to_id, from_id)].distance
                             if self.uwbs[(to_id, from_id)].distance == -1:
                                 self.uwbs[(to_id, from_id)].distance = self.uwbs[(from_id, to_id)].distance
-                                new_meas_cov[j*self.Ndim + k + 2, j*self.Ndim + k + 2] = 12345.0
+                                new_meas_cov[j*self.Nmeas + k + 2, j*self.Nmeas + k + 2] = 12345.0
+                        elif to_id == from_id:
+                            new_meas_cov[j*self.Nmeas + k + 2, j*self.Nmeas + k + 2] = 0.001
+                        elif to_id != from_id:
+                            new_meas_cov[j*self.Nmeas + k + 2, j*self.Nmeas + k + 2] = 12345.0
 
                 # about 0.1-0.2 seconds
                 # much shorter now that i reduced the rate of
@@ -268,9 +264,6 @@ class ParticleFilter(object):
                 combined.header = state.header
                 combined.inf = block_diag(*infs).flatten().tolist()
                 self.combined_pub.publish(combined)
-
-
-                self.xs_pred_prev = self.xs_pred
 
                 # can take up to 0.1 seconds
                 # usually around 0.05 seconds
