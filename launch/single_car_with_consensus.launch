@@ -7,7 +7,7 @@
     <rosparam command="load" file="$(arg id_dict)"/>
     <rosparam command="load" file="$(arg connections)"/>
 
-    <arg name="car_frame_id" default="car2" />
+    <arg name="car_frame_id" default="$(env CAR_FRAME_ID)" />
     <arg name="num_cars" default="3" />
 
     <include file="$(find multi_car_localization)/launch/particle_filter.launch">
