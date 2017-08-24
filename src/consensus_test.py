@@ -16,6 +16,7 @@ import random
 from scipy.linalg import block_diag
 import pdb
 from dynamics import RoombaDynamics
+import tf
 
 import dict_to_graph
 import networkx as nx
@@ -64,6 +65,13 @@ class Consensus(object):
 		self.full_graph = dict_to_graph.convert(self.connections)
 		self.graph = dict_to_graph.prune(self.full_graph, int(self.frame_id[-1]))
 
+		self.br = tf.TransformBroadcaster()
+
+    br.sendTransform((msg.x, msg.y, 0),
+                     tf.transformations.quaternion_from_euler(0, 0, msg.theta),
+                     rospy.Time.now(),
+                     turtlename,
+                     "world")
 
 		self.robot = RoombaDynamics()
 
