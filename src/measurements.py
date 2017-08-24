@@ -112,22 +112,22 @@ class Measurements(object):
 			self.gps = [None]*self.Nconn
 			self.uwb_ranges = self.init_uwb()
 			self.control = [None]*self.Nconn
-		# else:
-		# 	num_uwb = 0
-		# 	for uwb in self.uwb_ranges:
-		# 		if self.uwb_ranges[uwb].distance != -1:
-		# 			num_uwb += 1
-		# 	num_gps = 0
-		# 	for gps in self.gps:
-		# 		if gps is not None:
-		# 			num_gps += 1
-		# 	print "NUM UWB: %d" % (num_uwb)
-		# 	print "NUM GPS: %d" % (num_gps)
-		# 	num_control = 0
-		# 	for cont in self.control:
-		# 		if cont is not None:
-		# 			num_control += 1
-		# 	print "NUM CON: %d" % (num_control)
+		else:
+			num_uwb = 0
+			for uwb in self.uwb_ranges:
+				if self.uwb_ranges[uwb].distance != -1:
+					num_uwb += 1
+			num_gps = 0
+			for gps in self.gps:
+				if gps is not None:
+					num_gps += 1
+			print "NUM UWB: %d" % (num_uwb)
+			print "NUM GPS: %d" % (num_gps)
+			num_control = 0
+			for cont in self.control:
+				if cont is not None:
+					num_control += 1
+			print "NUM CON: %d" % (num_control)
 
 
 	def run(self):
