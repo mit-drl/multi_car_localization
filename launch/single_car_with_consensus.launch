@@ -3,16 +3,9 @@
 
 	<arg name="car_frame_id" default="car0" />
     <arg name="num_cars" default="3" />
-    <arg name="num_state_dim" default="3" />
-
-    <node pkg="multi_car_localization" type="fake_car.py" name="$(arg car_frame_id)" output="screen">
-		<param name="frame_id" value="$(arg car_frame_id)"/>
-    </node>
-
 
  	<include file="$(find multi_car_localization)/launch/particle_filter.launch">
  		<arg name="car_frame_id" value="$(arg car_frame_id)" />
-        <arg name="num_cars" value="$(arg num_cars)" />
 	</include>
 
 	<include file="$(find multi_car_localization)/launch/measurements.launch">
@@ -21,20 +14,26 @@
 	</include>
 
     <node pkg="multi_car_localization" type="consensus_test.py" name="consensus_test" output="screen">
-    	<param name="frame_id" value="$(arg car_frame_id)"/>
+        <param name="frame_id" value="$(arg car_frame_id)"/>
         <param name="num_cars" value="$(arg num_cars)" />
     </node>
 
-    <node pkg="gps_common" type="utm_odometry_node" name="gps_to_utm" output="screen">
+	<node pkg="gps_common" type="utm_odometry_node" name="gps_to_utm" output="screen">
         <param name="frame_id" value="utm"/>
-        <param name="num_cars" value="$(arg num_cars)" />
         <param name="child_frame_id" value="map"/>
     </node>
 
-    <node pkg="multi_car_localization" type="metrics.py" name="metrics" output="screen">
-        <param name="frame_id" value="$(arg car_frame_id)"/>
-        <param name="num_cars" value="$(arg num_cars)" />
-        <param name="num_state_dim" value="$(arg num_state_dim)" />
+    <node pkg="multi_car_localization" type="fake_control.py" name="fake_control" output="screen">
+    	<param name="num_cars" value="$(arg num_cars)"/>
     </node>
+
+	<node pkg="tf" type="static_transform_publisher" name="map_to_$(arg car_frame_id)"
+        args="0 0 0 0 0 0 map $(arg car_frame_id) 100" />
+
+    <node pkg="tf" type="static_transform_publisher" name="map_to_gps"
+        args="0 0 0 0 0 0 earth utm 100" />
+
+    <node pkg="tf" type="static_transform_publisher" name="map_to_utm"
+        args="327929.638478 4692092.20129 0 0 0 0 utm map 100" />
 
 </launch>

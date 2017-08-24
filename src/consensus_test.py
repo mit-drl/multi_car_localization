@@ -108,6 +108,7 @@ class Consensus(object):
 		
 		self.paths = []
 		self.consensus_pub = []
+		self.consensus_state_pub = rospy.Publisher("consensus_state", CombinedState, queue_size=1)
 		for i in range(self.Ncars):
 			path = Path()
 			path.header = Header()
@@ -190,6 +191,13 @@ class Consensus(object):
 
 		self.x_post = np.dot(np.linalg.inv(self.Vi),self.vi)
 		self.J_post = self.Ncars*self.Vi
+
+		cs = CombinedState()
+		cs.header = Header()
+		cs.header.frame_id = "map"
+		cs.header.stamp = rospy.Time().now()
+		cs.state = self.x_post.flatten().tolist()
+		self.consensus_state_pub.publish(cs)
 
 		for i in range(self.Ncars):
 			pose = PoseStamped()
