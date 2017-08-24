@@ -31,7 +31,7 @@ class FakeControl(object):
         self.control.car_id = int(self.frame_id[-1])
         self.control.header.stamp = rospy.Time.now()
         self.control_pub.publish(self.control)
-        # self.controls_pub.publish(self.control)
+        self.controls_pub.publish(self.control)
 
     def run(self):
         while not rospy.is_shutdown():
