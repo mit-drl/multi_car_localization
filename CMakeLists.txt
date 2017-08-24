@@ -109,7 +109,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES multi_car_localization
-   CATKIN_DEPENDS message_runtime geometry_msgs nav_msgs roscpp rospy sensor_msgs std_msgs
+   CATKIN_DEPENDS message_runtime geometry_msgs nav_msgs roscpp rospy sensor_msgs std_msgs multi_car_msgs
 #  DEPENDS system_lib
 )
 
