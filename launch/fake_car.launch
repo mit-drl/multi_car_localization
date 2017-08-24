@@ -3,6 +3,7 @@
 
 	<arg name="car_frame_id" default="car0" />
     <arg name="num_cars" default="3" />
+    <arg name="num_state_dim" default="3" />
 
     <node pkg="multi_car_localization" type="fake_car.py" name="$(arg car_frame_id)" output="screen">
 		<param name="frame_id" value="$(arg car_frame_id)"/>
@@ -28,6 +29,12 @@
         <param name="frame_id" value="utm"/>
         <param name="num_cars" value="$(arg num_cars)" />
         <param name="child_frame_id" value="map"/>
+    </node>
+
+    <node pkg="multi_car_localization" type="metrics.py" name="metrics" output="screen">
+        <param name="frame_id" value="$(arg car_frame_id)"/>
+        <param name="num_cars" value="$(arg num_cars)" />
+        <param name="num_state_dim" value="$(arg num_state_dim)" />
     </node>
 
 </launch>
