@@ -48,6 +48,7 @@ class Measurements(object):
 		#self.initial_gps = None
 
 		self.control_sub = rospy.Subscriber("/controls", CarControl, self.control_cb, queue_size=1)
+		self.control_sub2 = rospy.Subscriber("/control", CarControl, self.control_cb, queue_size=1)
 
 		self.meas_pub = rospy.Publisher(
 			"measurements", CarMeasurement, queue_size=1)

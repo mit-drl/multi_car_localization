@@ -24,14 +24,12 @@ class FakeControl(object):
         self.control.velocity = 0.0
 
         self.control_pub = rospy.Publisher('/control', CarControl, queue_size=1)
-        self.controls_pub = rospy.Publisher('/controls', CarControl, queue_size=1)
 
     def publish_range(self):
         self.control.header.frame_id = self.frame_id
         self.control.car_id = int(self.frame_id[-1])
         self.control.header.stamp = rospy.Time.now()
         self.control_pub.publish(self.control)
-        self.controls_pub.publish(self.control)
 
     def run(self):
         while not rospy.is_shutdown():
