@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 <launch>
 
-	<arg name="car_frame_id" default="car2" />
+	<arg name="car_frame_id" default="car0" />
+    <arg name="num_cars" value="3" />
 
     <arg name="id_dict" default="$(find multi_car_localization)/param/ids.yaml"/>
     <arg name="connections" default="$(find multi_car_localization)/param/connections_three_cars.yaml"/>
@@ -15,8 +16,7 @@
 
     <include file="$(find multi_car_localization)/launch/measurements.launch">
         <arg name="car_frame_id" value="$(arg car_frame_id)" />
-        <arg name="num_uwbs" value="3" />
-        <arg name="num_cars" value="3" />
+        <arg name="num_cars" value="$(arg num_cars)" />
     </include>
 
     <node pkg="gps_common" type="utm_odometry_node" name="gps_to_utm" output="screen">
@@ -25,7 +25,7 @@
     </node>
 
     <node pkg="multi_car_localization" type="fake_control.py" name="fake_control" output="screen">
-        <param name="num_cars" value="3"/>
+        <param name="num_cars" value="$(arg num_cars)"/>
         <param name="car_frame_id" value="$(arg car_frame_id)" />
     </node>
 
