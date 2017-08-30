@@ -15,19 +15,19 @@ import copy
 class FakeControl(object):
 
     def __init__(self):
-        self.rate = rospy.Rate(rospy.get_param("~frequency", 20))
+        self.rate = rospy.Rate(rospy.get_param("~frequency", 5))
         self.frame_id = rospy.get_param("~car_frame_id", "car0")
 
         self.control = CarControl()
         self.control.header = Header()
+        self.control.header.frame_id = self.frame_id
+        self.control.car_id = int(self.frame_id[-1])
         self.control.steering_angle = 0.0
         self.control.velocity = 1.0
 
         self.control_pub = rospy.Publisher('/control', CarControl, queue_size=1)
 
     def publish_range(self):
-        self.control.header.frame_id = self.frame_id
-        self.control.car_id = int(self.frame_id[-1])
         self.control.header.stamp = rospy.Time.now()
         self.control_pub.publish(self.control)
 

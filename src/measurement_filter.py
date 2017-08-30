@@ -47,20 +47,21 @@ class ParticleFilter(object):
         self.full_graph = dict_to_graph.convert(self.connections)
         self.graph = dict_to_graph.prune(self.full_graph, int(self.frame_id[-1]))
 
-        self.Nmeas = 2 + len(self.graph.neighbors(int(self.frame_id[-1]))) + 1
+        self.Nmeas = 2 + 3 + len(self.graph.neighbors(int(self.frame_id[-1]))) + 1
 
         self.listener = tf.TransformListener()
 
         self.x0 = None
         self.gps = [None]*self.Nconn
+        self.lidar = [None]*self.Nconn
         self.uwbs = {}
         self.init_angle = [-0.1, 1.0, 2.5, -0.5]
 
         self.init_cov = np.diag(self.Nconn * [1.0, 1.0, 0.01])
-        self.x_cov = np.diag(self.Nconn * [0.1, 0.1, 0.01])
+        self.x_cov = np.diag(self.Nconn * [0.1, 0.1, 0.03])
         # self.meas_cov = np.diag(self.Ncars * [0.6, 0.6, 0.1, 0.1, 0.1])
-        cov_diags = [0.6, 0.6]
-        for i in range(self.Nmeas - 2):
+        cov_diags = [0.6, 0.6, 0.05, 0.05, 0.05]
+        for i in range(self.Nmeas - 5):
             cov_diags.append(0.05)
         self.meas_cov = 2.5*np.diag(self.Nconn * cov_diags)
 
@@ -118,9 +119,12 @@ class ParticleFilter(object):
         self.uwbs = {}
         for uwb in meas.range:
             self.uwbs[(uwb.to_id, uwb.from_id)] = uwb
+
+        self.lidar = meas.lidar
       
         if self.x0 == None:
             self.x0 = np.zeros((self.Nconn, self.Ndim))
+            # try using lidar instead of gps?
             for i, j in enumerate(self.own_connections):
                 self.x0[i, 0] = self.gps[i].pose.pose.position.x - self.trans[0]
                 self.x0[i, 1] = self.gps[i].pose.pose.position.y - self.trans[1]
@@ -171,11 +175,17 @@ class ParticleFilter(object):
                 for j in xrange(self.Nconn):
                     meas[j, 0] = self.gps[j].pose.pose.position.x - self.trans[0]
                     meas[j, 1] = self.gps[j].pose.pose.position.y - self.trans[1]
+                    meas[j, 2:5] = self.lidar[j].state
+
+                    cov_dim = len(self.lidar[j].state)
+                    new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
+                                10.0*np.array(self.lidar[j].cov).reshape((cov_dim, cov_dim))
+
                     """
                     Measurements:
-                        [gps_x0, gps_y0, uwb_00, uwb_01, uwb_02
-                         gps_x1, gps_y1, uwb_10, uwb_11, uwb_12
-                         gps_x2, gps_y2, uwb_20, uwb_21, uwb_22]
+                        [gps_x0, gps_y0, lid_x0, lid_y0, lid_theta0, uwb_00, uwb_01, uwb_02
+                         gps_x1, gps_y1, lid_x1, lid_y1, lid_theta1, uwb_10, uwb_11, uwb_12
+                         gps_x2, gps_y2, lid_x2, lid_y2, lid_theta2, uwb_20, uwb_21, uwb_22]
                     """
                     # j k
                     # 0 1
@@ -188,14 +198,14 @@ class ParticleFilter(object):
                         to_id = self.own_connections[j]
                         from_id = self.own_connections[k]
                         if (to_id, from_id) in self.graph.edges():
-                            meas[j, k + 2] = self.uwbs[(to_id, from_id)].distance
+                            meas[j, k + 5] = self.uwbs[(to_id, from_id)].distance
                             if self.uwbs[(to_id, from_id)].distance == -1:
                                 self.uwbs[(to_id, from_id)].distance = self.uwbs[(from_id, to_id)].distance
-                                new_meas_cov[j*self.Nmeas + k + 2, j*self.Nmeas + k + 2] = 12345.0
+                                new_meas_cov[j*self.Nmeas + k + 5, j*self.Nmeas + k + 5] = 12345.0
                         elif to_id == from_id:
-                            new_meas_cov[j*self.Nmeas + k + 2, j*self.Nmeas + k + 2] = 0.001
+                            new_meas_cov[j*self.Nmeas + k + 5, j*self.Nmeas + k + 5] = 0.001
                         elif to_id != from_id:
-                            new_meas_cov[j*self.Nmeas + k + 2, j*self.Nmeas + k + 2] = 12345.0
+                            new_meas_cov[j*self.Nmeas + k + 5, j*self.Nmeas + k + 5] = 12345.0
 
                 # about 0.1-0.2 seconds
                 # much shorter now that i reduced the rate of

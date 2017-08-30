@@ -19,9 +19,9 @@ Control:
      dx2, dy2]
 
 Measurements:
-    [gps_x0, gps_y0, uwb_00, uwb_01, uwb_02, steerangle0, vel0
-     gps_x1, gps_y1, uwb_10, uwb_11, uwb_12, steerangle1, vel1
-     gps_x2, gps_y2, uwb_20, uwb_21, uwb_22, steerangle2, vel2]
+    [gps_x0, gps_y0, lid_x0, lid_y0, lid_theta0, uwb_00, uwb_01, uwb_02
+     gps_x1, gps_y1, lid_x1, lid_y1, lid_theta1, uwb_10, uwb_11, uwb_12
+     gps_x2, gps_y2, lid_x2, lid_y2, lid_theta2, uwb_20, uwb_21, uwb_22]
 """
 
 
@@ -30,7 +30,7 @@ class MultiCarParticleFilter(object):
     def __init__(self, **kwargs):
         self.Np = kwargs.get("num_particles", 100)
         self.Ncars = kwargs.get("num_cars", 3)
-        self.dynamics_model = kwargs.get("dynamics_model", "roomba")
+        self.dynamics_model = kwargs.get("dynamics_model", "dubins")
         self.robot = dynamics.model(self.dynamics_model)
 
         self.Ndim = self.robot.Ndim
@@ -85,12 +85,11 @@ class MultiCarParticleFilter(object):
             for k in xrange(self.Ncars):
                 # 'gps measurements'
                 p_means[k, :2] = self.particles[j, k, :2]
-                # p_means[k, 6] = self.particles[j, k, 4]
-                #p_means[k, 5] = self.particles[j, k, 3]
+                p_means[k, 2:5] = self.particles[j, k]
                 # 'uwb measurements'
                 for l in xrange(self.Ncars):
                     if k != l:
-                        p_means[k, l + 2] = np.linalg.norm(
+                        p_means[k, l + 5] = np.linalg.norm(
                             self.particles[j, k, :2] - self.particles[j, l, :2])
             #avg_error += np.abs(meas - p_means) / self.Np
             self.weights[j] *= self.pdf(meas, p_means, self.meas_cov)

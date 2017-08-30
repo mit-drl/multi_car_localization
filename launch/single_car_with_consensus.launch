@@ -30,7 +30,6 @@
     </node>
 
     <node pkg="multi_car_localization" type="fake_control.py" name="fake_control" output="screen">
-        <param name="num_cars" value="$(arg num_cars)"/>
         <param name="car_frame_id" value="$(arg car_frame_id)" />
     </node>
 

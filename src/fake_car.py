@@ -11,7 +11,7 @@ import math
 import numpy as np
 import random
 import tf
-from dynamics import RoombaDynamics
+from dynamics import DubinsVelocityDynamics
 
 """
 State:
@@ -60,7 +60,7 @@ class FakeCar(object):
         # self.x0 = np.array([10*random.random(), 10*random.random(),
         #                     math.pi*(random.random()-0.5)], dtype=np.float64)
         self.x = self.x0
-        self.u = [0.6*(random.random()-0.5), 5.0]
+        self.u = [0.3*(random.random()-0.5), 5.0]
         self.current_time = rospy.get_time()
         self.prev_time = self.current_time
 
@@ -81,7 +81,7 @@ class FakeCar(object):
         self.control.header.frame_id = self.frame_id
         self.control.car_id = int(self.frame_id[-1])
 
-        self.robot = RoombaDynamics()
+        self.robot = DubinsVelocityDynamics()
 
         self.pose_pub = rospy.Publisher("/range_position", CarState, queue_size=1)
         self.control_pub = rospy.Publisher("/control", CarControl, queue_size=1)
@@ -121,6 +121,7 @@ class FakeCar(object):
                 u2 = self.u[1] + np.random.normal(0, 3.0*dt)
                 new_u = (u1, u2)
                 self.x = self.robot.state_transition(self.x, new_u, dt)
+                # self.x[2] = self.x[2] % (2*math.pi)
             self.prev_time = self.current_time
             self.rate.sleep()
 

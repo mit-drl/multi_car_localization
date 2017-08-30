@@ -4,12 +4,15 @@
 	<arg name="car_frame_id" default="car0" />
     <arg name="num_cars" default="3" />
     <arg name="num_state_dim" default="3" />
-    <arg name="dynamics_model" default="roomba" />
+    <arg name="dynamics_model" default="dubins" />
 
     <node pkg="multi_car_localization" type="fake_car.py" name="$(arg car_frame_id)" output="screen">
 		<param name="frame_id" value="$(arg car_frame_id)"/>
     </node>
 
+    <include file="$(find multi_car_localization)/launch/fake_lidar.launch">
+        <arg name="car_frame_id" value="$(arg car_frame_id)" />
+    </include>
 
  	<include file="$(find multi_car_localization)/launch/particle_filter.launch">
  		<arg name="car_frame_id" value="$(arg car_frame_id)" />
