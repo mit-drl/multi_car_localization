@@ -52,7 +52,9 @@ class FakeLidar(object):
                                          self.state[2] + random.gauss(0.0, 0.05)])
             cov = np.cov(particles.T).flatten().tolist()
             ps = LidarPose()
-            ps.state = self.state
+            ps.x = self.state[0]
+            ps.y = self.state[1]
+            ps.theta = self.state[2]
             ps.car_id = self.ID
             ps.cov = cov
             self.pose_pub.publish(ps)
