@@ -24,15 +24,20 @@ from scipy.linalg import block_diag
 
 import dict_to_graph
 import networkx as nx
+import dynamics
 
 class ParticleFilter(object):
 
     def __init__(self):
         self.Np = rospy.get_param("~num_particles", 150)
         self.Ncars = rospy.get_param("~num_cars", 3)
-        self.Ndim = rospy.get_param("~num_state_dim", 3)
-        # self.Nmeas = rospy.get_param("~num_measurements", 5)
-        self.Ninputs = rospy.get_param("~num_inputs", 2)
+        self.dynamics_model = rospy.get_param("~dynamics_model", "roomba")
+        self.dynamics = dynamics.model(self.dynamics_model)
+        self.Ndim = self.dynamics.Ndim
+        self.Ninputs = self.dynamics.Ninputs
+
+        # self.Ndim = rospy.get_param("~num_state_dim", 3)
+        # self.Ninputs = rospy.get_param("~num_inputs", 2)
         self.frame_id = rospy.get_param("~car_frame_id", "car0")
 
         self.connections = rospy.get_param("/connections", None)
@@ -54,10 +59,10 @@ class ParticleFilter(object):
         self.init_cov = np.diag(self.Nconn * [1.0, 1.0, 0.01])
         self.x_cov = np.diag(self.Nconn * [0.1, 0.1, 0.01])
         # self.meas_cov = np.diag(self.Ncars * [0.6, 0.6, 0.1, 0.1, 0.1])
-        cov_diags = [1.0, 1.0]
+        cov_diags = [0.6, 0.6]
         for i in range(self.Nmeas - 2):
-            cov_diags.append(0.2)
-        self.meas_cov = 3.*np.diag(self.Nconn * cov_diags)
+            cov_diags.append(0.05)
+        self.meas_cov = 2.5*np.diag(self.Nconn * cov_diags)
 
         self.resample_perc = rospy.get_param("~resample_perc", 0.3)
 
@@ -126,13 +131,13 @@ class ParticleFilter(object):
             self.filter = pf.MultiCarParticleFilter(
                 num_particles=self.Np,
                 num_cars=self.Nconn,
-                num_state_dim=self.Ndim,
                 num_measurements=self.Nmeas,
                 x0=self.x0,
                 init_cov=self.init_cov,
                 x_cov=self.x_cov,
                 measurement_cov=self.meas_cov,
-                resample_perc=self.resample_perc)
+                resample_perc=self.resample_perc,
+                dynamics_model=self.dynamics_model)
 
         self.new_meas = True
 

@@ -64,6 +64,9 @@ class FakeCar(object):
         self.current_time = rospy.get_time()
         self.prev_time = self.current_time
 
+        self.initial_state = self.x0.tolist()
+        self.br = tf.TransformBroadcaster()
+
         self.state = CarState()
         self.state.header = Header()
         self.state.header.frame_id = self.frame_id
@@ -98,6 +101,12 @@ class FakeCar(object):
         maxcounts = 180
         count = 0
         while not rospy.is_shutdown():
+            self.br.sendTransform((self.initial_state[0], self.initial_state[1], 0),
+                tf.transformations.quaternion_from_euler(0, 0, self.initial_state[2]),
+                rospy.Time.now(),
+                "true_" + self.frame_id,
+                "map")
+
             self.current_time = rospy.get_time()
             self.publish_pose()
             if count < maxcounts:
@@ -108,8 +117,8 @@ class FakeCar(object):
                     self.state.u[1] = self.u[1]
             else:
                 dt = self.current_time - self.prev_time
-                u1 = self.u[0] + np.random.normal(0, 6.0*dt)
-                u2 = self.u[1] + np.random.normal(0, 10.0*dt)
+                u1 = self.u[0] + np.random.normal(0, 2.0*dt)
+                u2 = self.u[1] + np.random.normal(0, 3.0*dt)
                 new_u = (u1, u2)
                 self.x = self.robot.state_transition(self.x, new_u, dt)
             self.prev_time = self.current_time

@@ -1,6 +1,16 @@
 import numpy as np
 from scipy.linalg import block_diag
 
+def model(model_name):
+    if model_name == "roomba":
+        return RoombaDynamics()
+    elif model_name == "point":
+        return PointDynamics()
+    elif model_name == "dubins":
+        return DubinsVelocityDynamics()
+    else:
+        print "INVALID DYNAMICS MODEL NAME GIVEN"
+
 class Dynamics(object):
 
     def __init__(self):
@@ -46,7 +56,8 @@ class Dynamics(object):
 class DubinsVelocityDynamics(Dynamics):
 
     def __init__(self):
-        pass
+        self.Ndim = 3
+        self.Ninputs = 2
 
     def state_transition_model(self, state, u):
         u_d, u_v, = u
@@ -67,7 +78,8 @@ class DubinsVelocityDynamics(Dynamics):
 class RoombaDynamics(Dynamics):
 
     def __init__(self):
-        pass
+        self.Ndim = 3
+        self.Ninputs = 2
 
     def state_transition_model(self, state, u):
         u_w, u_v, = u
@@ -83,3 +95,21 @@ class RoombaDynamics(Dynamics):
         return np.array([[1, 0, -v*np.sin(theta)*dt],
                          [0, 1, v*np.cos(theta)*dt],
                          [0, 0, 1]])
+
+class PointDynamics(Dynamics):
+
+    def __init__(self):
+        self.Ndim = 4
+        self.Ninputs = 0
+
+    def state_transition_model(self, state, u):
+        # phi is an unused dead state
+        dx = state[2]
+        dy = state[3]
+        return np.array([dx, dy, 0, 0])
+
+    def mini_phi(self, state, u, dt):
+        return np.array([[1,  0, dt,  0],
+                         [0,  1,  0, dt],
+                         [0,  0,  1,  0],
+                         [0,  0,  0,  1]])

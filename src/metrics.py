@@ -5,6 +5,8 @@ import rospy
 from multi_car_msgs.msg import CarState
 from multi_car_msgs.msg import CombinedState
 from geometry_msgs.msg import Point
+from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import Header
 import numpy as np
 
 class Metrics(object):
@@ -30,10 +32,10 @@ class Metrics(object):
         self.con_pub = []
         for i in range(self.Ncars):
             self.con_pub.append(
-                rospy.Publisher("consensus_error", Point, queue_size=1))
+                rospy.Publisher("consensus_error" + str(i), PoseStamped, queue_size=1))
         for i in range(self.Nconn):
             self.pf_pub.append(
-                rospy.Publisher("pf_error", Point, queue_size=1))
+                rospy.Publisher("pf_error" + str(self.own_connections[i]), PoseStamped, queue_size=1))
 
         self.truth_sub = rospy.Subscriber('/range_position', CarState, self.truth_cb)
         self.pf_sub = rospy.Subscriber('combined', CombinedState, self.pf_cb)
@@ -55,7 +57,8 @@ class Metrics(object):
 
     def publish_errors(self):
         pf_good = True
-        for pf in self.pf_state:
+        for ID in self.own_connections:
+            pf = self.pf_state[ID]
             if pf == None:
                 pf_good = False
 
@@ -70,22 +73,32 @@ class Metrics(object):
                     self.con_state = [None]*self.Ncars
 
     def calculate_and_publish_errors(self):
-        for state in self.true_state:
+        for i, state in enumerate(self.true_state):
             # particle filter error
-            for i, ID in enumerate(self.own_connections):
-                pf_state = self.pf_state[ID]
-                error = Point()
-                error.x = pf_state[0] - state[0]
-                error.y = pf_state[1] - state[1]
-                error.z = pf_state[2] - state[2]
-                self.pf_pub[i].publish(error)
+            if i in self.own_connections:
+                pf_state = self.pf_state[i]
+                error = PoseStamped()
+                error.header = Header()
+                error.header.stamp = rospy.Time.now()
+                error.header.frame_id = "map"
+                x = pf_state[0] - state[0]
+                y = pf_state[1] - state[1]
+                error.pose.position.x = np.sqrt(x**2 + y**2)
+                error.pose.position.y = 0.0
+                error.pose.position.z = pf_state[2] - state[2]
+                self.pf_pub[self.own_connections.index(i)].publish(error)
 
-            for con_state in self.con_state:
-                error = Point()
-                error.x = con_state[0] - state[0]
-                error.y = con_state[1] - state[1]
-                error.z = con_state[2] - state[2]
-                self.con_pub[i].publish(error)
+            con_state = self.con_state[i]
+            error = PoseStamped()
+            error.header = Header()
+            error.header.stamp = rospy.Time.now()
+            error.header.frame_id = "map"
+            x = con_state[0] - state[0]
+            y = con_state[1] - state[1]
+            error.pose.position.x = np.sqrt(x**2 + y**2)
+            error.pose.position.y = 0.0
+            error.pose.position.z = con_state[2] - state[2]
+            self.con_pub[i].publish(error)
 
     def run(self):
         while not rospy.is_shutdown():

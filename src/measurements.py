@@ -10,6 +10,7 @@ from multi_car_msgs.msg import UWBRange
 from multi_car_msgs.msg import CarControl
 from sensor_msgs.msg import NavSatFix
 from nav_msgs.msg import Odometry
+import tf
 
 import dict_to_graph
 import networkx as nx
@@ -45,14 +46,11 @@ class Measurements(object):
 			self.gps_sub.append(
 				rospy.Subscriber(
 				"odom" + str(ID), Odometry, self.gps_cb, (i,), queue_size=1))
-		#self.initial_gps = None
 
 		self.control_sub = rospy.Subscriber("/control", CarControl, self.control_cb, queue_size=1)
 
 		self.meas_pub = rospy.Publisher(
 			"measurements", CarMeasurement, queue_size=1)
-
-		#self.br = tf.TransformBroadcaster()
 
 	def init_uwb(self):
 		uwbs = {}

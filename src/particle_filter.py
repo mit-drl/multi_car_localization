@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 from scipy.stats import rv_discrete
 import rospy
-from dynamics import RoombaDynamics
+import dynamics
 
 """
 State:
@@ -30,7 +30,10 @@ class MultiCarParticleFilter(object):
     def __init__(self, **kwargs):
         self.Np = kwargs.get("num_particles", 100)
         self.Ncars = kwargs.get("num_cars", 3)
-        self.Ndim = kwargs.get("num_state_dim", 4)
+        self.dynamics_model = kwargs.get("dynamics_model", "roomba")
+        self.robot = dynamics.model(self.dynamics_model)
+
+        self.Ndim = self.robot.Ndim
         self.Nmeas = kwargs.get("num_measurements", 6)
         self.x0 = kwargs.get("x0")
         self.x_cov = kwargs.get(
@@ -49,7 +52,6 @@ class MultiCarParticleFilter(object):
             size=self.Np).reshape((self.Np, self.Ncars, self.Ndim))
         self.weights = 1.0 / self.Np * np.ones((self.Np,))
         self.prev_angle_estimate = 0
-        self.robot = RoombaDynamics()
 
     def pdf(self, meas, mean, cov):
         return multivariate_normal.pdf(

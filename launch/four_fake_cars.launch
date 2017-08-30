@@ -12,21 +12,25 @@
     <include file="$(find multi_car_localization)/launch/fake_car.launch" ns="car0">
         <arg name="car_frame_id" value="car0" />
         <arg name="num_cars" value="$(arg num_cars)" />
+        <arg name="dynamics_model" value="roomba" />
     </include>
 
     <include file="$(find multi_car_localization)/launch/fake_car.launch" ns="car1">
         <arg name="car_frame_id" value="car1" />
         <arg name="num_cars" value="$(arg num_cars)" />
+        <arg name="dynamics_model" value="roomba" />
     </include>
 
     <include file="$(find multi_car_localization)/launch/fake_car.launch" ns="car2">
         <arg name="car_frame_id" value="car2" />
         <arg name="num_cars" value="$(arg num_cars)" />
+        <arg name="dynamics_model" value="roomba" />
     </include>
 
     <include file="$(find multi_car_localization)/launch/fake_car.launch" ns="car3">
         <arg name="car_frame_id" value="car3" />
         <arg name="num_cars" value="$(arg num_cars)" />
+        <arg name="dynamics_model" value="roomba" />
     </include>
 
     <include file="$(find multi_car_localization)/launch/fake_uwb.launch">

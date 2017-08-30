@@ -208,6 +208,11 @@ class Consensus(object):
 			pose.header.stamp = rospy.Time().now()
 			pose.pose.position.x = self.x_post[i*self.Ndim]
 			pose.pose.position.y = self.x_post[i*self.Ndim + 1]
+			self.br.sendTransform((self.x_post[i*self.Ndim], self.x_post[i*self.Ndim + 1], 0),
+					tf.transformations.quaternion_from_euler(0, 0, self.x_post[i*self.Ndim+2]),
+					rospy.Time.now(),
+					"car" + str(self.frame_id[-1]) + "/car" + str(i) + "/base_link",
+					"map")
 			self.paths[i].poses.append(pose)
 			if len(self.paths[i].poses) > 300:
 				self.paths[i].poses.pop(0)

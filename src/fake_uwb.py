@@ -21,7 +21,7 @@ class FakeUWB(object):
         self.rng = UWBRange()
         self.rng.header = Header()
 
-        self.sigma = 0.15
+        self.sigma = 0.05
 
         self.position = None
 

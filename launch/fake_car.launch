@@ -4,6 +4,7 @@
 	<arg name="car_frame_id" default="car0" />
     <arg name="num_cars" default="3" />
     <arg name="num_state_dim" default="3" />
+    <arg name="dynamics_model" default="roomba" />
 
     <node pkg="multi_car_localization" type="fake_car.py" name="$(arg car_frame_id)" output="screen">
 		<param name="frame_id" value="$(arg car_frame_id)"/>
@@ -13,6 +14,7 @@
  	<include file="$(find multi_car_localization)/launch/particle_filter.launch">
  		<arg name="car_frame_id" value="$(arg car_frame_id)" />
         <arg name="num_cars" value="$(arg num_cars)" />
+        <arg name="dynamics_model" value="$(arg dynamics_model)" />
 	</include>
 
 	<include file="$(find multi_car_localization)/launch/measurements.launch">

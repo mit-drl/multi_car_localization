@@ -28,13 +28,9 @@ class ViconToGPS(object):
 
         self.var = 0.8           
         
-        self.csail_coords = (42.361826, -71.090607)
+        self.csail_coords = (42.362068, -71.09061995732195)
 
         for i in range(self.Ncars):
-            self.vicon_sub.append(
-                rospy.Subscriber(
-                "/vicon/car" + str(i) + "/car" + str(i), 
-                TransformStamped, self.vicon_cb, (i,),queue_size=1))
             self.vicon_pub.append(
                 rospy.Publisher(
                 "vicon_path" + str(i), Path, queue_size=1))
@@ -47,6 +43,11 @@ class ViconToGPS(object):
             self.spoof_coords[i].fix = NavSatFix()
             self.spoof_coords[i].header = Header()
             self.spoof_coords[i].header.frame_id = "earth"
+
+            self.vicon_sub.append(
+                rospy.Subscriber(
+                "/vicon/car" + str(i) + "/car" + str(i), 
+                TransformStamped, self.vicon_cb, (i,),queue_size=1))
 
         self.fake_gps_pub_coords = rospy.Publisher("fixes", GPS, queue_size=1)
 

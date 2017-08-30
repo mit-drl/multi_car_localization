@@ -49,7 +49,7 @@
     <node pkg="tf" type="static_transform_publisher" name="map_to_utm"
         args="327841.212895 4692094.36513 0 0 0 0 utm map 100" />
 
-    <node pkg="tf" type="static_transform_publisher" name="map_to_car0"
+<!--     <node pkg="tf" type="static_transform_publisher" name="map_to_car0"
         args="0 0 0 0 0 0 map car0 100" />
 
     <node pkg="tf" type="static_transform_publisher" name="map_to_car1"
@@ -59,6 +59,6 @@
         args="0 0 0 0 0 0 map car2 100" />
 
     <node pkg="tf" type="static_transform_publisher" name="map_to_car3"
-        args="0 0 0 0 0 0 map car3 100" />
+        args="0 0 0 0 0 0 map car3 100" /> -->
 
 </launch>

@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+
+	<arg name="grid_name" default="racecar_test2" />
+
+	<node pkg="map_server" type="map_server" name="map_server" args="$(find multi_car_localization)/maps/$(arg grid_name).yaml" />
+
+</launch>
