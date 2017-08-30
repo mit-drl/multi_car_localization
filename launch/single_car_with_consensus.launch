@@ -7,7 +7,7 @@
     <rosparam command="load" file="$(arg id_dict)"/>
     <rosparam command="load" file="$(arg connections)"/>
 
-    <arg name="car_frame_id" default="car0" />
+    <arg name="car_frame_id" default="$(env CAR_FRAME_ID)" />
     <arg name="num_cars" default="3" />
 
     <include file="$(find multi_car_localization)/launch/particle_filter.launch">
@@ -31,6 +31,7 @@
 
     <node pkg="multi_car_localization" type="fake_control.py" name="fake_control" output="screen">
         <param name="num_cars" value="$(arg num_cars)"/>
+        <param name="car_frame_id" value="$(arg car_frame_id)" />
     </node>
 
     <node pkg="tf" type="static_transform_publisher" name="map_to_$(arg car_frame_id)"
