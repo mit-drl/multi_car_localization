@@ -16,7 +16,7 @@ import numpy as np
 class FakeLidar(object):
 
     def __init__(self):
-        self.rate = rospy.Rate(rospy.get_param("~frequency", 30))
+        self.rate = rospy.Rate(rospy.get_param("~frequency", 5))
         self.frame_id = rospy.get_param("~car_frame_id", "car0")
         self.Ndim = rospy.get_param("~num_state_dim", 3)
         self.ID = int(self.frame_id[-1])

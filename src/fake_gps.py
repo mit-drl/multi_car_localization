@@ -14,7 +14,7 @@ import copy
 class FakeGPS(object):
 
     def __init__(self):
-        self.rate = rospy.Rate(rospy.get_param("~frequency", 10))
+        self.rate = rospy.Rate(rospy.get_param("~frequency", 5))
         self.frame_id = rospy.get_param("~frame_id", "car0")
         self.ID = int(self.frame_id[-1])
 

@@ -177,10 +177,17 @@ class ParticleFilter(object):
                     meas[j, 1] = self.gps[j].pose.pose.position.y - self.trans[1]
                     meas[j, 2:5] = [self.lidar[j].x, self.lidar[j].y, self.lidar[j].theta]
 
+                    if self.gps[j].header.frame_id == "None":
+                        new_meas_cov[j*self.Nmeas, j*self.Nmeas] = 2345.0
+                        new_meas_cov[j*self.Nmeas + 1, j*self.Nmeas + 1] = 2345.0
+                    
                     cov_dim = 3
-                    new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
+                    if self.lidar[j].header.frame_id == "None":
+                        new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
+                                2345.0*np.diag([1.0, 1.0, 1.0])
+                    else:
+                        new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
                                 10.0*np.array(self.lidar[j].cov).reshape((cov_dim, cov_dim))
-
                     """
                     Measurements:
                         [gps_x0, gps_y0, lid_x0, lid_y0, lid_theta0, uwb_00, uwb_01, uwb_02
