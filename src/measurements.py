@@ -8,6 +8,7 @@ from geometry_msgs.msg import PoseStamped
 from multi_car_msgs.msg import CarMeasurement
 from multi_car_msgs.msg import UWBRange
 from multi_car_msgs.msg import CarControl
+from multi_car_msgs.msg import LidarPose
 from sensor_msgs.msg import NavSatFix
 from nav_msgs.msg import Odometry
 import tf
@@ -38,6 +39,7 @@ class Measurements(object):
 		self.uwb_ranges = self.init_uwb()
 		self.gps = [None]*self.Nconn
 		self.control = [None] * self.Nconn
+		self.lidar = [None] * self.Nconn
 
 		self.uwb_sub = rospy.Subscriber("/ranges", UWBRange, self.range_cb, queue_size=1)
 		#self.gps_sub = rospy.Subscriber("gps", NavSatFix, self.gps_cb, queue_size=1)
@@ -48,7 +50,9 @@ class Measurements(object):
 				"odom" + str(ID), Odometry, self.gps_cb, (i,), queue_size=1))
 
 		self.control_sub = rospy.Subscriber("/controls", CarControl, self.control_cb, queue_size=1)
-		self.control_sub2 = rospy.Subscriber("/control", CarControl, self.control_cb, queue_size=1)
+		# self.control_sub2 = rospy.Subscriber("/control", CarControl, self.control_cb, queue_size=1)
+
+		self.lidar_sub = rospy.Subscriber("/lidar_poses", LidarPose, self.lidar_cb, queue_size=1)
 
 		self.meas_pub = rospy.Publisher(
 			"measurements", CarMeasurement, queue_size=1)
@@ -64,6 +68,12 @@ class Measurements(object):
 					null_uwb.from_id = k
 					uwbs[(j, k)] = null_uwb
 		return uwbs
+
+	def lidar_cb(self, lp):
+		car_id = self.id_dict[str(lp.car_id)]
+		if car_id in self.own_connections:
+			lp.car_id = car_id
+			self.lidar[self.own_connections.index(car_id)] = lp
 
 	def control_cb(self, control):
 		car_id = self.id_dict[str(control.car_id)]
@@ -84,6 +94,7 @@ class Measurements(object):
 	def publish_measurements(self):
 		gps_good = None not in self.gps
 		control_good = None not in self.control
+		lidar_good = None not in self.lidar
 
 		uwb_good = True
 		for i in self.own_connections:
@@ -92,7 +103,7 @@ class Measurements(object):
 					if self.uwb_ranges[(i, j)].distance == -1 and self.uwb_ranges[(j, i)].distance == -1:
 						uwb_good = False
 
-		if gps_good and uwb_good and control_good:
+		if gps_good and uwb_good and control_good and lidar_good:
 			num_uwb = 0
 			for uwb in self.uwb_ranges:
 				if self.uwb_ranges[uwb].distance != -1:
@@ -104,6 +115,7 @@ class Measurements(object):
 				self.meas.range.append(self.uwb_ranges[ID])
 			self.meas.gps = self.gps
 			self.meas.control = self.control
+			self.meas.lidar = self.lidar
 
 			self.meas_pub.publish(self.meas)
 
@@ -111,6 +123,8 @@ class Measurements(object):
 			self.gps = [None]*self.Nconn
 			self.uwb_ranges = self.init_uwb()
 			self.control = [None]*self.Nconn
+			self.lidar = [None]*self.Nconn
+
 		else:
 			num_uwb = 0
 			for uwb in self.uwb_ranges:
@@ -127,6 +141,11 @@ class Measurements(object):
 				if cont is not None:
 					num_control += 1
 			print "NUM CON: %d" % (num_control)
+			num_lidar = 0
+			for lidar in self.lidar:
+				if lidar is not None:
+					num_lidar += 1
+			print "NUM LID: %d" % (num_lidar)
 
 
 	def run(self):
