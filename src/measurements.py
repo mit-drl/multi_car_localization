@@ -50,9 +50,9 @@ class Measurements(object):
 				"odom" + str(ID), Odometry, self.gps_cb, (i,), queue_size=1))
 
 		self.control_sub = rospy.Subscriber("/controls", CarControl, self.control_cb, queue_size=1)
-		self.control_sub2 = rospy.Subscriber("/control", CarControl, self.control_cb, queue_size=1)
+		# self.control_sub2 = rospy.Subscriber("/control", CarControl, self.control_cb, queue_size=1)
 
-		self.lidar_sub = rospy.Subscriber("/lidar_pose", LidarPose, self.lidar_cb, queue_size=1)
+		self.lidar_sub = rospy.Subscriber("/lidar_poses", LidarPose, self.lidar_cb, queue_size=1)
 
 		self.meas_pub = rospy.Publisher(
 			"measurements", CarMeasurement, queue_size=1)

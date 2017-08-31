@@ -175,9 +175,9 @@ class ParticleFilter(object):
                 for j in xrange(self.Nconn):
                     meas[j, 0] = self.gps[j].pose.pose.position.x - self.trans[0]
                     meas[j, 1] = self.gps[j].pose.pose.position.y - self.trans[1]
-                    meas[j, 2:5] = self.lidar[j].state
+                    meas[j, 2:5] = [self.lidar[j].x, self.lidar[j].y, self.lidar[j].theta]
 
-                    cov_dim = len(self.lidar[j].state)
+                    cov_dim = 3
                     new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
                                 10.0*np.array(self.lidar[j].cov).reshape((cov_dim, cov_dim))
 

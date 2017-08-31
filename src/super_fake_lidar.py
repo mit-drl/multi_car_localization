@@ -16,7 +16,7 @@ import numpy as np
 class FakeLidar(object):
 
     def __init__(self):
-        self.rate = rospy.Rate(rospy.get_param("~frequency", 30))
+        self.rate = rospy.Rate(rospy.get_param("~frequency", 15))
         self.frame_id = rospy.get_param("~car_frame_id", "car0")
         self.Ndim = rospy.get_param("~num_state_dim", 3)
         self.ID = int(self.frame_id[-1])
@@ -25,24 +25,15 @@ class FakeLidar(object):
 
         self.sigma = 0.05
 
-        self.state = None
+        self.state = [1.0, 1.2, 0.05]
         self.pose = PoseStamped()
         self.pose.header = Header()
         self.pose.header.frame_id = self.frame_id
 
         self.tf = tf.TransformBroadcaster()
 
-        self.range_sub = rospy.Subscriber('/range_position', CarState, self.range_sub_cb, queue_size=1)
         self.pose_pub = rospy.Publisher('/lidar_pose', LidarPose, queue_size=1)
-        self.poses_pub = rospy.Publisher('/lidar_poses', LidarPose, queue_size=1)
         self.viz_pub = rospy.Publisher('lidar_viz', PoseStamped, queue_size=1)
-
-    def range_sub_cb(self, cs):
-        if cs.car_id == self.ID:
-            self.state = list(cs.state)
-            self.state[0] += random.gauss(0.0, self.sigma)
-            self.state[1] += random.gauss(0.0, self.sigma)
-            self.state[2] += random.gauss(0.0, 0.05)
 
     def publish_range(self):
         if self.state is not None:
@@ -59,7 +50,6 @@ class FakeLidar(object):
             ps.car_id = self.ID
             ps.cov = cov
             self.pose_pub.publish(ps)
-            self.poses_pub.publish(ps)
 
             self.pose.pose.position.x = self.state[0]
             self.pose.pose.position.y = self.state[1]
