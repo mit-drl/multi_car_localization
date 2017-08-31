@@ -15,7 +15,6 @@
 
     <include file="$(find multi_car_localization)/launch/measurements.launch">
         <arg name="car_frame_id" value="$(arg car_frame_id)" />
-        <arg name="num_uwbs" value="3" />
         <arg name="num_cars" value="3" />
     </include>
 
