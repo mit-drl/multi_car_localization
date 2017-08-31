@@ -34,6 +34,7 @@ class FakeLidar(object):
 
         self.range_sub = rospy.Subscriber('/range_position', CarState, self.range_sub_cb, queue_size=1)
         self.pose_pub = rospy.Publisher('/lidar_pose', LidarPose, queue_size=1)
+        self.pose_pub = rospy.Publisher('/lidar_poses', LidarPose, queue_size=1)
         self.viz_pub = rospy.Publisher('lidar_viz', PoseStamped, queue_size=1)
 
     def range_sub_cb(self, cs):
