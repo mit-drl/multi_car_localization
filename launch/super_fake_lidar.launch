@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+
+	<arg name="car_frame_id" default="car0" />
+	<arg name="num_state_dim" default="3" />
+
+    <node pkg="multi_car_localization" type="super_fake_lidar.py" name="uwb" output="screen">
+		<param name="car_frame_id" value="$(arg car_frame_id)" />
+		<param name="num_state_dim" value="$(arg num_state_dim)" />
+    </node>
+</launch>
