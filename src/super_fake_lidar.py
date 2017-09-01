@@ -39,11 +39,12 @@ class FakeLidar(object):
         if self.state is not None:
             particles = np.zeros((self.num_particles, self.Ndim))
             for i in range(self.num_particles):
-                particles[i] = np.array([self.state[0] + random.gauss(0.0, self.sigma), 
+                particles[i] = np.array([self.state[0] + random.gauss(0.0, self.sigma),
                                          self.state[1] + random.gauss(0.0, self.sigma),
                                          self.state[2] + random.gauss(0.0, 0.05)])
             cov = np.cov(particles.T).flatten().tolist()
             ps = LidarPose()
+            ps.header.stamp = rospy.get_rostime()
             ps.x = self.state[0]
             ps.y = self.state[1]
             ps.theta = self.state[2]
