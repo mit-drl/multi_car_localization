@@ -25,7 +25,7 @@ class FakeControl(object):
         self.control.steering_angle = 0.0
         self.control.velocity = 1.0
 
-        self.control_pub = rospy.Publisher('/control', CarControl, queue_size=1)
+        self.control_pub = rospy.Publisher('control', CarControl, queue_size=1)
 
     def publish_range(self):
         self.control.header.stamp = rospy.Time.now()

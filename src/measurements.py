@@ -42,18 +42,27 @@ class Measurements(object):
 		self.lidar = [None] * self.Nconn
 		self.first_time = True
 
-		self.uwb_sub = rospy.Subscriber("/ranges", UWBRange, self.range_cb, queue_size=1)
 		#self.gps_sub = rospy.Subscriber("gps", NavSatFix, self.gps_cb, queue_size=1)
 		self.gps_sub = []
+		self.control_sub = []
+		self.control_sub2 = []
+		self.lidar_sub = []
+		self.uwb_sub = rospy.Subscriber("/ranges", UWBRange, self.range_cb, queue_size=1)
 		for i, ID in enumerate(self.own_connections):
 			self.gps_sub.append(
 				rospy.Subscriber(
 				"odom" + str(ID), Odometry, self.gps_cb, (i,), queue_size=1))
 
-		self.control_sub = rospy.Subscriber("/controls", CarControl, self.control_cb, queue_size=1)
-		self.control_sub2 = rospy.Subscriber("/control", CarControl, self.control_cb, queue_size=1)
-
-		self.lidar_sub = rospy.Subscriber("/lidar_poses", LidarPose, self.lidar_cb, queue_size=1)
+			if int(self.frame_id[-1]) == ID:
+				self.control_sub.append(
+					rospy.Subscriber("/control", CarControl, self.control_cb, queue_size=1))
+				self.lidar_sub.append(
+					rospy.Subscriber("/lidar_pose", LidarPose, self.lidar_cb, queue_size=1))
+			else:
+				self.control_sub.append(
+					rospy.Subscriber("/car" + str(ID) + "/control", CarControl, self.control_cb, queue_size=1))
+				self.lidar_sub.append(
+					rospy.Subscriber("/car" + str(ID) + "/lidar_pose", LidarPose, self.lidar_cb, queue_size=1))
 
 		self.meas_pub = rospy.Publisher(
 			"measurements", CarMeasurement, queue_size=1)
@@ -178,22 +187,22 @@ class Measurements(object):
 			self.control = [None]*self.Nconn
 			self.lidar = [None]*self.Nconn
 
-		# else:
-		# 	num_gps = 0
-		# 	for gps in self.gps:
-		# 		if gps is not None:
-		# 			num_gps += 1
-		# 	print "NUM GPS: %d" % (num_gps)
-		# 	num_control = 0
-		# 	for cont in self.control:
-		# 		if cont is not None:
-		# 			num_control += 1
-		# 	print "NUM CON: %d" % (num_control)
-		# 	num_lidar = 0
-		# 	for lidar in self.lidar:
-		# 		if lidar is not None:
-		# 			num_lidar += 1
-		# 	print "NUM LID: %d" % (num_lidar)
+		else:
+			num_gps = 0
+			for gps in self.gps:
+				if gps is not None:
+					num_gps += 1
+			print "NUM GPS: %d" % (num_gps)
+			num_control = 0
+			for cont in self.control:
+				if cont is not None:
+					num_control += 1
+			print "NUM CON: %d" % (num_control)
+			num_lidar = 0
+			for lidar in self.lidar:
+				if lidar is not None:
+					num_lidar += 1
+			print "NUM LID: %d" % (num_lidar)
 
 
 	def run(self):

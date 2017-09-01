@@ -9,6 +9,10 @@
     <rosparam command="load" file="$(arg id_dict)"/>
     <rosparam command="load" file="$(arg connections)"/>
 
+    <include file="$(find multi_car_localization)/launch/fake_uwb.launch">
+        <arg name="num_cars" value="$(arg num_cars)" />
+    </include>
+
     <include file="$(find multi_car_localization)/launch/fake_car.launch" ns="car0">
         <arg name="car_frame_id" value="car0" />
         <arg name="num_cars" value="$(arg num_cars)" />
@@ -33,8 +37,5 @@
         <arg name="dynamics_model" value="dubins" />
     </include>
 
-    <include file="$(find multi_car_localization)/launch/fake_uwb.launch">
-        <arg name="num_cars" value="$(arg num_cars)" />
-    </include>
-
+    
 </launch>

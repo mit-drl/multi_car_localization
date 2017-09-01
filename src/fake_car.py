@@ -84,7 +84,8 @@ class FakeCar(object):
         self.robot = DubinsVelocityDynamics()
 
         self.pose_pub = rospy.Publisher("/range_position", CarState, queue_size=1)
-        self.control_pub = rospy.Publisher("/control", CarControl, queue_size=1)
+        self.control_pub = rospy.Publisher("control", CarControl, queue_size=1)
+        self.control_pub2 = rospy.Publisher("/control", CarControl, queue_size=1)
 
     def publish_pose(self):
         self.state.state = self.x.tolist()
@@ -96,6 +97,7 @@ class FakeCar(object):
 
         self.pose_pub.publish(self.state)
         self.control_pub.publish(self.control)
+        self.control_pub2.publish(self.control)
 
     def run(self):
         maxcounts = 180

@@ -7,39 +7,49 @@
         <param name="num_cars" value="$(arg num_cars)" />
     </include>
 
-    <node pkg="multi_car_localization" type="fake_vicon.py" name="fake_vicon" output="screen">
+    <node pkg="multi_car_localization" type="vicon_to_gps.py" name="vicon_to_gps" output="screen">
         <param name="num_cars" value="$(arg num_cars)" />
     </node>
 
     <group ns="car0">
 
-        <node pkg="multi_car_localization" type="vicon_to_gps.py" name="vicon_to_gps" output="screen">
-            <param name="num_cars" value="$(arg num_cars)" />
+
+        <node pkg="multi_car_localization" type="fake_vicon.py" name="fake_vicon" output="screen">
+                <param name="num_cars" value="$(arg num_cars)" />
         </node>
 
     </group>
 
     <group ns="car1">
-
-        <node pkg="multi_car_localization" type="vicon_to_gps.py" name="vicon_to_gps" output="screen">
-            <param name="num_cars" value="$(arg num_cars)" />
+        <node pkg="multi_car_localization" type="fake_vicon.py" name="fake_vicon" output="screen">
+                <param name="num_cars" value="$(arg num_cars)" />
         </node>
+
+<!--         <node pkg="multi_car_localization" type="vicon_to_gps.py" name="vicon_to_gps" output="screen">
+            <param name="num_cars" value="$(arg num_cars)" />
+        </node> -->
 
     </group>
 
     <group ns="car2">
-
-        <node pkg="multi_car_localization" type="vicon_to_gps.py" name="vicon_to_gps" output="screen">
-            <param name="num_cars" value="$(arg num_cars)" />
+        <node pkg="multi_car_localization" type="fake_vicon.py" name="fake_vicon" output="screen">
+                <param name="num_cars" value="$(arg num_cars)" />
         </node>
+
+<!--         <node pkg="multi_car_localization" type="vicon_to_gps.py" name="vicon_to_gps" output="screen">
+            <param name="num_cars" value="$(arg num_cars)" />
+        </node> -->
 
     </group>
 
     <group ns="car3">
-
-        <node pkg="multi_car_localization" type="vicon_to_gps.py" name="vicon_to_gps" output="screen">
-            <param name="num_cars" value="$(arg num_cars)" />
+        <node pkg="multi_car_localization" type="fake_vicon.py" name="fake_vicon" output="screen">
+                <param name="num_cars" value="$(arg num_cars)" />
         </node>
+
+<!--         <node pkg="multi_car_localization" type="vicon_to_gps.py" name="vicon_to_gps" output="screen">
+            <param name="num_cars" value="$(arg num_cars)" />
+        </node> -->
 
     </group>
 
