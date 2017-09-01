@@ -23,7 +23,7 @@ class FakeControl(object):
         self.control.header.frame_id = self.frame_id
         self.control.car_id = int(self.frame_id[-1])
         self.control.steering_angle = 0.0
-        self.control.velocity = 0.0
+        self.control.velocity = 1.0
 
         self.control_pub = rospy.Publisher('control', CarControl, queue_size=1)
 
