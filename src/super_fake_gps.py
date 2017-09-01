@@ -6,6 +6,7 @@ from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import NavSatFix
 from multi_car_msgs.msg import CarState
+from multi_car_msgs.msg import GPS
 import random
 import tf
 import numpy as np
@@ -17,8 +18,8 @@ class FakeGPS(object):
 
     def __init__(self):
         self.rate = rospy.Rate(rospy.get_param("~frequency", 15))
-        # self.frame_id = rospy.get_param("~car_frame_id", "car0")
-        # self.ID = int(self.frame_id[-1])
+        self.frame_id = rospy.get_param("~car_frame_id", "car0")
+        self.ID = int(self.frame_id[-1])
 
         self.sigma = 0.6
 
@@ -27,9 +28,11 @@ class FakeGPS(object):
 
         self.latlong = self.csail_coords + self.state
 
-        self.fix = NavSatFix()
-        self.fix.header = Header()
-        self.fix.header.frame_id = "earth"
+        self.gps = GPS()
+        self.gps.fix = NavSatFix()
+        self.gps.header = Header()
+        self.gps.header.frame_id = "earth"
+        self.gps.car_id = self.ID
 
         self.pose_pub = rospy.Publisher('fix', NavSatFix, queue_size=1)
 
@@ -42,10 +45,10 @@ class FakeGPS(object):
         self.latlong = self.csail_coords + self.state
 
 
-        self.fix.header.stamp = rospy.Time.now()
-        self.fix.latitude = self.latlong[0]
-        self.fix.longitude = self.latlong[1]
-        self.pose_pub.publish(self.fix)
+        self.gps.header.stamp = rospy.Time.now()
+        self.gps.fix.latitude = self.latlong[0]
+        self.gps.fix.longitude = self.latlong[1]
+        self.pose_pub.publish(self.gps)
 
 
     def run(self):
