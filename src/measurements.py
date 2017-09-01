@@ -127,6 +127,8 @@ class Measurements(object):
 			if lidar is not None:
 				lidar_good = True
 
+		gps_good = True
+
 		if gps_good and uwb_good and control_good and lidar_good:
 
 			num_gps = 0
