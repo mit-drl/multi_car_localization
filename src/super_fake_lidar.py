@@ -32,7 +32,7 @@ class FakeLidar(object):
 
         self.tf = tf.TransformBroadcaster()
 
-        self.pose_pub = rospy.Publisher('/lidar_pose', LidarPose, queue_size=1)
+        self.pose_pub = rospy.Publisher('lidar_pose', LidarPose, queue_size=1)
         self.viz_pub = rospy.Publisher('lidar_viz', PoseStamped, queue_size=1)
 
     def publish_range(self):

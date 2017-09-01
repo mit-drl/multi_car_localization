@@ -19,7 +19,7 @@ class FixesToGPS(object):
         self.ID = int(self.frame_id[-1])
 
         self.range_pub = rospy.Publisher('uwb', UWBRange, queue_size=1)
-        self.range_sub = rospy.Subscriber('fixes', GPS, self.gps_cb)
+        self.range_sub = rospy.Subscriber('fix', GPS, self.gps_cb)
 
     def range_sub_cb(self, cs):
         frame_id = cs.header.frame_id
