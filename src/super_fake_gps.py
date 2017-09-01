@@ -34,7 +34,7 @@ class FakeGPS(object):
         self.gps.header.frame_id = "earth"
         self.gps.car_id = self.ID
 
-        self.pose_pub = rospy.Publisher('fix', NavSatFix, queue_size=1)
+        self.pose_pub = rospy.Publisher('fix', GPS, queue_size=1)
 
     def convert_to_latlong(self, x, y):
         return [x/111111.0, y/(111111.0*np.cos(self.csail_coords[0]))]

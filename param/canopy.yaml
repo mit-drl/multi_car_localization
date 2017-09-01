@@ -5,7 +5,7 @@ publishing:
     - /lidar_pose
 types:
     - multi_car_msgs/CarControl
-    - sensor_msgs/NavSatFix
+    - multi_car_msgs/GPS
     - multi_car_msgs/ConsensusMsg
     - multi_car_msgs/LidarPose
 trusted:
