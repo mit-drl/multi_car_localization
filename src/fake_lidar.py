@@ -33,8 +33,8 @@ class FakeLidar(object):
         self.tf = tf.TransformBroadcaster()
 
         self.range_sub = rospy.Subscriber('/range_position', CarState, self.range_sub_cb, queue_size=1)
-        self.pose_pub = rospy.Publisher('/lidar_pose', LidarPose, queue_size=1)
-        self.poses_pub = rospy.Publisher('/lidar_poses', LidarPose, queue_size=1)
+        self.pose_pub = rospy.Publisher('lidar_pose', LidarPose, queue_size=1)
+        self.pose_pub2 = rospy.Publisher('/lidar_pose', LidarPose, queue_size=1)
         self.viz_pub = rospy.Publisher('lidar_viz', PoseStamped, queue_size=1)
 
     def range_sub_cb(self, cs):
@@ -59,7 +59,7 @@ class FakeLidar(object):
             ps.car_id = self.ID
             ps.cov = cov
             self.pose_pub.publish(ps)
-            self.poses_pub.publish(ps)
+            self.pose_pub2.publish(ps)
 
             self.pose.pose.position.x = self.state[0]
             self.pose.pose.position.y = self.state[1]

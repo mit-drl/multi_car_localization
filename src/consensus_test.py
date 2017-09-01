@@ -106,7 +106,7 @@ class Consensus(object):
 		# 		self.v_sub.append(
 		# 			rospy.Subscriber("/car" + str(i) + "/v", ConsensusMsg, self.consensus_cb))
 
-		self.v_pub = rospy.Publisher("/consensus", ConsensusMsg, queue_size=1)
+		self.v_pub = rospy.Publisher("consensus", ConsensusMsg, queue_size=1)
 		
 		self.paths = []
 		self.consensus_pub = []

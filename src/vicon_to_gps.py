@@ -25,6 +25,7 @@ class ViconToGPS(object):
         self.spoof = []
         self.tru = []
         self.spoof_coords = []
+        self.fake_gps_pub_coords = []
 
         self.var = 0.8           
         
@@ -36,6 +37,9 @@ class ViconToGPS(object):
                 "vicon_path" + str(i), Path, queue_size=1))
             self.path.append(Path())
             self.path[i].header = Header()
+
+            self.fake_gps_pub_coords.append(
+                rospy.Publisher("/car" + str(i) + "/fix", GPS, queue_size=1))
 
             self.spoof.append(PoseStamped())
             self.tru.append(PoseStamped())
@@ -49,7 +53,8 @@ class ViconToGPS(object):
                 "/vicon/car" + str(i) + "/car" + str(i), 
                 TransformStamped, self.vicon_cb, (i,),queue_size=1))
 
-        self.fake_gps_pub_coords = rospy.Publisher("fixes", GPS, queue_size=1)
+        self.fake_gps_pub_coords.append(
+            rospy.Publisher("/fix", GPS, queue_size=1))
 
         # self.fake_gps_pub = rospy.Publisher("spoofed_gps", PoseStamped, queue_size=1)
         # self.spoof_gps_pub_fix = rospy.Publisher("spoofed_gps_fix", GPSFix, queue_size=1)
@@ -92,7 +97,8 @@ class ViconToGPS(object):
                 # self.gps_to_map.header.stamp = rospy.Time.now()
 
                 # self.fake_gps_pub.publish(self.spoof)
-                self.fake_gps_pub_coords.publish(self.spoof_coords[i])
+                self.fake_gps_pub_coords[i].publish(self.spoof_coords[i])
+                self.fake_gps_pub_coords[-1].publish(self.spoof_coords[i])
                 # self.spoof_gps_pub_fix.publish(self.spoof_fix)
                 
                 if len(self.path[i].poses) > 500:
