@@ -43,13 +43,13 @@ class Control(object):
 
     def range_sub_cb(self, core):
         if self.prev_x is not None and self.prev_time is not None:
-            x = core.distance_traveled
-            t = core.header.stamp
+            # x = core.distance_traveled
+            # t = core.header.stamp
 
-            dt = (t - self.prev_time).to_secs()
-            dx = (x - self.prev_x)/100.0
-            vel = dx/dt
-            self.control.velocity = vel
+            # dt = (t - self.prev_time).to_secs()
+            # dx = (x - self.prev_x)/100.0
+            # vel = dx/dt
+            self.control.velocity = core.speed
             self.vel = True
 
         self.prev_x = x
