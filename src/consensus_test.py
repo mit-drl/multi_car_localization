@@ -11,11 +11,13 @@ from multi_car_msgs.msg import CombinedState
 from multi_car_msgs.msg import ConsensusMsg
 from nav_msgs.msg import Path
 from geometry_msgs.msg import  Pose
+from geometry_msgs.msg import PoseArray
 import math
 import random
 from scipy.linalg import block_diag
 import pdb
 from dynamics import DubinsVelocityDynamics
+from dynamics import RoombaDynamics
 import tf
 
 import dict_to_graph
@@ -124,6 +126,7 @@ class Consensus(object):
 				rospy.Publisher("consensus" + str(i), Path, queue_size=1))
 		self.prev_time = rospy.get_time()
 		self.new_meas = False
+		self.consensus_pose_pub = rospy.Publisher("consensus_poses", PoseArray, queue_size=1)
 
 	def x_cb(self, cs):
 		frame_id = cs.header.frame_id
@@ -204,6 +207,9 @@ class Consensus(object):
 		cs.state = self.x_post.flatten().tolist()
 		self.consensus_state_pub.publish(cs)
 
+		consensus_poses = PoseArray()
+		consensus_poses.header.frame_id = "map"
+		consensus_poses.header.stamp = rospy.Time.now()
 		for i in range(self.Ncars):
 			pose = PoseStamped()
 			pose.header = Header()
@@ -211,15 +217,22 @@ class Consensus(object):
 			pose.header.stamp = rospy.Time().now()
 			pose.pose.position.x = self.x_post[i*self.Ndim]
 			pose.pose.position.y = self.x_post[i*self.Ndim + 1]
+			theta = tf.transformations.quaternion_from_euler(0, 0, self.x_post[i*self.Ndim+2])
+			pose.pose.orientation.x = theta[0]
+			pose.pose.orientation.y = theta[1]
+			pose.pose.orientation.z = theta[2]
+			pose.pose.orientation.w = theta[3]
+			consensus_poses.poses.append(pose.pose)
 			self.br.sendTransform((self.x_post[i*self.Ndim], self.x_post[i*self.Ndim + 1], 0),
-					tf.transformations.quaternion_from_euler(0, 0, self.x_post[i*self.Ndim+2]),
-					rospy.Time.now(),
+					theta, rospy.Time.now(),
 					"car" + str(self.frame_id[-1]) + "/car" + str(i) + "/base_link",
 					"map")
 			self.paths[i].poses.append(pose)
 			if len(self.paths[i].poses) > 300:
 				self.paths[i].poses.pop(0)
 			self.consensus_pub[i].publish(self.paths[i])
+
+		self.consensus_pose_pub.publish(consensus_poses)
 		#self.state_pub.publish(self.x_post, self.J_post)
 
 	def publish_v(self):
