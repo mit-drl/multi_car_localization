@@ -64,7 +64,7 @@ class DubinsVelocityDynamics(Dynamics):
         x, y, phi = state
         dx = u_v*np.cos(phi)
         dy = u_v*np.sin(phi)
-        dphi = (u_v/3.)*np.tan(u_d)
+        dphi = (u_v/0.3)*np.tan(u_d)
         return np.array([dx, dy, dphi])
 
     def mini_phi(self, state, u, dt):

@@ -60,7 +60,7 @@ class FakeCar(object):
         # self.x0 = np.array([10*random.random(), 10*random.random(),
         #                     math.pi*(random.random()-0.5)], dtype=np.float64)
         self.x = self.x0
-        self.u = [0.3*(random.random()-0.5), 5.0]
+        self.u = [0.04*(random.random()-0.5), 2.0]
         self.current_time = rospy.get_time()
         self.prev_time = self.current_time
 

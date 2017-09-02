@@ -7,7 +7,7 @@
 	<arg name="num_state_dim" default="3" />
 	<arg name="num_measurements" default="5" />
 	<arg name="resample_perc" default="0.8" />
-	<arg name="dynamics_model" default="roomba" />
+	<arg name="dynamics_model" default="dubins" />
 
     <node pkg="tf" type="static_transform_publisher" name="$(arg car_frame_id)_tf"
         args="0 0 0 0 0 0 map $(arg car_frame_id) 100" />
