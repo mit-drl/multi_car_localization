@@ -7,7 +7,7 @@ from geometry_msgs.msg import PoseWithCovarianceStamped
 class InitialPoseNode(object):
 
     def __init__(self):
-        self.num_cars = rospy.get_param("~num_cars")
+        self.num_cars = rospy.get_param("~num_cars", 3)
         self.sub = rospy.Subscriber(
             "/initialpose",
             PoseWithCovarianceStamped,

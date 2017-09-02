@@ -24,4 +24,6 @@
         <rosparam file="$(find multi_car_localization)/param/canopy.yaml"
             subst_value="True"/>
 	</node>
+
+    <remap from="initial_pose_$(env CAR_FRAME_ID)" to="initialpose"/>
 </launch>

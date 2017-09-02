@@ -49,25 +49,58 @@ Visualization Manager:
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Name: Car0 Particles
       Topic: /car0/particles
+      Unreliable: false
+      Value: false
+    - Arrow Length: 0.3
+      Class: rviz/PoseArray
+      Color: 0; 255; 127
+      Enabled: false
+      Name: Car1 Particles
+      Topic: /car1/particles
+      Unreliable: false
+      Value: false
+    - Arrow Length: 0.3
+      Class: rviz/PoseArray
+      Color: 85; 170; 255
+      Enabled: false
+      Name: Car2 Particles
+      Topic: /car2/particles
+      Unreliable: false
+      Value: false
+    - Arrow Length: 0.3
+      Class: rviz/PoseArray
+      Color: 255; 25; 0
+      Enabled: true
+      Name: Car0 Poses
+      Topic: /car0/consensus_poses
       Unreliable: false
       Value: true
     - Arrow Length: 0.3
       Class: rviz/PoseArray
-      Color: 0; 255; 127
+      Color: 85; 255; 127
       Enabled: true
-      Name: Car1 Particles
-      Topic: /car1/particles
+      Name: Car1 Poses
+      Topic: /car1/consensus_poses
       Unreliable: false
       Value: true
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 85; 170; 255
       Enabled: true
-      Name: Car2 Particles
-      Topic: /car2/particles
+      Name: Car2 Poses
+      Topic: /car2/consensus_poses
+      Unreliable: false
+      Value: true
+    - Alpha: 0.7
+      Class: rviz/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic: /map
       Unreliable: false
       Value: true
   Enabled: true
@@ -94,7 +127,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 108.038
+      Distance: 43.0893
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
@@ -106,10 +139,10 @@ Visualization Manager:
         Z: 0
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.0098
+      Pitch: 1.0948
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.0753982
+      Yaw: 1.00537
     Saved: ~
 Window Geometry:
   Displays:
