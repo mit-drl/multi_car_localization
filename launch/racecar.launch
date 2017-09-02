@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-    <remap from="observer/initial_pose_$(env CAR_FRAME_ID)" to="initialpose"/>
     <arg name="only_canopy" default="false"/>
 
     <group unless="$(arg only_canopy)">
@@ -9,6 +8,8 @@
             <arg name="sender_port" value="/dev/ttyACM2"/>
         </include>
 
+
+        <remap from="initialpose" to="observer/initial_pose_$(env CAR_FRAME_ID)"/>
         <include file="$(find racecar)/launch/teleop.launch"/>
 
         <include file="$(find particle_filter)/launch/localize.launch">
