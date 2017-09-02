@@ -26,6 +26,7 @@ class Control(object):
         self.control = CarControl()
         self.control.header = Header()
         self.control.header.frame_id = self.frame_id
+        self.car_id = int(self.frame_id[-1])
 
         self.prev_x = None
         self.prev_time = None
@@ -57,6 +58,7 @@ class Control(object):
 
     def publish_range(self):
         if self.vel and self.steering_angle:
+            self.control.header.stamp = rospy.Time.now(0)
             self.control_pub.publish(self.control)
             self.steering_angle = False
             self.vel = False
