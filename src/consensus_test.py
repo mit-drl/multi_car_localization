@@ -100,11 +100,14 @@ class Consensus(object):
 
 		self.vj = {}
 		self.Vj = {}
-		self.v_sub = rospy.Subscriber("/consensus", ConsensusMsg, self.consensus_cb)
-		# for i in self.own_connections:
-		# 	if i != int(self.frame_id[-1]):
-		# 		self.v_sub.append(
-		# 			rospy.Subscriber("/car" + str(i) + "/v", ConsensusMsg, self.consensus_cb))
+		self.v_sub = []
+		for i in self.own_connections:
+			if i != int(self.frame_id[-1]):
+				self.v_sub.append(
+					rospy.Subscriber("/car" + str(i) + "/consensus", ConsensusMsg, self.consensus_cb))
+			else:
+				self.v_sub.append(
+					rospy.Subscriber("/consensus", ConsensusMsg, self.consensus_cb))
 
 		self.v_pub = rospy.Publisher("consensus", ConsensusMsg, queue_size=1)
 		
