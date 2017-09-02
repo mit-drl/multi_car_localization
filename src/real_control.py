@@ -26,7 +26,7 @@ class Control(object):
         self.control = CarControl()
         self.control.header = Header()
         self.control.header.frame_id = self.frame_id
-        self.car_id = int(self.frame_id[-1])
+        self.control.car_id = int(self.frame_id[-1])
 
         self.prev_x = None
         self.prev_time = None

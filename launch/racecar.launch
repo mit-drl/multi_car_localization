@@ -7,7 +7,9 @@
 
 	<include file="$(find racecar)/launch/teleop.launch"/>
 
-	<include file="$(find particle_filter)/launch/localize.launch"/>
+	<include file="$(find particle_filter)/launch/localize.launch">
+		<arg name="car_frame_id" value="$(env CAR_FRAME_ID)"/>
+	</include>
 
 	<include file="$(find multi_car_localization)/launch/single_car_with_consensus.launch"/>
 
