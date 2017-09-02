@@ -58,7 +58,7 @@ class Control(object):
 
     def publish_range(self):
         if self.vel and self.steering_angle:
-            self.control.header.stamp = rospy.Time.now(0)
+            self.control.header.stamp = rospy.Time.now()
             self.control_pub.publish(self.control)
             self.steering_angle = False
             self.vel = False
