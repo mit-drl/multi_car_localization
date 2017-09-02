@@ -31,6 +31,10 @@
         <param name="car_name" value="$(arg car_frame_id)" />
     </node>
 
+    <node pkg="multi_car_localization" type="real_control.py" name="real_control" output="screen">
+        <param name="car_frame_id" value="$(arg car_frame_id)" />
+    </node>
+
 <!--     <node pkg="multi_car_localization" type="fake_control.py" name="fake_control" output="screen">
         <param name="car_frame_id" value="$(arg car_frame_id)" />
     </node> -->
