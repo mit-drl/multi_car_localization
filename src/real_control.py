@@ -37,8 +37,8 @@ class Control(object):
         self.steering_sub = rospy.Subscriber('/vesc/sensors/servo_position_command', Float64, self.steering_cb, queue_size=1)
         self.control_pub = rospy.Publisher('control', CarControl, queue_size=1)
 
-    def steering_cb(self, data):
-        self.control.steering_angle = (float(data) - self.offset)/self.gain
+    def steering_cb(self, msg):
+        self.control.steering_angle = (msg.data - self.offset)/self.gain
         self.steering_angle = True
 
     def vel_cb(self, core):
@@ -49,7 +49,7 @@ class Control(object):
             # dt = (t - self.prev_time).to_secs()
             # dx = (x - self.prev_x)/100.0
             # vel = dx/dt
-        self.control.velocity = core.speed
+        self.control.velocity = core.state.speed
         self.vel = True
 
         #self.prev_x = x
