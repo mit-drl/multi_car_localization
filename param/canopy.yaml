@@ -3,16 +3,22 @@ publishing:
     - /fix
     - /consensus
     - /lidar_pose
+    - /particles
+    - /consensus_poses
 types:
     - multi_car_msgs/CarControl
     - multi_car_msgs/GPS
     - multi_car_msgs/ConsensusMsg
     - multi_car_msgs/LidarPose
+    - geometry_msgs/PoseArray
+    - geometry_msgs/PoseArray
 trusted:
-    - ".*"
-    - ".*"
-    - ".*"
-    - ".*"
+    - "car[0-2]"
+    - "car[0-2]"
+    - "car[0-2]"
+    - "car[0-2]"
+    - observer
+    - observer
 global_frames:
     - $(env CAR_FRAME_ID)
     - earth
