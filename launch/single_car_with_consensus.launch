@@ -27,11 +27,12 @@
     <node pkg="gps_common" type="utm_odometry_node" name="gps_to_utm" output="screen">
         <param name="frame_id" value="utm"/>
         <param name="child_frame_id" value="map"/>
+        <param name="car_name" value="$(arg car_frame_id)" />
     </node>
 
-    <node pkg="multi_car_localization" type="fake_control.py" name="fake_control" output="screen">
+<!--     <node pkg="multi_car_localization" type="fake_control.py" name="fake_control" output="screen">
         <param name="car_frame_id" value="$(arg car_frame_id)" />
-    </node>
+    </node> -->
 
     <node pkg="tf" type="static_transform_publisher" name="map_to_$(arg car_frame_id)"
         args="0 0 0 0 0 0 map $(arg car_frame_id) 100" />

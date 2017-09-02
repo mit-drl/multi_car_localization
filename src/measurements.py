@@ -9,6 +9,7 @@ from multi_car_msgs.msg import CarMeasurement
 from multi_car_msgs.msg import UWBRange
 from multi_car_msgs.msg import CarControl
 from multi_car_msgs.msg import LidarPose
+from multi_car_msgs.msg import MeasurementDebug
 from sensor_msgs.msg import NavSatFix
 from nav_msgs.msg import Odometry
 import tf
@@ -41,6 +42,10 @@ class Measurements(object):
 		self.control = [None] * self.Nconn
 		self.lidar = [None] * self.Nconn
 		self.first_time = True
+
+		self.debug = MeasurementDebug()
+		self.debug.header.frame_id = self.frame_id
+		self.debug_pub = rospy.Publisher("meas_debug", MeasurementDebug, queue_size=1)
 
 		#self.gps_sub = rospy.Subscriber("gps", NavSatFix, self.gps_cb, queue_size=1)
 		self.gps_sub = []
@@ -127,35 +132,33 @@ class Measurements(object):
 			if lidar is not None:
 				lidar_good = True
 
-		gps_good = True
+		num_gps = 0
+		for gps in self.gps:
+			if gps is not None:
+				num_gps += 1
+		num_control = 0
+		for cont in self.control:
+			if cont is not None:
+				num_control += 1
+		num_lidar = 0
+		for lidar in self.lidar:
+			if lidar is not None:
+				num_lidar += 1
+		num_uwb = 0
+		for uwb in self.uwb_ranges:
+			if self.uwb_ranges[uwb].distance != -1:
+				num_uwb += 1
+		self.debug.num_uwb = num_uwb
+		self.debug.num_lidar = num_lidar
+		self.debug.num_gps = num_gps
+		self.debug.num_control = num_control
+		self.debug.success = False
 
 		if gps_good and uwb_good and control_good and lidar_good:
-
-			num_gps = 0
-			for gps in self.gps:
-				if gps is not None:
-					num_gps += 1
-			print "NUM GPS: %d" % (num_gps)
-			num_control = 0
-			for cont in self.control:
-				if cont is not None:
-					num_control += 1
-			print "NUM CON: %d" % (num_control)
-			num_lidar = 0
-			for lidar in self.lidar:
-				if lidar is not None:
-					num_lidar += 1
-			print "NUM LID: %d" % (num_lidar)
-
-
-
 			if self.first_time:
 				self.first_time = False
-			num_uwb = 0
-			for uwb in self.uwb_ranges:
-				if self.uwb_ranges[uwb].distance != -1:
-					num_uwb += 1
-			print "%s: NUM UWB: %d" % (self.frame_id, num_uwb)
+			self.debug.success = True
+
 			self.meas.header.stamp = rospy.Time.now()
 
 			for ID in self.uwb_ranges:
@@ -189,23 +192,7 @@ class Measurements(object):
 			self.control = [None]*self.Nconn
 			self.lidar = [None]*self.Nconn
 
-		else:
-			num_gps = 0
-			for gps in self.gps:
-				if gps is not None:
-					num_gps += 1
-			print "NUM GPS: %d" % (num_gps)
-			num_control = 0
-			for cont in self.control:
-				if cont is not None:
-					num_control += 1
-			print "NUM CON: %d" % (num_control)
-			num_lidar = 0
-			for lidar in self.lidar:
-				if lidar is not None:
-					num_lidar += 1
-			print "NUM LID: %d" % (num_lidar)
-
+		self.debug_pub.publish(self.debug)
 
 	def run(self):
 		while not rospy.is_shutdown():
