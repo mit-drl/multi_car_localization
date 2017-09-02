@@ -155,6 +155,8 @@ class Measurements(object):
 		self.debug.num_control = num_control
 		self.debug.success = False
 
+		gps_good = True
+
 		if gps_good and uwb_good and control_good and lidar_good:
 			if self.first_time:
 				self.first_time = False
