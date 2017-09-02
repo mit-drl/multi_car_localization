@@ -41,7 +41,7 @@ class Control(object):
         self.control.steering_angle = (data - self.offset)/self.gain
         self.steering_angle = True
 
-    def range_sub_cb(self, core):
+    def vel_cb(self, core):
         if self.prev_x is not None and self.prev_time is not None:
             # x = core.distance_traveled
             # t = core.header.stamp
