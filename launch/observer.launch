@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="canopy_client" type="client_node.py" name="canopy_node"
+        output="screen">
+		<param name="name" value="observer"/>
+        <param name="description"
+            value="Observer machine" />
+        <rosparam>
+            host: 192.168.1.129
+            port: 8080
+            private_key: EjAodXdkTz6RPETFE
+            global_frames:
+                - earth
+                - map
+                - car0
+                - car1
+                - car2
+        </rosparam>
+	</node>
+</launch>
