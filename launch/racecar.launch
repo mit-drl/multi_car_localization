@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <launch>
+    <remap from="observer/initial_pose_$(env CAR_FRAME_ID)" to="initialpose"/>
     <arg name="only_canopy" default="false"/>
 
     <group unless="$(arg only_canopy)">
@@ -24,6 +25,4 @@
         <rosparam file="$(find multi_car_localization)/param/canopy.yaml"
             subst_value="True"/>
 	</node>
-
-    <remap from="observer/initial_pose_$(env CAR_FRAME_ID)" to="initialpose"/>
 </launch>
