@@ -192,6 +192,7 @@ class Measurements(object):
 			self.control = [None]*self.Nconn
 			self.lidar = [None]*self.Nconn
 
+		self.debug.header.stamp = rospy.Time.now()
 		self.debug_pub.publish(self.debug)
 
 	def run(self):
