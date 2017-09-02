@@ -24,5 +24,4 @@
         name="super_fake_lidar" output="screen">
         <param name="car_frame_id" value="$(arg car_frame_id)"/>
     </node>
-
 </launch>

@@ -25,6 +25,7 @@
     </node>
 
     <node pkg="gps_common" type="utm_odometry_node" name="gps_to_utm" output="screen">
+        <param name="car_name" value="$(arg car_frame_id)"/>
         <param name="frame_id" value="utm"/>
         <param name="child_frame_id" value="map"/>
     </node>
