@@ -120,17 +120,18 @@ class Measurements(object):
 
 		# to initialize particle you need gps readings
 		# from every car
+		gps_good = False
+		for gps in self.gps:
+			if gps is not None:
+				gps_good = True
+ 
+ 		lidar_good = False
 		if self.first_time:
-			gps_good = None not in self.gps
+			lidar_good = None not in self.lidar
 		else:
-			gps_good = False
-			for gps in self.gps:
-				if gps is not None:
-					gps_good = True
-		lidar_good = False
-		for lidar in self.lidar:
-			if lidar is not None:
-				lidar_good = True
+			for lidar in self.lidar:
+				if lidar is not None:
+					lidar_good = True
 
 		num_gps = 0
 		for gps in self.gps:

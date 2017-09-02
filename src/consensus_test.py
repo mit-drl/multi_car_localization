@@ -15,7 +15,7 @@ import math
 import random
 from scipy.linalg import block_diag
 import pdb
-from dynamics import RoombaDynamics
+from dynamics import DubinsVelocityDynamics
 import tf
 
 import dict_to_graph
@@ -67,7 +67,7 @@ class Consensus(object):
 
 		self.br = tf.TransformBroadcaster()
 
-		self.robot = RoombaDynamics()
+		self.robot = DubinsVelocityDynamics()
 
 		self.xi_prior = None
 		self.Ji_prior = np.zeros((self.Ncars*self.Ndim, self.Ncars*self.Ndim))

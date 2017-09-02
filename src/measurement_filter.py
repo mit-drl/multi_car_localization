@@ -126,9 +126,13 @@ class ParticleFilter(object):
             self.x0 = np.zeros((self.Nconn, self.Ndim))
             # try using lidar instead of gps?
             for i, j in enumerate(self.own_connections):
-                self.x0[i, 0] = self.gps[i].pose.pose.position.x - self.trans[0]
-                self.x0[i, 1] = self.gps[i].pose.pose.position.y - self.trans[1]
-                self.x0[i, 2] = self.init_angle[j]
+                self.x0[i, 0] = self.lidar[i].x
+                self.x0[i, 1] = self.lidar[i].y
+                self.x0[i, 2] = self.lidar[i].theta
+
+                # self.x0[i, 0] = self.gps[i].pose.pose.position.x - self.trans[0]
+                # self.x0[i, 1] = self.gps[i].pose.pose.position.y - self.trans[1]
+                # self.x0[i, 2] = self.init_angle[j]
 
             self.xs_pred = self.x0
 
