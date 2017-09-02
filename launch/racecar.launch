@@ -25,5 +25,5 @@
             subst_value="True"/>
 	</node>
 
-    <remap from="initial_pose_$(env CAR_FRAME_ID)" to="initialpose"/>
+    <remap from="observer/initial_pose_$(env CAR_FRAME_ID)" to="initialpose"/>
 </launch>
