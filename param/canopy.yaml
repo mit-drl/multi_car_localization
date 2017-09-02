@@ -13,10 +13,10 @@ types:
     - geometry_msgs/PoseArray
     - geometry_msgs/PoseArray
 trusted:
-    - ".*"
-    - ".*"
-    - ".*"
-    - ".*"
+    - "car[0-2]"
+    - "car[0-2]"
+    - "car[0-2]"
+    - "car[0-2]"
     - observer
     - observer
 global_frames:
