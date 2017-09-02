@@ -38,22 +38,22 @@ class Control(object):
         self.control_pub = rospy.Publisher('control', CarControl, queue_size=1)
 
     def steering_cb(self, data):
-        self.control.steering_angle = (data - self.offset)/self.gain
+        self.control.steering_angle = (float(data) - self.offset)/self.gain
         self.steering_angle = True
 
     def vel_cb(self, core):
-        if self.prev_x is not None and self.prev_time is not None:
+        #if self.prev_x is not None and self.prev_time is not None:
             # x = core.distance_traveled
             # t = core.header.stamp
 
             # dt = (t - self.prev_time).to_secs()
             # dx = (x - self.prev_x)/100.0
             # vel = dx/dt
-            self.control.velocity = core.speed
-            self.vel = True
+        self.control.velocity = core.speed
+        self.vel = True
 
-        self.prev_x = x
-        self.prev_time = core.header.stamp
+        #self.prev_x = x
+        #self.prev_time = core.header.stamp
 
     def publish_range(self):
         if self.vel and self.steering_angle:
