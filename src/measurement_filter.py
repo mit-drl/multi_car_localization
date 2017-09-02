@@ -121,7 +121,7 @@ class ParticleFilter(object):
             self.uwbs[(uwb.to_id, uwb.from_id)] = uwb
 
         self.lidar = meas.lidar
-      
+
         if self.x0 == None:
             self.x0 = np.zeros((self.Nconn, self.Ndim))
             # try using lidar instead of gps?
@@ -156,7 +156,7 @@ class ParticleFilter(object):
             filter_paths.append(filter_path)
 
         while not rospy.is_shutdown():
-            
+
             if self.x0 == None or self.filter == None or not self.new_meas:
                 start_time = rospy.get_time()
             else:
@@ -180,7 +180,7 @@ class ParticleFilter(object):
                     if self.gps[j].header.frame_id == "None":
                         new_meas_cov[j*self.Nmeas, j*self.Nmeas] = 2345.0
                         new_meas_cov[j*self.Nmeas + 1, j*self.Nmeas + 1] = 2345.0
-                    
+
                     cov_dim = 3
                     if self.lidar[j].header.frame_id == "None":
                         new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
@@ -281,7 +281,7 @@ class ParticleFilter(object):
 
 
                 combined = CombinedState()
-                combined.u = us.flatten().tolist() 
+                combined.u = us.flatten().tolist()
                 combined.state = self.xs_pred.flatten().tolist()
                 combined.header = state.header
                 combined.inf = block_diag(*infs).flatten().tolist()

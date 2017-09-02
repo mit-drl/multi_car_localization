@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="car_frame_id" value="car0"/>
+	<include file="$(find pozyx_comm)/launch/sensors.launch">
+		<arg name="receiver_port" value="/dev/ttyACM0"/>
+		<arg name="sender_port" value="/dev/ttyACM1"/>
+	</include>
+
+	<include file="$(find multi_car_localization)/launch/single_car_with_consensus.launch"/>
+
+    <node pkg="canopy_client" type="client_node.py" name="canopy_node"
+        output="screen">
+		<param name="name" value="$(arg car_frame_id)"/>
+        <param name="description"
+            value="Bench test machine. Not an actual car" />
+        <rosparam file="$(find multi_car_localization)/param/canopy.yaml"
+            subst_value="True"/>
+	</node>
+
+    <node pkg="multi_car_localization" type="super_fake_gps.py"
+        name="super_fake_gps" output="screen"/>
+
+    <node pkg="multi_car_localization" type="super_fake_lidar.py"
+        name="super_fake_lidar" output="screen">
+        <param name="car_frame_id" value="$(arg car_frame_id)"/>
+    </node>
+</launch>
