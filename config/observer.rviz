@@ -49,27 +49,27 @@ Visualization Manager:
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 255; 25; 0
-      Enabled: false
+      Enabled: true
       Name: Car0 Particles
       Topic: /car0/particles
       Unreliable: false
-      Value: false
+      Value: true
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 0; 255; 127
-      Enabled: false
+      Enabled: true
       Name: Car1 Particles
       Topic: /car1/particles
       Unreliable: false
-      Value: false
+      Value: true
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 85; 170; 255
-      Enabled: false
+      Enabled: true
       Name: Car2 Particles
       Topic: /car2/particles
       Unreliable: false
-      Value: false
+      Value: true
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 255; 25; 0
@@ -127,7 +127,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 26.7713
+      Distance: 58.3764
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
@@ -139,10 +139,10 @@ Visualization Manager:
         Z: 0
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.2898
+      Pitch: 1.5698
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.880367
+      Yaw: 0.830397
     Saved: ~
 Window Geometry:
   Displays:

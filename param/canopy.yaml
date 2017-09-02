@@ -5,6 +5,7 @@ publishing:
     - /lidar_pose
     - /particles
     - /consensus_poses
+    - /pf/viz/inferred_pose
 types:
     - multi_car_msgs/CarControl
     - multi_car_msgs/GPS
@@ -12,11 +13,13 @@ types:
     - multi_car_msgs/LidarPose
     - geometry_msgs/PoseArray
     - geometry_msgs/PoseArray
+    - geometry_msgs/PoseStamped
 trusted:
     - "car[0-2]"
     - "car[0-2]"
     - "car[0-2]"
     - "car[0-2]"
+    - observer
     - observer
     - observer
 global_frames:
