@@ -124,7 +124,7 @@ class Measurements(object):
 		for gps in self.gps:
 			if gps is not None:
 				gps_good = True
- 
+
  		lidar_good = False
 		if self.first_time:
 			lidar_good = None not in self.lidar

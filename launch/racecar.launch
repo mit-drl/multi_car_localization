@@ -1,17 +1,21 @@
 <?xml version="1.0"?>
 <launch>
-	<include file="$(find pozyx_comm)/launch/sensors.launch">
-		<arg name="receiver_port" value="/dev/ttyACM1"/>
-		<arg name="sender_port" value="/dev/ttyACM2"/>
-	</include>
+    <arg name="only_canopy" default="false"/>
 
-	<include file="$(find racecar)/launch/teleop.launch"/>
+    <group unless="$(arg only_canopy)">
+        <include file="$(find pozyx_comm)/launch/sensors.launch">
+            <arg name="receiver_port" value="/dev/ttyACM1"/>
+            <arg name="sender_port" value="/dev/ttyACM2"/>
+        </include>
 
-	<include file="$(find particle_filter)/launch/localize.launch">
-		<arg name="car_frame_id" value="$(env CAR_FRAME_ID)"/>
-	</include>
+        <include file="$(find racecar)/launch/teleop.launch"/>
 
-	<include file="$(find multi_car_localization)/launch/single_car_with_consensus.launch"/>
+        <include file="$(find particle_filter)/launch/localize.launch">
+            <arg name="car_frame_id" value="$(env CAR_FRAME_ID)"/>
+        </include>
+
+        <include file="$(find multi_car_localization)/launch/single_car_with_consensus.launch"/>
+    </group>
 
     <node pkg="canopy_client" type="client_node.py" name="canopy_node"
         output="screen">
