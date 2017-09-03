@@ -23,6 +23,10 @@ class Control(object):
         self.gain = rospy.get_param("/vesc/steering_angle_to_servo_gain")
         self.offset = rospy.get_param("/vesc/steering_angle_to_servo_offset")
 
+        # erpm (electrical rpm) = speed_to_erpm_gain * speed (meters / second) + speed_to_erpm_offset
+        self.speed_gain = rospy.get_param("/vesc/speed_to_erpm_gain")
+        self.speed_offset = rospy.get_param("/vesc/speed_to_erpm_offset")
+
         self.control = CarControl()
         self.control.header = Header()
         self.control.header.frame_id = self.frame_id
@@ -50,7 +54,8 @@ class Control(object):
             # dt = (t - self.prev_time).to_secs()
             # dx = (x - self.prev_x)/100.0
             # vel = dx/dt
-        self.control.velocity = core.state.speed
+        # erpm (electrical rpm) = speed_to_erpm_gain * speed (meters / second) + speed_to_erpm_offset
+        self.control.velocity = (core.state.speed - self.speed_offset)/float(self.speed_gain)
         self.vel = True
 
         #self.prev_x = x
