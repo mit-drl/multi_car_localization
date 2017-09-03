@@ -57,13 +57,13 @@ class ParticleFilter(object):
         self.uwbs = {}
         self.init_angle = [-0.1, 1.0, 2.5, -0.5]
 
-        self.init_cov = np.diag(self.Nconn * [1.0, 1.0, 0.01])
-        self.x_cov = np.diag(self.Nconn * [0.1, 0.1, 0.03])
+        self.init_cov = np.diag(self.Nconn * [0.1, 0.1, 0.01])
+        self.x_cov = np.diag(self.Nconn * [0.05, 0.05, 0.03])
         # self.meas_cov = np.diag(self.Ncars * [0.6, 0.6, 0.1, 0.1, 0.1])
         cov_diags = [0.6, 0.6, 0.15, 0.15, 0.1]
         for i in range(self.Nmeas - 5):
-            cov_diags.append(0.35)
-        self.meas_cov = 1.5*np.diag(self.Nconn * cov_diags)
+            cov_diags.append(0.1)
+        self.meas_cov = np.diag(self.Nconn * cov_diags)
 
         self.resample_perc = rospy.get_param("~resample_perc", 0.3)
 
@@ -197,7 +197,7 @@ class ParticleFilter(object):
                                 2345.0*np.diag([1.0, 1.0, 1.0])
                     else:
                         new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
-                                np.diag([0.6, 0.6, 0.08])
+                                np.diag([0.2, 0.2, 0.05])
                                 # 500*np.array(self.lidar[j].cov).reshape((cov_dim, cov_dim))
                     #     print np.array(self.lidar[j].cov).reshape((cov_dim, cov_dim))
                     """
