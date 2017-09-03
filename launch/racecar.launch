@@ -22,7 +22,39 @@
         output="screen">
 		<param name="name" value="$(env CAR_FRAME_ID)"/>
 		<param name="description" value="Racecar. $(env CAR_FRAME_ID)" />
-        <rosparam file="$(find multi_car_localization)/param/canopy.yaml"
-            subst_value="True"/>
+        <rosparam subst_value="True">
+            publishing:
+                - /control
+                - /fix
+                - /consensus
+                - /lidar_pose
+                - /particles
+                - /consensus_poses
+                - /pf/viz/inferred_pose
+            types:
+                - multi_car_msgs/CarControl
+                - multi_car_msgs/GPS
+                - multi_car_msgs/ConsensusMsg
+                - multi_car_msgs/LidarPose
+                - geometry_msgs/PoseArray
+                - geometry_msgs/PoseArray
+                - geometry_msgs/PoseStamped
+            trusted:
+                - "car[0-2]"
+                - "car[0-2]"
+                - "car[0-2]"
+                - "car[0-2]"
+                - observer
+                - observer
+                - observer
+            global_frames:
+                - "$(env CAR_FRAME_ID)"
+                - earth
+                - map
+                - "/map"
+            host: 192.168.1.129
+            port: 8080
+            private_key: EjAodXdkTz6RPETFE
+        </rosparam>
 	</node>
 </launch>
