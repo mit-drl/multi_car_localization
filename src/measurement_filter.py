@@ -197,7 +197,7 @@ class ParticleFilter(object):
                                 2345.0*np.diag([1.0, 1.0, 1.0])
                     else:
                         new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
-                                np.diag([0.5, 0.5, 0.3])
+                                np.diag([0.05, 0.05, 0.05])
                                 # 500*np.array(self.lidar[j].cov).reshape((cov_dim, cov_dim))
                     #     print np.array(self.lidar[j].cov).reshape((cov_dim, cov_dim))
                     """
