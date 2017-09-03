@@ -5,6 +5,7 @@ publishing:
     - /lidar_pose
     - /particles
     - /consensus_poses
+    - /pf/viz/inferred_pose
 types:
     - multi_car_msgs/CarControl
     - multi_car_msgs/GPS
@@ -12,6 +13,7 @@ types:
     - multi_car_msgs/LidarPose
     - geometry_msgs/PoseArray
     - geometry_msgs/PoseArray
+    - geometry_msgs/PoseStamped
 trusted:
     - "car[0-2]"
     - "car[0-2]"
@@ -19,10 +21,12 @@ trusted:
     - "car[0-2]"
     - observer
     - observer
+    - observer
 global_frames:
-    - $(env CAR_FRAME_ID)
+    - "$(env CAR_FRAME_ID)"
     - earth
     - map
+    - "/map"
 host: 192.168.1.129
 port: 8080
 private_key: EjAodXdkTz6RPETFE
