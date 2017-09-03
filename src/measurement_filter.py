@@ -60,7 +60,7 @@ class ParticleFilter(object):
         self.init_cov = np.diag(self.Nconn * [1.0, 1.0, 0.01])
         self.x_cov = np.diag(self.Nconn * [0.1, 0.1, 0.03])
         # self.meas_cov = np.diag(self.Ncars * [0.6, 0.6, 0.1, 0.1, 0.1])
-        cov_diags = [0.6, 0.6, 0.15, 0.15, 0.15]
+        cov_diags = [0.6, 0.6, 0.15, 0.15, 0.1]
         for i in range(self.Nmeas - 5):
             cov_diags.append(0.05)
         self.meas_cov = 1.5*np.diag(self.Nconn * cov_diags)
@@ -180,18 +180,26 @@ class ParticleFilter(object):
                     meas[j, 0] = self.gps[j].pose.pose.position.x - self.trans[0]
                     meas[j, 1] = self.gps[j].pose.pose.position.y - self.trans[1]
                     meas[j, 2:5] = [self.lidar[j].x, self.lidar[j].y, self.lidar[j].theta]
+                    # print self.gps[j].pose.pose.position.x - self.trans[0]
+                    # print self.lidar[j].x
+                    # print "--------------------------------------"
 
                     if self.gps[j].header.frame_id == "None":
+                        meas[j, 0] = 0.0
+                        meas[j, 1] = 0.0
                         new_meas_cov[j*self.Nmeas, j*self.Nmeas] = 2345.0
                         new_meas_cov[j*self.Nmeas + 1, j*self.Nmeas + 1] = 2345.0
 
                     cov_dim = 3
                     if self.lidar[j].header.frame_id == "None":
+                        meas[j, 2:5] = [0.0, 0.0, 0.0]
                         new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
                                 2345.0*np.diag([1.0, 1.0, 1.0])
                     else:
                         new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
-                                10.0*np.array(self.lidar[j].cov).reshape((cov_dim, cov_dim))
+                                np.diag([0.5, 0.5, 0.3])
+                                # 500*np.array(self.lidar[j].cov).reshape((cov_dim, cov_dim))
+                    #     print np.array(self.lidar[j].cov).reshape((cov_dim, cov_dim))
                     """
                     Measurements:
                         [gps_x0, gps_y0, lid_x0, lid_y0, lid_theta0, uwb_00, uwb_01, uwb_02
