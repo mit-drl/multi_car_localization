@@ -157,7 +157,7 @@ class Measurements(object):
 
 		gps_good = True
 
-		if gps_good and uwb_good and control_good and lidar_good:
+		if gps_good and uwb_good and control_good and lidar_good and num_uwb > 4:
 			if self.first_time:
 				self.first_time = False
 			self.debug.success = True
