@@ -62,7 +62,7 @@ class ParticleFilter(object):
         # self.meas_cov = np.diag(self.Ncars * [0.6, 0.6, 0.1, 0.1, 0.1])
         cov_diags = [0.6, 0.6, 0.15, 0.15, 0.15]
         for i in range(self.Nmeas - 5):
-            cov_diags.append(0.05)
+            cov_diags.append(0.35)
         self.meas_cov = 1.5*np.diag(self.Nconn * cov_diags)
 
         self.resample_perc = rospy.get_param("~resample_perc", 0.3)
