@@ -27,11 +27,12 @@
                 - car0
                 - car1
                 - car2
+                - "/map"
         </rosparam>
 	</node>
 
     <node pkg="multi_car_localization" type="initial_pose_node.py"
-        name="initial_pose_node"/>
+        name="initial_pose_node" output="screen"/>
 
     <node pkg="map_server" type="map_server" name="map_server"
         args="$(find particle_filter)/maps/racecar_test3.yaml"/>

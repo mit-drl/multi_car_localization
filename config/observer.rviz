@@ -49,49 +49,94 @@ Visualization Manager:
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Name: Car0 Particles
       Topic: /car0/particles
       Unreliable: false
-      Value: true
+      Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 0; 255; 127
-      Enabled: true
+      Enabled: false
       Name: Car1 Particles
       Topic: /car1/particles
       Unreliable: false
-      Value: true
+      Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 85; 170; 255
-      Enabled: true
+      Enabled: false
       Name: Car2 Particles
       Topic: /car2/particles
       Unreliable: false
-      Value: true
+      Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Name: Car0 Poses
       Topic: /car0/consensus_poses
       Unreliable: false
-      Value: true
+      Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 85; 255; 127
-      Enabled: true
+      Enabled: false
       Name: Car1 Poses
       Topic: /car1/consensus_poses
       Unreliable: false
-      Value: true
+      Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 85; 170; 255
-      Enabled: true
+      Enabled: false
       Name: Car2 Poses
       Topic: /car2/consensus_poses
+      Unreliable: false
+      Value: false
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.1
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.3
+      Head Radius: 0.1
+      Name: Car0 Lidar Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05
+      Shape: Arrow
+      Topic: /car0/pf/viz/inferred_pose
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.1
+      Class: rviz/Pose
+      Color: 85; 255; 0
+      Enabled: true
+      Head Length: 0.3
+      Head Radius: 0.1
+      Name: Car1 Lidar Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05
+      Shape: Arrow
+      Topic: /car1/pf/viz/inferred_pose
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.1
+      Class: rviz/Pose
+      Color: 85; 255; 255
+      Enabled: true
+      Head Length: 0.3
+      Head Radius: 0.1
+      Name: Car2 Lidar Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05
+      Shape: Arrow
+      Topic: /car2/pf/viz/inferred_pose
       Unreliable: false
       Value: true
     - Alpha: 0.7
@@ -127,16 +172,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 58.3764
+      Distance: 25.656
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
+        X: -0.239505
+        Y: -3.85623
+        Z: 0.00300824
       Name: Current View
       Near Clip Distance: 0.01
       Pitch: 1.5698
