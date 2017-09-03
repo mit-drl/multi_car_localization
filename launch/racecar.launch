@@ -58,8 +58,6 @@
             global_frames:
                 - "$(env CAR_FRAME_ID)"
                 - earth
-                - map
-                - "/map"
             host: 192.168.1.129
             port: 8080
             private_key: EjAodXdkTz6RPETFE
