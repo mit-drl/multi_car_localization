@@ -3,7 +3,9 @@ Panels:
     Help Height: 78
     Name: Displays
     Property Tree Widget:
-      Expanded: ~
+      Expanded:
+        - /Global Options1
+        - /Car2 Map1/Status1
       Splitter Ratio: 0.5
     Tree Height: 753
   - Class: rviz/Selection
@@ -49,57 +51,57 @@ Visualization Manager:
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Name: Car0 Particles
       Topic: /car0/particles
       Unreliable: false
-      Value: true
+      Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 0; 255; 127
-      Enabled: true
+      Enabled: false
       Name: Car1 Particles
       Topic: /car1/particles
       Unreliable: false
-      Value: true
+      Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 85; 170; 255
-      Enabled: true
+      Enabled: false
       Name: Car2 Particles
       Topic: /car2/particles
       Unreliable: false
-      Value: true
+      Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Name: Car0 Poses
       Topic: /car0/consensus_poses
       Unreliable: false
-      Value: true
+      Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 85; 255; 127
-      Enabled: true
+      Enabled: false
       Name: Car1 Poses
       Topic: /car1/consensus_poses
       Unreliable: false
-      Value: true
+      Value: false
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 85; 170; 255
-      Enabled: true
+      Enabled: false
       Name: Car2 Poses
       Topic: /car2/consensus_poses
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.1
       Class: rviz/Pose
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Head Length: 0.3
       Head Radius: 0.1
       Name: Car0 Lidar Pose
@@ -108,13 +110,13 @@ Visualization Manager:
       Shape: Arrow
       Topic: /car0/pf/viz/inferred_pose
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.1
       Class: rviz/Pose
       Color: 85; 255; 0
-      Enabled: true
+      Enabled: false
       Head Length: 0.3
       Head Radius: 0.1
       Name: Car1 Lidar Pose
@@ -123,7 +125,7 @@ Visualization Manager:
       Shape: Arrow
       Topic: /car1/pf/viz/inferred_pose
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.1
@@ -136,7 +138,7 @@ Visualization Manager:
       Shaft Length: 1
       Shaft Radius: 0.05
       Shape: Arrow
-      Topic: /car2/pf/viz/inferred_pose
+      Topic: /car2/slam_out_pose
       Unreliable: false
       Value: true
     - Alpha: 0.7
@@ -144,8 +146,8 @@ Visualization Manager:
       Color Scheme: map
       Draw Behind: false
       Enabled: true
-      Name: Map
-      Topic: /map
+      Name: Car2 Map
+      Topic: /car2/map
       Unreliable: false
       Value: true
   Enabled: true
@@ -172,22 +174,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 29.7247
+      Distance: 47.3911
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.758717
-        Y: -6.52271
-        Z: -3.21499
+        X: 2.17777
+        Y: 0.801827
+        Z: -5.60305
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.794797
+      Pitch: 1.5648
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.980377
+      Yaw: 3.09536
     Saved: ~
 Window Geometry:
   Displays:
