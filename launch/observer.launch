@@ -6,7 +6,7 @@
         <param name="description"
             value="Observer machine" />
         <rosparam>
-            host: 192.168.1.129
+            host: 192.168.1.124
             port: 8080
             publishing:
                 - /initial_pose_car0
@@ -20,7 +20,7 @@
                 - car0
                 - car1
                 - car2
-            private_key: EjAodXdkTz6RPETFE
+            private_key: uvHAdEJeNfnENrsTo
             global_frames:
                 - earth
                 - map
