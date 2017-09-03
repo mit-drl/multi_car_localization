@@ -18,6 +18,8 @@
         <include file="$(find multi_car_localization)/launch/single_car_with_consensus.launch"/>
     </group>
 
+    <include file="$(find multi_car_localization)/launch/lidar_odom.launch"/>
+
     <node pkg="canopy_client" type="client_node.py" name="canopy_node"
         output="screen">
 		<param name="name" value="$(env CAR_FRAME_ID)"/>
