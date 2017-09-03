@@ -195,7 +195,7 @@ class ParticleFilter(object):
                         meas[j, 2:5] = [0.0, 0.0, 0.0]
                         new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
                                 2345.0*np.diag([1.0, 1.0, 1.0])
-                    elif self.lidar[j].header.frame_id == "car0":
+                    elif self.lidar[j].car_id == 0:
                         new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
                                 5000.0*np.diag([1.0, 1.0, 1.0])
                     else:
