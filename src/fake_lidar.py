@@ -4,6 +4,7 @@ import math
 import rospy
 from std_msgs.msg import Header
 from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from multi_car_msgs.msg import LidarPose
 from multi_car_msgs.msg import CarState
 import random
@@ -23,7 +24,7 @@ class FakeLidar(object):
 
         self.num_particles = 100
 
-        self.sigma = 0.05
+        self.sigma = 0.001
 
         self.state = None
         self.pose = PoseStamped()
@@ -33,8 +34,8 @@ class FakeLidar(object):
         self.tf = tf.TransformBroadcaster()
 
         self.range_sub = rospy.Subscriber('/range_position', CarState, self.range_sub_cb, queue_size=1)
-        self.pose_pub = rospy.Publisher('lidar_pose', LidarPose, queue_size=1)
-        self.pose_pub2 = rospy.Publisher('/lidar_pose', LidarPose, queue_size=1)
+        self.pose_pub = rospy.Publisher('poseupdate', PoseWithCovarianceStamped, queue_size=1)
+        self.pose_pub2 = rospy.Publisher('/poseupdate', PoseWithCovarianceStamped, queue_size=1)
         self.viz_pub = rospy.Publisher('lidar_viz', PoseStamped, queue_size=1)
 
     def range_sub_cb(self, cs):
@@ -58,8 +59,6 @@ class FakeLidar(object):
             ps.theta = self.state[2]
             ps.car_id = self.ID
             ps.cov = cov
-            self.pose_pub.publish(ps)
-            self.pose_pub2.publish(ps)
 
             self.pose.pose.position.x = self.state[0]
             self.pose.pose.position.y = self.state[1]
@@ -69,6 +68,13 @@ class FakeLidar(object):
             self.pose.pose.orientation.z = quaternion[2]
             self.pose.pose.orientation.w = quaternion[3]
             self.viz_pub.publish(self.pose)
+
+            pscov = PoseWithCovarianceStamped()
+            pscov.header.frame_id = self.frame_id
+            pscov.header.stamp = rospy.Time.now()
+            pscov.pose.pose = self.pose.pose
+            self.pose_pub.publish(pscov)
+            self.pose_pub2.publish(pscov)
 
 
     def run(self):

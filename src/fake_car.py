@@ -3,6 +3,7 @@
 import rospy
 from sensor_msgs.msg import Range
 from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from multi_car_msgs.msg import CarMeasurement
 from multi_car_msgs.msg import CarState
 from multi_car_msgs.msg import CarControl
@@ -51,16 +52,18 @@ class FakeCar(object):
         self.rate = rospy.Rate(rospy.get_param("~frequency", 20))
         self.frame_id = rospy.get_param("~frame_id", "car0")
 
-        self.x0 = np.array([50.*random.random(), 50.*random.random(),
-                            0.1*(random.random()-0.5)], dtype=np.float64)
-        self.init_angle = [-0.1, 1.0, 2.5, -0.5]
+        self.x0 = np.array([0.0, 50.*random.random(), #50.*random.random(),
+                            0.0], dtype=np.float64)# 0.1*(random.random()-0.5)], dtype=np.float64)
+        self.init_angle = [0.0, 0.0, 0.0, 0.0]
+        # self.init_angle = [0.0, 1.0, 2.5, -0.5]
         ID = int(self.frame_id[-1])
         self.x0[2] = self.init_angle[ID]
 
         # self.x0 = np.array([10*random.random(), 10*random.random(),
         #                     math.pi*(random.random()-0.5)], dtype=np.float64)
         self.x = self.x0
-        self.u = [0.04*(random.random()-0.5), 2.0]
+        self.u = [0.01, 2.0]
+        #self.u = [0.04*(random.random()-0.5), 2.0]
         self.current_time = rospy.get_time()
         self.prev_time = self.current_time
 
@@ -86,6 +89,19 @@ class FakeCar(object):
         self.pose_pub = rospy.Publisher("/range_position", CarState, queue_size=1)
         self.control_pub = rospy.Publisher("control", CarControl, queue_size=1)
         self.control_pub2 = rospy.Publisher("/control", CarControl, queue_size=1)
+        self.init_pub = rospy.Publisher("/initial_pose_" + self.frame_id, 
+            PoseWithCovarianceStamped, queue_size=1, latch=True)
+        
+        pwc = PoseWithCovarianceStamped()
+        pwc.header.frame_id = self.frame_id
+        pwc.pose.pose.position.x = self.x0[0]
+        pwc.pose.pose.position.y = self.x0[1]
+        quat = tf.transformations.quaternion_from_euler(0, 0, self.x0[2])
+        pwc.pose.pose.orientation.x = quat[0]
+        pwc.pose.pose.orientation.y = quat[1]
+        pwc.pose.pose.orientation.z = quat[2]
+        pwc.pose.pose.orientation.w = quat[3]
+        self.init_pub.publish(pwc)
 
     def publish_pose(self):
         self.state.state = self.x.tolist()
@@ -100,7 +116,7 @@ class FakeCar(object):
         self.control_pub2.publish(self.control)
 
     def run(self):
-        maxcounts = 180
+        maxcounts = 90
         count = 0
         while not rospy.is_shutdown():
             self.br.sendTransform((self.initial_state[0], self.initial_state[1], 0),
@@ -119,8 +135,8 @@ class FakeCar(object):
                     self.state.u[1] = self.u[1]
             else:
                 dt = self.current_time - self.prev_time
-                u1 = self.u[0] + np.random.normal(0, 2.0*dt)
-                u2 = self.u[1] + np.random.normal(0, 3.0*dt)
+                u1 = self.u[0] + np.random.normal(0, 1.0*dt)
+                u2 = self.u[1] + np.random.normal(0, 2.0*dt)
                 new_u = (u1, u2)
                 self.x = self.robot.state_transition(self.x, new_u, dt)
                 # self.x[2] = self.x[2] % (2*math.pi)

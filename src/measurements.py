@@ -5,6 +5,7 @@ import rospy
 from std_msgs.msg import Header
 from sensor_msgs.msg import Range
 from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from multi_car_msgs.msg import CarMeasurement
 from multi_car_msgs.msg import UWBRange
 from multi_car_msgs.msg import CarControl
@@ -20,7 +21,6 @@ import networkx as nx
 class Measurements(object):
 
 	def __init__(self):
-
 		self.rate = rospy.Rate(rospy.get_param("~frequency", 20))
 		self.Ncars = rospy.get_param("~num_cars", 3)
 		self.frame_id = rospy.get_param("~car_frame_id", "car0")
@@ -41,6 +41,7 @@ class Measurements(object):
 		self.gps = [None]*self.Nconn
 		self.control = [None] * self.Nconn
 		self.lidar = [None] * self.Nconn
+		self.initial_pose = [None] * self.Nconn
 		self.first_time = True
 
 		self.debug = MeasurementDebug()
@@ -48,6 +49,7 @@ class Measurements(object):
 		self.debug_pub = rospy.Publisher("meas_debug", MeasurementDebug, queue_size=1)
 
 		#self.gps_sub = rospy.Subscriber("gps", NavSatFix, self.gps_cb, queue_size=1)
+		self.initial_pose_sub = []
 		self.gps_sub = []
 		self.control_sub = []
 		self.control_sub2 = []
@@ -56,19 +58,50 @@ class Measurements(object):
 		for i, ID in enumerate(self.own_connections):
 			self.gps_sub.append(
 				rospy.Subscriber(
-				"odom" + str(ID), Odometry, self.gps_cb, (i,), queue_size=1))
+					"odom" + str(ID), 
+					Odometry, 
+					self.gps_cb, 
+					(i,), 
+					queue_size=1))
+
+			self.initial_pose_sub.append(
+				rospy.Subscriber(
+					"/initial_pose_car" + str(ID), 
+					PoseWithCovarianceStamped, 
+					self.initial_pose_cb, 
+					(i,ID), 
+					queue_size=1))
 
 			if int(self.frame_id[-1]) == ID:
 				self.control_sub.append(
-					rospy.Subscriber("/control", CarControl, self.control_cb, queue_size=1))
+					rospy.Subscriber(
+						"/control", 
+						CarControl, 
+						self.control_cb, 
+						(i, ID), 
+						queue_size=1))
 				self.lidar_sub.append(
-					rospy.Subscriber("/lidar_pose", LidarPose, self.lidar_cb, queue_size=1))
+					rospy.Subscriber(
+						"/poseupdate", 
+						PoseWithCovarianceStamped, 
+						self.lidar_cb, 
+						(i, ID), 
+						queue_size=1))
 			else:
 				self.control_sub.append(
-					rospy.Subscriber("/car" + str(ID) + "/control", CarControl, self.control_cb, queue_size=1))
+					rospy.Subscriber(
+						"/car" + str(ID) + "/control", 
+						CarControl, 
+						self.control_cb, 
+						(i, ID), 
+						queue_size=1))
 				self.lidar_sub.append(
-					rospy.Subscriber("/car" + str(ID) + "/lidar_pose", LidarPose, self.lidar_cb, queue_size=1))
-
+					rospy.Subscriber(
+						"/car" + str(ID) + "/poseupdate",
+						PoseWithCovarianceStamped, 
+						self.lidar_cb, 
+						(i, ID), 
+						queue_size=1))
 		self.meas_pub = rospy.Publisher(
 			"measurements", CarMeasurement, queue_size=1)
 
@@ -84,17 +117,37 @@ class Measurements(object):
 					uwbs[(j, k)] = null_uwb
 		return uwbs
 
-	def lidar_cb(self, lp):
-		car_id = self.id_dict[str(lp.car_id)]
-		if car_id in self.own_connections:
-			lp.car_id = car_id
-			self.lidar[self.own_connections.index(car_id)] = lp
+	def initial_pose_cb(self, pscov, args):
+		i = args[0]
+		car_id = int(pscov.header.frame_id[-1])
+		if car_id in self.own_connections and car_id == args[1]:
+			ps = PoseStamped()
+			ps.header = pscov.header
+			ps.pose = pscov.pose.pose
+			self.initial_pose[i] = ps
 
-	def control_cb(self, control):
-		car_id = self.id_dict[str(control.car_id)]
-		if car_id in self.own_connections:
-			control.car_id = car_id
-			self.control[self.own_connections.index(car_id)] = control
+	def lidar_cb(self, lp, args):
+		i = args[0]
+		car_id = int(lp.header.frame_id[-1])
+		if car_id in self.own_connections and car_id == args[1]:
+			new_lp = LidarPose()
+			new_lp.header = lp.header
+			new_lp.car_id = int(lp.header.frame_id[-1])
+			new_lp.x = lp.pose.pose.position.x
+			new_lp.y = lp.pose.pose.position.y		
+			quaternion = (lp.pose.pose.orientation.x,
+						  lp.pose.pose.orientation.y,
+						  lp.pose.pose.orientation.z,
+						  lp.pose.pose.orientation.w)
+			(roll, pitch, yaw) = tf.transformations.euler_from_quaternion(quaternion)
+			new_lp.theta = yaw
+			self.lidar[i] = new_lp
+
+	def control_cb(self, control, args):
+		i = args[0]
+		car_id = control.car_id
+		if control.car_id in self.own_connections and car_id == args[1]:
+			self.control[i] = control
 
 	def range_cb(self, uwb):
 		uwb.to_id = self.id_dict[str(uwb.to_id)]
@@ -118,21 +171,29 @@ class Measurements(object):
 					if self.uwb_ranges[(i, j)].distance == -1 and self.uwb_ranges[(j, i)].distance == -1:
 						uwb_good = False
 
+		initial_pose_good = True
+		lidar_good = False
+		if self.first_time:
+			initial_pose_good = None not in self.initial_pose
+			lidar_good = None not in self.lidar
+		else:
+			for lidar in self.lidar:
+				if lidar is not None:
+					lidar_good = True
+		lidar_good = None not in self.lidar
+
 		# to initialize particle you need gps readings
 		# from every car
 		gps_good = False
 		for gps in self.gps:
 			if gps is not None:
 				gps_good = True
+		gps_good = None not in self.gps
 
- 		lidar_good = False
-		if self.first_time:
-			lidar_good = None not in self.lidar
-		else:
-			for lidar in self.lidar:
-				if lidar is not None:
-					lidar_good = True
-
+		num_initial_pose = 0
+		for ip in self.initial_pose:
+			if ip is not None:
+				num_initial_pose +=1
 		num_gps = 0
 		for gps in self.gps:
 			if gps is not None:
@@ -153,11 +214,10 @@ class Measurements(object):
 		self.debug.num_lidar = num_lidar
 		self.debug.num_gps = num_gps
 		self.debug.num_control = num_control
+		self.debug.num_initial_pose = num_initial_pose
 		self.debug.success = False
 
-		gps_good = True
-
-		if gps_good and uwb_good and control_good and lidar_good and num_uwb > 4:
+		if gps_good and uwb_good and control_good and lidar_good and num_uwb > 5 and initial_pose_good:
 			if self.first_time:
 				self.first_time = False
 			self.debug.success = True
@@ -169,6 +229,7 @@ class Measurements(object):
 
 			self.meas.gps = []
 			self.meas.lidar = []
+			self.meas.initial_pose = []
 
 			for gps in self.gps:
 				if gps is None:
@@ -184,6 +245,13 @@ class Measurements(object):
 					self.meas.lidar.append(blank_lidar)
 				else:
 					self.meas.lidar.append(lidar)
+			for ip in self.initial_pose:
+				if ip is None:
+					blank_pose = PoseStamped()
+					blank_pose.header.frame_id = "None"
+					self.meas.initial_pose.append(blank_pose)
+				else:
+					self.meas.initial_pose.append(ip)
 
 			self.meas.control = self.control
 
@@ -194,6 +262,7 @@ class Measurements(object):
 			self.uwb_ranges = self.init_uwb()
 			self.control = [None]*self.Nconn
 			self.lidar = [None]*self.Nconn
+			self.initial_pose = [None]*self.Nconn
 
 		self.debug.header.stamp = rospy.Time.now()
 		self.debug_pub.publish(self.debug)

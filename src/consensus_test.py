@@ -18,6 +18,7 @@ from scipy.linalg import block_diag
 import pdb
 from dynamics import DubinsVelocityDynamics
 from dynamics import RoombaDynamics
+from dynamics import DubinsThetaDynamics
 import tf
 
 import dict_to_graph
@@ -57,7 +58,7 @@ class Consensus(object):
 		self.epsilon = rospy.get_param("~epsilon", 0.2)
 		self.K = rospy.get_param("~consensus_iterations", 15)
 		self.Ncars = rospy.get_param("~num_cars", 3)
-		self.Ndim = rospy.get_param("~num_state_dim", 3)
+		self.Ndim = rospy.get_param("~num_state_dim", 4)
 		self.frame_id = rospy.get_param("~frame_id", "car0")
 
 		self.connections = rospy.get_param("/connections", None)
@@ -69,7 +70,7 @@ class Consensus(object):
 
 		self.br = tf.TransformBroadcaster()
 
-		self.robot = DubinsVelocityDynamics()
+		self.robot = DubinsThetaDynamics()
 
 		self.xi_prior = None
 		self.Ji_prior = np.zeros((self.Ncars*self.Ndim, self.Ncars*self.Ndim))
@@ -84,7 +85,7 @@ class Consensus(object):
 		# self.Hi = np.identity(self.Nconn*self.Ndim)
 
 		# process noise
-		self.Q = np.diag(self.Ncars * [0.4, 0.4, 0.1])
+		self.Q = np.diag(self.Ncars * [0.4, 0.4, 0.1, 0.05])
 		# measurement matrix
 		self.Hi = np.zeros((self.Nconn*self.Ndim, self.Ncars*self.Ndim))
 		identity = np.identity(self.Ndim)
@@ -92,7 +93,7 @@ class Consensus(object):
 			self.Hi[i*self.Ndim:(i+1)*self.Ndim, ID*self.Ndim:(ID+1)*self.Ndim] = identity
 		for i in range(self.Ncars):
 			if i not in self.own_connections:
-				self.Q[i*self.Ndim:(i+1)*self.Ndim, i*self.Ndim:(i+1)*self.Ndim] = np.diag([100.0, 100.0, 3.14])
+				self.Q[i*self.Ndim:(i+1)*self.Ndim, i*self.Ndim:(i+1)*self.Ndim] = np.diag([100.0, 100.0, 3.14, 3.14])
 
 
 		self.x_sub = rospy.Subscriber("combined", CombinedState, self.x_cb)
@@ -195,7 +196,7 @@ class Consensus(object):
 			# if rospy.get_time() - st0 > 2.0:
 			# 	break
 		tim3 = rospy.get_time() - st0
-		print "consensus loops:  %f" % (tim3)
+		#print "consensus loops:  %f" % (tim3)
 
 		self.x_post = np.dot(np.linalg.inv(self.Vi),self.vi)
 		self.J_post = self.Ncars*self.Vi
@@ -254,7 +255,7 @@ class Consensus(object):
 					self.icf()
 
 					tim3 = rospy.get_time() - st3
-					print "CONSENSUS:        %f" % (tim3)	
+					#print "CONSENSUS:        %f" % (tim3)	
 
 			#self.rate.sleep()
 

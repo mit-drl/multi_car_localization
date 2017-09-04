@@ -28,9 +28,10 @@ Measurements:
 class MultiCarParticleFilter(object):
 
     def __init__(self, **kwargs):
+        self.frame_id = kwargs.get("frame_id", "car0")
         self.Np = kwargs.get("num_particles", 100)
         self.Ncars = kwargs.get("num_cars", 3)
-        self.dynamics_model = kwargs.get("dynamics_model", "dubins")
+        self.dynamics_model = kwargs.get("dynamics_model", "dubins_offset")
         self.robot = dynamics.model(self.dynamics_model)
 
         self.Ndim = self.robot.Ndim
@@ -52,6 +53,7 @@ class MultiCarParticleFilter(object):
             size=self.Np).reshape((self.Np, self.Ncars, self.Ndim))
         self.weights = 1.0 / self.Np * np.ones((self.Np,))
         self.prev_angle_estimate = 0
+        self.prev_particles = None
 
     def pdf(self, meas, mean, cov):
         return multivariate_normal.pdf(
@@ -77,15 +79,40 @@ class MultiCarParticleFilter(object):
     def set_meas_cov(self, new_meas_cov):
         self.meas_cov = new_meas_cov
 
+    def rotate(self, dx, dy, theta):
+        R = np.array([[np.cos(theta), -np.sin(theta)],
+                      [np.sin(theta),  np.cos(theta)]])
+        xy = np.dot(R, np.array([dx, dy]))
+        return xy.tolist()
+
     def update_weights(self, meas):
         #print self.weights
         #avg_error = np.zeros_like(meas)
+        if self.prev_particles is None:
+            for j in range(self.Ncars):
+                self.meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 4, j*self.Nmeas + 2:j*self.Nmeas + 4] = \
+                    2345.0*np.diag([1.0, 1.0])
+
         for j in xrange(self.Np):
             p_means = np.zeros((self.Ncars, self.Nmeas))
             for k in xrange(self.Ncars):
+                # measurements: [gps_x, gps_y, lidar_dx, lidar_dy, lidar_theta, uwb...]
+                # state: [x, y, theta, theta_offset]
                 # 'gps measurements'
                 p_means[k, :2] = self.particles[j, k, :2]
-                p_means[k, 2:5] = self.particles[j, k]
+                # theta
+                p_means[k, 4] = self.particles[j, k, 2] #- self.particles[j, k, 3]
+                # dx, dy ----> self.rotate(dx, dy, theta_offset)
+                if self.prev_particles is not None:
+                    diff = [self.particles[j, k, 0] - self.prev_particles[j, k, 0],
+                           self.particles[j, k, 1] - self.prev_particles[j, k, 1]]
+                    p_means[k, 2:4] = [0, 0] #diff #self.rotate(diff[0], diff[1],
+                                      #            0)#-self.particles[j, k, 3])
+                    meas[k, 2:4] = [0, 0]
+                    if self.frame_id == "car0" and j == 0 and k == 0:
+                        print "pf:", diff
+                else: 
+                    p_means[k, 2:4] = [0.0, 0.0]
                 # 'uwb measurements'
                 for l in xrange(self.Ncars):
                     if k != l:
@@ -93,9 +120,13 @@ class MultiCarParticleFilter(object):
                             self.particles[j, k, :2] - self.particles[j, l, :2])
             #avg_error += np.abs(meas - p_means) / self.Np
             self.weights[j] *= self.pdf(meas, p_means, self.meas_cov)
+            #print np.diag(self.meas_cov)
         #self.weights += 1e-32
         #print avg_error
         #print self.weights.sum()
+        #print np.mean(np.abs(self.particles[:, :, 3]))
+        #print np.mean(self.particles[:, :, 2])
+        self.prev_particles = self.particles
         if self.weights.sum() != 0:
             self.weights /= self.weights.sum()
             # print "after: %f" % (self.weights.sum())
@@ -124,15 +155,17 @@ class MultiCarParticleFilter(object):
         #total_weight = self.weights.sum()
         top_weight_indices = np.flipud(np.argsort(self.weights))[:10]
         total_weight = self.weights[top_weight_indices].sum()
-        pred[2] -= self.prev_angle_estimate
+        #pred[2] -= self.prev_angle_estimate
         for i in top_weight_indices:
             #a_x += (self.weights[i] / total_weight)*np.cos(self.particles[i, 2])
             #a_y += (self.weights[i] / total_weight)*np.sin(self.particles[i, 2])
             pred += (self.weights[i] / total_weight) * self.particles[i]
         #angle = np.arctan2(a_y, a_x)
         #pred[2] = angle
-        pred[2] += self.prev_angle_estimate
-        self.prev_angle_estimate = pred[2]
+        #pred[2] += self.prev_angle_estimate
+        #self.prev_angle_estimate = pred[2]
+        for i in xrange(self.Ncars):
+            print pred[i, 2]
         return pred
 
 if __name__ == "__main__":

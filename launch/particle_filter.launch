@@ -2,12 +2,12 @@
 <launch>
 
 	<arg name="car_frame_id" default="car0" />
-	<arg name="num_particles" default="100" />
+	<arg name="num_particles" default="200" />
 	<arg name="num_cars" default="3" />
 	<arg name="num_state_dim" default="3" />
 	<arg name="num_measurements" default="5" />
 	<arg name="resample_perc" default="0.8" />
-	<arg name="dynamics_model" default="dubins" />
+	<arg name="dynamics_model" default="dubins_offset" />
 
     <node pkg="tf" type="static_transform_publisher" name="$(arg car_frame_id)_tf"
         args="0 0 0 0 0 0 map $(arg car_frame_id) 100" />

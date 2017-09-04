@@ -18,7 +18,7 @@ class FakeGPS(object):
         self.frame_id = rospy.get_param("~frame_id", "car0")
         self.ID = int(self.frame_id[-1])
 
-        self.sigma = 0.6
+        self.sigma = 0.01
 
         self.ps = NavSatFix()
         self.ps.header = Header()

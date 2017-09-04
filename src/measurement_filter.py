@@ -6,13 +6,16 @@ from sensor_msgs.msg import Range
 from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import PoseArray
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from multi_car_msgs.msg import CarMeasurement
 from multi_car_msgs.msg import CarState
 from multi_car_msgs.msg import CombinedState
+from multi_car_msgs.msg import LidarPose
 from nav_msgs.msg import Path
 from std_msgs.msg import Header
 import tf
 from tf.transformations import quaternion_from_euler
+import copy
 
 
 import particle_filter as pf
@@ -31,7 +34,7 @@ class ParticleFilter(object):
     def __init__(self):
         self.Np = rospy.get_param("~num_particles", 150)
         self.Ncars = rospy.get_param("~num_cars", 3)
-        self.dynamics_model = rospy.get_param("~dynamics_model", "dubins")
+        self.dynamics_model = rospy.get_param("~dynamics_model", "dubins_offset")
         self.dynamics = dynamics.model(self.dynamics_model)
         self.Ndim = self.dynamics.Ndim
         self.Ninputs = self.dynamics.Ninputs
@@ -54,15 +57,21 @@ class ParticleFilter(object):
         self.x0 = None
         self.gps = [None]*self.Nconn
         self.lidar = [None]*self.Nconn
+        self.initial_pose = [None]*self.Nconn
+        self.prev_lidar = [None]*self.Nconn
         self.uwbs = {}
-        self.init_angle = [-0.1, 1.0, 2.5, -0.5]
+        self.init_angle = [0.0, 1.0, 2.5, -0.5]
 
-        self.init_cov = np.diag(self.Nconn * [0.1, 0.1, 0.01])
-        self.x_cov = np.diag(self.Nconn * [0.05, 0.05, 0.03])
-        # self.meas_cov = np.diag(self.Ncars * [0.6, 0.6, 0.1, 0.1, 0.1])
-        cov_diags = [0.6, 0.6, 0.15, 0.15, 0.1]
+        init_cov = [0.1, 0.1, 0.05, 0.001]
+
+        self.init_cov = np.diag(self.Nconn * init_cov)
+
+        x_cov = [0.1, 0.1, 0.05, 1.]        
+        # x_cov = [0.05, 0.05, 0.03, 0.05]
+        self.x_cov = np.diag(self.Nconn * x_cov)
+        cov_diags = [0.1, 0.1, 100., 100., 0.01]
         for i in range(self.Nmeas - 5):
-            cov_diags.append(0.01)
+            cov_diags.append(0.15)
         self.meas_cov = np.diag(self.Nconn * cov_diags)
 
         self.resample_perc = rospy.get_param("~resample_perc", 0.3)
@@ -91,8 +100,6 @@ class ParticleFilter(object):
         self.state_pub = rospy.Publisher("states", CarState, queue_size=1)
         self.combined_pub = rospy.Publisher("combined", CombinedState, queue_size=1)
 
-        #self.true_pos = {}
-
         self.trans = None
         self.new_meas = False
 
@@ -101,7 +108,6 @@ class ParticleFilter(object):
             (self.trans,rot) = self.listener.lookupTransform('/utm', '/map', rospy.Time(0))
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             print "TRANSFORM FAILEDDDDDDDDDDDDDDDDDDD"
-            pass
 
         self.filter_path_pub = []
         for i in self.own_connections:
@@ -110,6 +116,25 @@ class ParticleFilter(object):
 
     def meas_cb(self, meas):
         self.gps = meas.gps
+        self.initial_pose = meas.initial_pose
+        for i in range(self.Nconn):
+            self.lidar[i] = LidarPose()
+            self.lidar[i].header = meas.lidar[i].header
+            self.lidar[i].car_id = meas.lidar[i].car_id
+            self.lidar[i].theta = meas.lidar[i].theta
+            if self.prev_lidar[i] is not None and meas.lidar[i].header.frame_id != "None":
+                self.lidar[i].x = meas.lidar[i].x - self.prev_lidar[i].x
+                self.lidar[i].y = meas.lidar[i].y - self.prev_lidar[i].y
+                if self.own_connections[i] == 0 and self.frame_id == "car0":
+                    print "me:", self.lidar[i].x, self.lidar[i].y
+            else:
+                self.lidar[i].x = 0.0
+                self.lidar[i].y = 0.0
+            if meas.lidar[i].header.frame_id != "None":
+                self.prev_lidar[i] = meas.lidar[i]
+                # if self.own_connections[i] == 0 and self.frame_id == "car0":
+                #     print meas.lidar[i]
+
 
         self.u = np.zeros((self.Nconn, self.Ninputs))
         for i, control in enumerate(meas.control):
@@ -120,23 +145,34 @@ class ParticleFilter(object):
         for uwb in meas.range:
             self.uwbs[(uwb.to_id, uwb.from_id)] = uwb
 
-        self.lidar = meas.lidar
-
         if self.x0 == None:
             self.x0 = np.zeros((self.Nconn, self.Ndim))
-            # try using lidar instead of gps?
-            for i, j in enumerate(self.own_connections):
-                self.x0[i, 0] = self.lidar[i].x
-                self.x0[i, 1] = self.lidar[i].y
-                self.x0[i, 2] = self.lidar[i].theta
 
-                # self.x0[i, 0] = self.gps[i].pose.pose.position.x - self.trans[0]
-                # self.x0[i, 1] = self.gps[i].pose.pose.position.y - self.trans[1]
-                # self.x0[i, 2] = self.init_angle[j]
+            for i, j in enumerate(self.own_connections):
+                self.lidar[i].x = 0.0
+                self.lidar[i].y = 0.0
+
+                self.x0[i, 0] = self.initial_pose[i].pose.position.x
+                self.x0[i, 1] = self.initial_pose[i].pose.position.y
+                true_quat = (self.initial_pose[i].pose.orientation.x,
+                             self.initial_pose[i].pose.orientation.y,
+                             self.initial_pose[i].pose.orientation.z,
+                             self.initial_pose[i].pose.orientation.w)
+                (r, p, true_yaw) = tf.transformations.euler_from_quaternion(true_quat)
+                
+                if j == 0:
+                    self.x0[i, 2] = 0.0
+                    self.x0[i, 3] = 0.0
+                else:
+                    self.x0[i, 2] = self.lidar[i].theta
+                    self.x0[i, 3] = true_yaw - self.lidar[i].theta
+                    print self.x0[i, 3]
+                print "car %d offset with %d: %f" % (int(self.frame_id[-1]), j, self.x0[i, 3])
 
             self.xs_pred = self.x0
 
             self.filter = pf.MultiCarParticleFilter(
+                frame_id=self.frame_id,
                 num_particles=self.Np,
                 num_cars=self.Nconn,
                 num_measurements=self.Nmeas,
@@ -187,27 +223,21 @@ class ParticleFilter(object):
                     if self.gps[j].header.frame_id == "None":
                         meas[j, 0] = 0.0
                         meas[j, 1] = 0.0
-                        new_meas_cov[j*self.Nmeas, j*self.Nmeas] = 2345.0
-                        new_meas_cov[j*self.Nmeas + 1, j*self.Nmeas + 1] = 2345.0
+                        new_meas_cov[j*self.Nmeas, j*self.Nmeas] = 12345.0
+                        new_meas_cov[j*self.Nmeas + 1, j*self.Nmeas + 1] = 12345.0
 
                     cov_dim = 3
                     if self.lidar[j].header.frame_id == "None":
                         meas[j, 2:5] = [0.0, 0.0, 0.0]
                         new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
-                                2345.0*np.diag([1.0, 1.0, 1.0])
-                    elif self.lidar[j].car_id == 0:
-                        new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
-                                5000.0*np.diag([1.0, 1.0, 1.0])
-                    else:
-                        new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
-                                np.diag([0.2, 0.2, 0.05])
-                                # 500*np.array(self.lidar[j].cov).reshape((cov_dim, cov_dim))
+                                12345.0*np.diag([1.0, 1.0, 1.0])
+                    
                     #     print np.array(self.lidar[j].cov).reshape((cov_dim, cov_dim))
                     """
                     Measurements:
-                        [gps_x0, gps_y0, lid_x0, lid_y0, lid_theta0, uwb_00, uwb_01, uwb_02
-                         gps_x1, gps_y1, lid_x1, lid_y1, lid_theta1, uwb_10, uwb_11, uwb_12
-                         gps_x2, gps_y2, lid_x2, lid_y2, lid_theta2, uwb_20, uwb_21, uwb_22]
+                        [gps_x0, gps_y0, lid_dx0, lid_dy0, lid_theta0, uwb_00, uwb_01, uwb_02
+                         gps_x1, gps_y1, lid_dx1, lid_dy1, lid_theta1, uwb_10, uwb_11, uwb_12
+                         gps_x2, gps_y2, lid_dx2, lid_dy2, lid_theta2, uwb_20, uwb_21, uwb_22]
                     """
                     # j k
                     # 0 1

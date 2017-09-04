@@ -3,8 +3,8 @@
 
 	<arg name="car_frame_id" default="car0" />
     <arg name="num_cars" default="3" />
-    <arg name="num_state_dim" default="3" />
-    <arg name="dynamics_model" default="dubins" />
+    <arg name="num_state_dim" default="4" />
+    <arg name="dynamics_model" default="dubins_offset" />
 
     <node pkg="multi_car_localization" type="fake_car.py" name="$(arg car_frame_id)" output="screen">
 		<param name="frame_id" value="$(arg car_frame_id)"/>
@@ -28,6 +28,7 @@
     <node pkg="multi_car_localization" type="consensus_test.py" name="consensus_test" output="screen">
     	<param name="frame_id" value="$(arg car_frame_id)"/>
         <param name="num_cars" value="$(arg num_cars)" />
+        <param name="num_state_dim" value="$(arg num_state_dim)" />
     </node>
 
     <node pkg="gps_common" type="utm_odometry_node" name="gps_to_utm" output="screen">

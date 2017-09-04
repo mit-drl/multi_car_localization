@@ -8,6 +8,8 @@ def model(model_name):
         return PointDynamics()
     elif model_name == "dubins":
         return DubinsVelocityDynamics()
+    elif model_name == "dubins_offset":
+        return DubinsThetaDynamics()
     else:
         print "INVALID DYNAMICS MODEL NAME GIVEN"
 
@@ -74,6 +76,27 @@ class DubinsVelocityDynamics(Dynamics):
                          [0, 1, v*np.cos(theta)*dt],
                          [0, 0, 1]])
 
+class DubinsThetaDynamics(Dynamics):
+    def __init__(self):
+        self.Ndim = 4
+        self.Ninputs = 2
+
+    def state_transition_model(self, state, u):
+        u_d, u_v, = u
+        x, y, phi, offset = state
+        dx = u_v*np.cos(phi)#+offset)
+        dy = u_v*np.sin(phi)#+offset)
+        dphi = (u_v/0.3)*np.tan(u_d)
+        doffset = 0.0
+        return np.array([dx, dy, dphi, doffset])
+
+    def mini_phi(self, state, u, dt):
+        theta = state[2] #+ state[3]
+        v = u[1]
+        return np.array([[1, 0, -v*np.sin(theta)*dt, 0],
+                         [0, 1, v*np.cos(theta)*dt, 0],
+                         [0, 0, 1, 0],
+                         [0, 0, 0, 1]])
 
 class RoombaDynamics(Dynamics):
 

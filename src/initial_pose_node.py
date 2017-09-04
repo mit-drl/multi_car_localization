@@ -21,9 +21,10 @@ class InitialPoseNode(object):
         self.rate = rospy.Rate(30)
 
     def initial_pose_cb(self, pwc):
-        rospy.loginfo("Publishing initpose to car{}".format(self.count % 3))
+        rospy.loginfo("Publishing initpose to car{}".format(self.count % self.num_cars))
         for i in xrange(50):
-            self.pubs[self.count % 3].publish(pwc)
+            pwc.header.frame_id = "car" + str(self.count % self.num_cars)
+            self.pubs[self.count % self.num_cars].publish(pwc)
             self.rate.sleep()
         self.count += 1
 
