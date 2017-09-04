@@ -11,12 +11,14 @@
         <remap from="initialpose" to="observer/initial_pose_$(env CAR_FRAME_ID)"/>
         <include file="$(find racecar)/launch/teleop.launch"/>
 
-        <include file="$(find particle_filter)/launch/localize.launch">
-            <arg name="car_frame_id" value="$(env CAR_FRAME_ID)"/>
-        </include>
+        <!-- <include file="$(find particle_filter)/launch/localize.launch"> -->
+        <!--     <arg name="car_frame_id" value="$(env CAR_FRAME_ID)"/> -->
+        <!-- </include> -->
 
         <include file="$(find multi_car_localization)/launch/single_car_with_consensus.launch"/>
     </group>
+
+    <include file="$(find multi_car_localization)/launch/lidar_odom.launch"/>
 
     <node pkg="canopy_client" type="client_node.py" name="canopy_node"
         output="screen">
@@ -28,33 +30,39 @@
                 - /fix
                 - /consensus
                 - /lidar_pose
+                - /poseupdate
                 - /particles
                 - /consensus_poses
                 - /pf/viz/inferred_pose
+                - /slam_out_pose
+                - /map
             types:
                 - multi_car_msgs/CarControl
                 - multi_car_msgs/GPS
                 - multi_car_msgs/ConsensusMsg
                 - multi_car_msgs/LidarPose
+                - geometry_msgs/PoseWithCovarianceStamped
                 - geometry_msgs/PoseArray
                 - geometry_msgs/PoseArray
                 - geometry_msgs/PoseStamped
+                - geometry_msgs/PoseStamped
+                - nav_msgs/OccupancyGrid
             trusted:
                 - "car[0-2]"
                 - "car[0-2]"
                 - "car[0-2]"
                 - "car[0-2]"
+                - "car[0-2]"
+                - observer
+                - observer
                 - observer
                 - observer
                 - observer
             global_frames:
                 - "$(env CAR_FRAME_ID)"
                 - earth
-                - map
-                - "/map"
-            host: 192.168.1.129
-            port: 8080
-            private_key: EjAodXdkTz6RPETFE
         </rosparam>
+        <rosparam command="load"
+            file="$(find multi_car_localization)/param/canopy.yaml"/>
 	</node>
 </launch>
