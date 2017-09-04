@@ -61,9 +61,8 @@
             global_frames:
                 - "$(env CAR_FRAME_ID)"
                 - earth
-            host: 192.168.1.124
-            port: 8080
-            private_key: uvHAdEJeNfnENrsTo
         </rosparam>
+        <rosparam command="load"
+            file="$(find multi_car_localization)/param/canopy.yaml"/>
 	</node>
 </launch>

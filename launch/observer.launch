@@ -6,8 +6,6 @@
         <param name="description"
             value="Observer machine" />
         <rosparam>
-            host: 192.168.1.124
-            port: 8080
             publishing:
                 - /initial_pose_car0
                 - /initial_pose_car1
@@ -20,7 +18,6 @@
                 - car0
                 - car1
                 - car2
-            private_key: uvHAdEJeNfnENrsTo
             global_frames:
                 - earth
                 - map
@@ -29,6 +26,8 @@
                 - car2
                 - "/map"
         </rosparam>
+        <rosparam command="load"
+            file="$(find multi_car_localization)/param/canopy.yaml"/>
 	</node>
 
     <node pkg="multi_car_localization" type="initial_pose_node.py"
