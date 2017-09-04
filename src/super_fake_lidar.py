@@ -9,6 +9,7 @@ from multi_car_msgs.msg import CarState
 import random
 import tf
 import numpy as np
+import dynamics
 
 # Corey's particle filter publishes a transform
 # from /laser to /map
@@ -17,9 +18,13 @@ class FakeLidar(object):
 
     def __init__(self):
         self.rate = rospy.Rate(rospy.get_param("~frequency", 15))
-        self.frame_id = rospy.get_param("~car_frame_id", "car0")
-        self.Ndim = rospy.get_param("~num_state_dim", 3)
-        self.ID = int(self.frame_id[-1])
+        self.car_id = rospy.get_param("~car_id", 0)
+        self.frame_name = rospy.get_param("/frame_name")
+        self.frame_id = self.frame_name[self.car_id]
+        self.dynamics_model = rospy.get_param("~dynamics_model", "dubins")
+        self.dynamics = dynamics.model(self.dynamics_model)
+        self.Ndim = self.dynamics.Ndim
+        self.Ninputs = self.dynamics.Ninputs
 
         self.num_particles = 100
 
@@ -48,7 +53,7 @@ class FakeLidar(object):
             ps.x = self.state[0]
             ps.y = self.state[1]
             ps.theta = self.state[2]
-            ps.car_id = self.ID
+            ps.car_id = self.car_id
             ps.cov = cov
             self.pose_pub.publish(ps)
 

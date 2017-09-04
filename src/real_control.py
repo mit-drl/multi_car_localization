@@ -11,14 +11,19 @@ from std_msgs.msg import Float64
 import random
 import tf
 import numpy as np
+import dynamics
 
 class Control(object):
 
     def __init__(self):
         self.rate = rospy.Rate(rospy.get_param("~frequency", 40))
-        self.frame_id = rospy.get_param("~car_frame_id", "car0")
-        self.Ndim = rospy.get_param("~num_state_dim", 3)
-        self.ID = int(self.frame_id[-1])
+        self.car_id = rospy.get_param("~car_id", 0)
+        self.frame_name = rospy.get_param("/frame_name")
+        self.frame_id = self.frame_name[self.car_id]
+        self.dynamics_model = rospy.get_param("~dynamics_model", "dubins")
+        self.dynamics = dynamics.model(self.dynamics_model)
+        self.Ndim = self.dynamics.Ndim
+        self.Ninputs = self.dynamics.Ninputs
 
         self.gain = rospy.get_param("/vesc/steering_angle_to_servo_gain")
         self.offset = rospy.get_param("/vesc/steering_angle_to_servo_offset")
@@ -30,7 +35,7 @@ class Control(object):
         self.control = CarControl()
         self.control.header = Header()
         self.control.header.frame_id = self.frame_id
-        self.control.car_id = int(self.frame_id[-1])
+        self.control.car_id = self.car_id
 
         self.prev_x = None
         self.prev_time = None
@@ -38,9 +43,10 @@ class Control(object):
         self.vel = False
         self.steering_angle = False
 
+        self.control_pub = rospy.Publisher('control', CarControl, queue_size=1)
+
         self.vel_sub = rospy.Subscriber('/vesc/sensors/core', VescStateStamped, self.vel_cb, queue_size=1)
         self.steering_sub = rospy.Subscriber('/vesc/sensors/servo_position_command', Float64, self.steering_cb, queue_size=1)
-        self.control_pub = rospy.Publisher('control', CarControl, queue_size=1)
 
     def steering_cb(self, msg):
         self.control.steering_angle = (msg.data - self.offset)/self.gain

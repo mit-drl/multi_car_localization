@@ -22,20 +22,22 @@ class Measurements(object):
 	def __init__(self):
 
 		self.rate = rospy.Rate(rospy.get_param("~frequency", 20))
-		self.Ncars = rospy.get_param("~num_cars", 3)
-		self.frame_id = rospy.get_param("~car_frame_id", "car0")
+		self.Ncars = rospy.get_param("/num_cars", 3)
+		self.car_id = rospy.get_param("~car_id", 0)
+		self.frame_name = rospy.get_param("/frame_name")
+		self.frame_id = self.frame_name[self.car_id]
 		self.id_dict = rospy.get_param("/id_dict", None)
 		self.connections = rospy.get_param("/connections", None)
-		self.own_connections = self.connections[self.frame_id[-1]]
+		self.own_connections = self.connections[str(self.car_id)]
 		self.Nconn = len(self.own_connections)
 
 		self.full_graph = dict_to_graph.convert(self.connections)
-		self.graph = dict_to_graph.prune(self.full_graph, int(self.frame_id[-1]))
+		self.graph = dict_to_graph.prune(self.full_graph, self.car_id)
 
 		self.meas = CarMeasurement()
 		self.meas.header = Header()
 		self.meas.header.frame_id = self.frame_id
-		self.meas.car_id = int(self.frame_id[-1])
+		self.meas.car_id = self.car_id
 
 		self.uwb_ranges = self.init_uwb()
 		self.gps = [None]*self.Nconn
@@ -46,8 +48,9 @@ class Measurements(object):
 		self.debug = MeasurementDebug()
 		self.debug.header.frame_id = self.frame_id
 		self.debug_pub = rospy.Publisher("meas_debug", MeasurementDebug, queue_size=1)
-
-		#self.gps_sub = rospy.Subscriber("gps", NavSatFix, self.gps_cb, queue_size=1)
+		self.meas_pub = rospy.Publisher(
+			"measurements", CarMeasurement, queue_size=1)
+		
 		self.gps_sub = []
 		self.control_sub = []
 		self.control_sub2 = []
@@ -58,7 +61,7 @@ class Measurements(object):
 				rospy.Subscriber(
 				"odom" + str(ID), Odometry, self.gps_cb, (i,), queue_size=1))
 
-			if int(self.frame_id[-1]) == ID:
+			if self.car_id == ID:
 				self.control_sub.append(
 					rospy.Subscriber("/control", CarControl, self.control_cb, queue_size=1))
 				self.lidar_sub.append(
@@ -68,9 +71,6 @@ class Measurements(object):
 					rospy.Subscriber("/car" + str(ID) + "/control", CarControl, self.control_cb, queue_size=1))
 				self.lidar_sub.append(
 					rospy.Subscriber("/car" + str(ID) + "/lidar_pose", LidarPose, self.lidar_cb, queue_size=1))
-
-		self.meas_pub = rospy.Publisher(
-			"measurements", CarMeasurement, queue_size=1)
 
 	def init_uwb(self):
 		uwbs = {}
@@ -125,7 +125,7 @@ class Measurements(object):
 			if gps is not None:
 				gps_good = True
 
- 		lidar_good = False
+		lidar_good = False
 		if self.first_time:
 			lidar_good = None not in self.lidar
 		else:

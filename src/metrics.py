@@ -8,16 +8,22 @@ from geometry_msgs.msg import Point
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Header
 import numpy as np
+import dynamics
 
 class Metrics(object):
 
     def __init__(self):
         self.rate = rospy.Rate(rospy.get_param("~frequency", 100))
-        self.frame_id = rospy.get_param("~frame_id", "car0")
-        self.ID = int(self.frame_id[-1])
+        self.car_id = rospy.get_param("~car_id", 0)
+        self.frame_name = rospy.get_param("/frame_name")
+        self.frame_id = self.frame_name[self.car_id]
+        self.ID = self.car_id
 
-        self.Ncars = rospy.get_param("~num_cars", 3)
-        self.Ndim = rospy.get_param("~num_state_dim", 3)
+        self.Ncars = rospy.get_param("/num_cars", 3)
+        self.dynamics_model = rospy.get_param("~dynamics_model", "dubins")
+        self.dynamics = dynamics.model(self.dynamics_model)
+        self.Ndim = self.dynamics.Ndim
+        self.Ninputs = self.dynamics.Ninputs
 
         self.id_dict = rospy.get_param("/id_dict", None)
         self.connections = rospy.get_param("/connections", None)

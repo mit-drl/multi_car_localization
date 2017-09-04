@@ -16,7 +16,7 @@ class ViconToGPS(object):
 
     def __init__(self):
         self.rate = rospy.Rate(rospy.get_param("~frequency", 7))
-        self.Ncars = rospy.get_param("~num_cars", 3)
+        self.Ncars = rospy.get_param("/num_cars", 3)
 
         self.vicon_sub = []
         self.vicon_pub = []

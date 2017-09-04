@@ -1,45 +1,43 @@
 <?xml version="1.0"?>
 <launch>
 
-	<arg name="car_frame_id" default="car0" />
-    <arg name="num_cars" default="3" />
-    <arg name="num_state_dim" default="3" />
+	<arg name="car_id" default="0" />
     <arg name="dynamics_model" default="dubins" />
 
-    <node pkg="multi_car_localization" type="fake_car.py" name="$(arg car_frame_id)" output="screen">
-		<param name="frame_id" value="$(arg car_frame_id)"/>
+    <node pkg="multi_car_localization" type="fake_car.py" name="car$(arg car_id)" output="screen">
+		<param name="car_id" value="$(arg car_id)"/>
+        <param name="dynamics_model" value="$(arg dynamics_model)" />
     </node>
 
-    <include file="$(find multi_car_localization)/launch/fake_lidar.launch">
-        <arg name="car_frame_id" value="$(arg car_frame_id)" />
-    </include>
+    <node pkg="multi_car_localization" type="fake_lidar.py" name="uwb" output="screen">
+        <param name="car_id" value="$(arg car_id)" />
+        <param name="dynamics_model" value="$(arg dynamics_model)" />
+    </node>
+
+    <node pkg="multi_car_localization" type="fake_vicon.py" name="fake_vicon" output="screen" />
 
  	<include file="$(find multi_car_localization)/launch/particle_filter.launch">
- 		<arg name="car_frame_id" value="$(arg car_frame_id)" />
-        <arg name="num_cars" value="$(arg num_cars)" />
+ 		<arg name="car_id" value="$(arg car_id)" />
         <arg name="dynamics_model" value="$(arg dynamics_model)" />
 	</include>
 
-	<include file="$(find multi_car_localization)/launch/measurements.launch">
-		<arg name="car_frame_id" value="$(arg car_frame_id)" />
-		<arg name="num_cars" value="$(arg num_cars)" />
-	</include>
+	<node pkg="multi_car_localization" type="measurements.py" name="measurements" output="screen">
+        <param name="car_id" value="$(arg car_id)"/>
+    </node>
 
     <node pkg="multi_car_localization" type="consensus_test.py" name="consensus_test" output="screen">
-    	<param name="frame_id" value="$(arg car_frame_id)"/>
-        <param name="num_cars" value="$(arg num_cars)" />
+    	<param name="car_id" value="$(arg car_id)"/>
+        <param name="dynamics_model" value="$(arg dynamics_model)" />
     </node>
 
     <node pkg="gps_common" type="utm_odometry_node" name="gps_to_utm" output="screen">
         <param name="frame_id" value="utm"/>
-        <param name="num_cars" value="$(arg num_cars)" />
         <param name="child_frame_id" value="map"/>
     </node>
 
     <node pkg="multi_car_localization" type="metrics.py" name="metrics" output="screen">
-        <param name="frame_id" value="$(arg car_frame_id)"/>
-        <param name="num_cars" value="$(arg num_cars)" />
-        <param name="num_state_dim" value="$(arg num_state_dim)" />
+        <param name="car_id" value="$(arg car_id)"/>
+        <param name="dynamics_model" value="$(arg dynamics_model)" />
     </node>
 
 </launch>

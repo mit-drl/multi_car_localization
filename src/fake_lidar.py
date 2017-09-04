@@ -9,6 +9,7 @@ from multi_car_msgs.msg import CarState
 import random
 import tf
 import numpy as np
+import dynamics
 
 # Corey's particle filter publishes a transform
 # from /laser to /map
@@ -17,13 +18,18 @@ class FakeLidar(object):
 
     def __init__(self):
         self.rate = rospy.Rate(rospy.get_param("~frequency", 5))
-        self.frame_id = rospy.get_param("~car_frame_id", "car0")
-        self.Ndim = rospy.get_param("~num_state_dim", 3)
-        self.ID = int(self.frame_id[-1])
+        self.dynamics_model = rospy.get_param("~dynamics_model", "dubins")
+        self.dynamics = dynamics.model(self.dynamics_model)
+        self.Ndim = self.dynamics.Ndim
+        self.Ninputs = self.dynamics.Ninputs
+        self.car_id = rospy.get_param("~car_id", 0)
+        self.frame_name = rospy.get_param("/frame_name")
+        self.frame_id = self.frame_name[self.car_id]
+        self.ID = self.car_id
 
         self.num_particles = 100
 
-        self.sigma = 0.05
+        self.sigma = rospy.get_param("/lidar_sigma")
 
         self.state = None
         self.pose = PoseStamped()
@@ -32,10 +38,11 @@ class FakeLidar(object):
 
         self.tf = tf.TransformBroadcaster()
 
-        self.range_sub = rospy.Subscriber('/range_position', CarState, self.range_sub_cb, queue_size=1)
         self.pose_pub = rospy.Publisher('lidar_pose', LidarPose, queue_size=1)
         self.pose_pub2 = rospy.Publisher('/lidar_pose', LidarPose, queue_size=1)
         self.viz_pub = rospy.Publisher('lidar_viz', PoseStamped, queue_size=1)
+
+        self.range_sub = rospy.Subscriber('/range_position', CarState, self.range_sub_cb, queue_size=1)
 
     def range_sub_cb(self, cs):
         if cs.car_id == self.ID:

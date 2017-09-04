@@ -18,8 +18,9 @@ class FakeGPS(object):
 
     def __init__(self):
         self.rate = rospy.Rate(rospy.get_param("~frequency", 15))
-        self.frame_id = rospy.get_param("~car_frame_id", "car0")
-        self.ID = int(self.frame_id[-1])
+        self.car_id = rospy.get_param("~car_id", 0)
+        self.frame_name = rospy.get_param("/frame_name")
+        self.frame_id = self.frame_name[self.car_id]
 
         self.sigma = 0.6
 
@@ -32,7 +33,7 @@ class FakeGPS(object):
         self.gps.fix = NavSatFix()
         self.gps.header = Header()
         self.gps.header.frame_id = "earth"
-        self.gps.car_id = self.ID
+        self.gps.car_id = self.car_id
 
         self.pose_pub = rospy.Publisher('fix', GPS, queue_size=1)
 

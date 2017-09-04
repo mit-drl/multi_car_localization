@@ -11,8 +11,7 @@ import math
 import numpy as np
 import random
 import tf
-from dynamics import DubinsVelocityDynamics
-
+import dynamics
 """
 State:
     [x0, y0
@@ -49,18 +48,36 @@ class FakeCar(object):
 
     def __init__(self):
         self.rate = rospy.Rate(rospy.get_param("~frequency", 20))
-        self.frame_id = rospy.get_param("~frame_id", "car0")
+        self.init_angle = rospy.get_param("/init_angle", [0.0, 1.0, 2.5, -0.5])
+        self.dynamics_model = rospy.get_param("~dynamics_model", "dubins")
+        self.robot = dynamics.model(self.dynamics_model)
+        self.Ndim = self.robot.Ndim
+        self.Ninputs = self.robot.Ninputs
+        self.car_id = rospy.get_param("~car_id", 0)
+        self.frame_name = rospy.get_param("/frame_name")
+        self.frame_id = self.frame_name[self.car_id]
+        self.process_noise = rospy.get_param("/process_noise", [2.0, 3.0])
 
-        self.x0 = np.array([50.*random.random(), 50.*random.random(),
-                            0.1*(random.random()-0.5)], dtype=np.float64)
-        self.init_angle = [-0.1, 1.0, 2.5, -0.5]
-        ID = int(self.frame_id[-1])
-        self.x0[2] = self.init_angle[ID]
+        if self.Ndim == 2:
+            self.x0 = np.array([50.*random.random(), 50.*random.random()],
+                                dtype=np.float64)
+        elif self.Ndim == 3:
+            self.x0 = np.array([50.*random.random(), 50.*random.random(),
+                                0.1*(random.random()-0.5)], dtype=np.float64)
+            self.x0[2] = self.init_angle[self.car_id]
+        elif self.Ndim == 4:
+            self.x0 = np.array([50.*random.random(), 50.*random.random(),
+                                0.1*(random.random()-0.5), 0.0],
+                                dtype=np.float64)
+            self.x0[2] = self.init_angle[self.car_id]
 
-        # self.x0 = np.array([10*random.random(), 10*random.random(),
-        #                     math.pi*(random.random()-0.5)], dtype=np.float64)
         self.x = self.x0
-        self.u = [0.04*(random.random()-0.5), 2.0]
+
+        if self.Ninputs == 2:
+            self.u = [0.04*(random.random()-0.5), 2.0]
+        elif self.Ninputs == 0:
+            self.u = [0, 0]
+
         self.current_time = rospy.get_time()
         self.prev_time = self.current_time
 
@@ -72,16 +89,13 @@ class FakeCar(object):
         self.state.header.frame_id = self.frame_id
         self.state.u.append(0.0)
         self.state.u.append(0.0)
-        # self.state.u.append(self.u[0])
-        # self.state.u.append(self.u[1])
-        self.state.car_id = int(self.frame_id[-1])
+
+        self.state.car_id = self.car_id
 
         self.control = CarControl()
         self.control.header = Header()
         self.control.header.frame_id = self.frame_id
-        self.control.car_id = int(self.frame_id[-1])
-
-        self.robot = DubinsVelocityDynamics()
+        self.control.car_id = self.car_id
 
         self.pose_pub = rospy.Publisher("/range_position", CarState, queue_size=1)
         self.control_pub = rospy.Publisher("control", CarControl, queue_size=1)
@@ -119,8 +133,8 @@ class FakeCar(object):
                     self.state.u[1] = self.u[1]
             else:
                 dt = self.current_time - self.prev_time
-                u1 = self.u[0] + np.random.normal(0, 2.0*dt)
-                u2 = self.u[1] + np.random.normal(0, 3.0*dt)
+                u1 = self.u[0] + np.random.normal(0, self.process_noise[0]*dt)
+                u2 = self.u[1] + np.random.normal(0, self.process_noise[1]*dt)
                 new_u = (u1, u2)
                 self.x = self.robot.state_transition(self.x, new_u, dt)
                 # self.x[2] = self.x[2] % (2*math.pi)

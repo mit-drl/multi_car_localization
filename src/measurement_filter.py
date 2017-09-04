@@ -29,25 +29,24 @@ import dynamics
 class ParticleFilter(object):
 
     def __init__(self):
+        self.rate = rospy.Rate(rospy.get_param("~frequency", 10))
         self.Np = rospy.get_param("~num_particles", 150)
-        self.Ncars = rospy.get_param("~num_cars", 3)
+        self.Ncars = rospy.get_param("/num_cars", 3)
         self.dynamics_model = rospy.get_param("~dynamics_model", "dubins")
         self.dynamics = dynamics.model(self.dynamics_model)
         self.Ndim = self.dynamics.Ndim
         self.Ninputs = self.dynamics.Ninputs
 
-        # self.Ndim = rospy.get_param("~num_state_dim", 3)
-        # self.Ninputs = rospy.get_param("~num_inputs", 2)
-        self.frame_id = rospy.get_param("~car_frame_id", "car0")
+        self.car_id = rospy.get_param("~car_id", 0)
+        self.frame_name = rospy.get_param("/frame_name")
+        self.frame_id = self.frame_name[self.car_id]
 
         self.connections = rospy.get_param("/connections", None)
-        self.own_connections = self.connections[self.frame_id[-1]]
+        self.own_connections = self.connections[str(self.car_id)]
         self.Nconn = len(self.own_connections)
 
         self.full_graph = dict_to_graph.convert(self.connections)
-        self.graph = dict_to_graph.prune(self.full_graph, int(self.frame_id[-1]))
-
-        self.Nmeas = 2 + 3 + len(self.graph.neighbors(int(self.frame_id[-1]))) + 1
+        self.graph = dict_to_graph.prune(self.full_graph, self.car_id)
 
         self.listener = tf.TransformListener()
 
@@ -55,14 +54,20 @@ class ParticleFilter(object):
         self.gps = [None]*self.Nconn
         self.lidar = [None]*self.Nconn
         self.uwbs = {}
-        self.init_angle = [-0.1, 1.0, 2.5, -0.5]
+        self.init_angle = rospy.get_param("/init_angle", [0.0, 1.0, 2.5, -0.5])
 
-        self.init_cov = np.diag(self.Nconn * [0.1, 0.1, 0.01])
-        self.x_cov = np.diag(self.Nconn * [0.05, 0.05, 0.03])
-        # self.meas_cov = np.diag(self.Ncars * [0.6, 0.6, 0.1, 0.1, 0.1])
-        cov_diags = [0.6, 0.6, 0.15, 0.15, 0.1]
-        for i in range(self.Nmeas - 5):
-            cov_diags.append(0.01)
+        gps_cov   = rospy.get_param("/gps_cov", [0.6, 0.6])
+        lidar_cov = rospy.get_param("/lidar_cov", [0.15, 0.15, 0.05])
+        uwb_cov   = rospy.get_param("/uwb_cov", 0.1)
+        self.num_uwb_meas = len(self.graph.neighbors(self.car_id)) + 1
+        self.Nmeas = len(gps_cov) + len(lidar_cov) + self.num_uwb_meas
+
+        self.init_cov = np.diag(self.Nconn * rospy.get_param("/init_cov", [0.1, 0.1, 0.01]))
+        self.x_cov = np.diag(self.Nconn * rospy.get_param("/x_cov", [0.05, 0.05, 0.03]))
+        
+        cov_diags = gps_cov + lidar_cov
+        for i in range(self.Nmeas - len(gps_cov) - len(lidar_cov)):
+            cov_diags.append(uwb_cov)
         self.meas_cov = np.diag(self.Nconn * cov_diags)
 
         self.resample_perc = rospy.get_param("~resample_perc", 0.3)
@@ -72,26 +77,9 @@ class ParticleFilter(object):
         self.current_time = 0
 
         self.u = np.zeros((self.Nconn, self.Ninputs))
-        #self.xs = np.zeros((self.Ncars, self.Ndim))
         self.xs_pred = np.zeros((self.Nconn, self.Ndim))
 
         self.filter = None
-
-        self.error = np.zeros((1,))
-
-        self.rate = rospy.Rate(rospy.get_param("~frequency", 10))
-
-        self.meas_sub = rospy.Subscriber("measurements", CarMeasurement, self.meas_cb,
-           queue_size=1)
-
-        # self.pos_sub = rospy.Subscriber("/range_position", CarState, self.pos_cb,
-        #     queue_size=1)
-        self.pa_pub = rospy.Publisher("particles", PoseArray, queue_size=1)
-
-        self.state_pub = rospy.Publisher("states", CarState, queue_size=1)
-        self.combined_pub = rospy.Publisher("combined", CombinedState, queue_size=1)
-
-        #self.true_pos = {}
 
         self.trans = None
         self.new_meas = False
@@ -103,10 +91,18 @@ class ParticleFilter(object):
             print "TRANSFORM FAILEDDDDDDDDDDDDDDDDDDD"
             pass
 
+        self.pa_pub = rospy.Publisher("particles", PoseArray, queue_size=1)
+
+        self.state_pub = rospy.Publisher("states", CarState, queue_size=1)
+        self.combined_pub = rospy.Publisher("combined", CombinedState, queue_size=1)
+
         self.filter_path_pub = []
         for i in self.own_connections:
             self.filter_path_pub.append(
                 rospy.Publisher("path" + str(i) + str(i), Path, queue_size=1))
+
+        self.meas_sub = rospy.Subscriber("measurements", CarMeasurement, self.meas_cb,
+           queue_size=1)
 
     def meas_cb(self, meas):
         self.gps = meas.gps
@@ -180,8 +176,8 @@ class ParticleFilter(object):
                     meas[j, 0] = self.gps[j].pose.pose.position.x - self.trans[0]
                     meas[j, 1] = self.gps[j].pose.pose.position.y - self.trans[1]
                     meas[j, 2:5] = [self.lidar[j].x, self.lidar[j].y, self.lidar[j].theta]
-                    # print self.gps[j].pose.pose.position.x - self.trans[0]
-                    # print self.lidar[j].x
+                    if j == 0:
+                        print self.gps[j].pose.pose.position.x - self.trans[0], self.lidar[j].x
                     # print "--------------------------------------"
 
                     if self.gps[j].header.frame_id == "None":
@@ -223,11 +219,11 @@ class ParticleFilter(object):
                             meas[j, k + 5] = self.uwbs[(to_id, from_id)].distance
                             if self.uwbs[(to_id, from_id)].distance == -1:
                                 self.uwbs[(to_id, from_id)].distance = self.uwbs[(from_id, to_id)].distance
-                                new_meas_cov[j*self.Nmeas + k + 5, j*self.Nmeas + k + 5] = 12345.0
+                                new_meas_cov[j*self.Nmeas + k + 5, j*self.Nmeas + k + 5] = 2345.0
                         elif to_id == from_id:
                             new_meas_cov[j*self.Nmeas + k + 5, j*self.Nmeas + k + 5] = 0.001
                         elif to_id != from_id:
-                            new_meas_cov[j*self.Nmeas + k + 5, j*self.Nmeas + k + 5] = 12345.0
+                            new_meas_cov[j*self.Nmeas + k + 5, j*self.Nmeas + k + 5] = 2345.0
 
                 # about 0.1-0.2 seconds
                 # much shorter now that i reduced the rate of
@@ -308,10 +304,6 @@ class ParticleFilter(object):
                 self.filter.resample()
                 tim2 = rospy.get_time() - st2
                 # print "RESAMPLE     :    %f" % (tim2)
-
-                #self.error = np.append(self.error, np.zeros((1,)))
-                #for j in xrange(self.Ncars):
-                #    self.error[i] += np.linalg.norm(self.xs_pred[j, :2] - self.xs[j, :2]) / self.Ncars
 
                 # self.prev_time = self.current_time
 

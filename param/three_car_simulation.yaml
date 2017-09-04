@@ -1,0 +1,19 @@
+num_cars: 3
+init_angle: [0.0, 1.0, 2.5]
+frame_name: ["car0", "car1", "car2"]
+
+
+
+
+# fake car
+process_noise: [2.0, 3.0]
+# fake sensorrs
+lidar_sigma:    0.05
+uwb_sigma:      0.07
+
+# measurement filter
+init_cov:      [0.1, 0.1, 0.01]
+x_cov:         [0.05, 0.05, 0.03]
+gps_cov:       [0.6, 0.6]
+lidar_cov:     [0.15, 0.15, 0.05]
+uwb_cov:        0.1

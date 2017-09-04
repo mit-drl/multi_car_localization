@@ -16,12 +16,14 @@ class FakeControl(object):
 
     def __init__(self):
         self.rate = rospy.Rate(rospy.get_param("~frequency", 5))
-        self.frame_id = rospy.get_param("~car_frame_id", "car0")
+        self.car_id = rospy.get_param("~car_id", 0)
+        self.frame_name = rospy.get_param("/frame_name")
+        self.frame_id = self.frame_name[self.car_id]
 
         self.control = CarControl()
         self.control.header = Header()
         self.control.header.frame_id = self.frame_id
-        self.control.car_id = int(self.frame_id[-1])
+        self.control.car_id = self.car_id
         self.control.steering_angle = 0.0
         self.control.velocity = 1.0
 

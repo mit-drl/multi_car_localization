@@ -17,7 +17,7 @@ class FakeVicon(object):
 
     def __init__(self):
         self.rate = rospy.Rate(rospy.get_param("~frequency", 50))
-        self.Ncars = rospy.get_param("~num_cars", 3)
+        self.Ncars = rospy.get_param("/num_cars", 3)
 
         self.transform = TransformStamped()
         self.transform.header = Header()
