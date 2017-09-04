@@ -30,6 +30,7 @@
                 - /fix
                 - /consensus
                 - /lidar_pose
+                - /poseupdate
                 - /particles
                 - /consensus_poses
                 - /pf/viz/inferred_pose
@@ -40,12 +41,14 @@
                 - multi_car_msgs/GPS
                 - multi_car_msgs/ConsensusMsg
                 - multi_car_msgs/LidarPose
+                - geometry_msgs/PoseWithCovarianceStamped
                 - geometry_msgs/PoseArray
                 - geometry_msgs/PoseArray
                 - geometry_msgs/PoseStamped
                 - geometry_msgs/PoseStamped
                 - nav_msgs/OccupancyGrid
             trusted:
+                - "car[0-2]"
                 - "car[0-2]"
                 - "car[0-2]"
                 - "car[0-2]"
