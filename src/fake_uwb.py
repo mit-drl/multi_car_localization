@@ -29,6 +29,7 @@ class FakeUWB(object):
 
         self.range_pub = rospy.Publisher('/ranges', UWBRange, queue_size=1)
         self.range_sub = rospy.Subscriber('/range_position', CarState, self.range_sub_cb)
+        self.inner_rate = rospy.Rate(50)
 
     def range_sub_cb(self, cs):
         frame_id = cs.header.frame_id
@@ -55,18 +56,19 @@ class FakeUWB(object):
                         rng.to_id = j
                         rng.from_id = k
                         rng.distance = max(0.0, dist + random.gauss(0.0, self.sigma))
-                        self.range_pub.publish(rng)   
+                        self.range_pub.publish(rng)
+                        self.inner_rate.sleep()
 
                         rng.to_id = k
                         rng.from_id = j
                         rng.distance = max(0.0, dist + random.gauss(0.0, self.sigma))
                         self.range_pub.publish(rng)
-                    self.rate.sleep()
+                        self.inner_rate.sleep()
 
     def run(self):
         while not rospy.is_shutdown():
             self.publish_range()
-            
+
 
 if __name__ == "__main__":
     rospy.init_node("uwb", anonymous=False)
