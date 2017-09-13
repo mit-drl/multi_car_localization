@@ -1,5 +1,6 @@
 build/
 bin/
+config/
 lib/
 msg_gen/
 srv_gen/
@@ -42,6 +43,9 @@ qtcreator-*
 
 # Emacs
 .#*
+
+# vim
+*.sw?
 
 # Catkin custom files
 CATKIN_IGNORE

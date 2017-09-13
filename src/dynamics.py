@@ -18,25 +18,20 @@ class Dynamics(object):
 
     def state_transition(self, x, u, dt):
         # u is a tuple (u_d, u_a)
-        steps = 1.0 #max(int(dt / 0.1),1.0)
+        steps = 1 #max(int(dt / 0.1),1.0)
         h = dt/float(steps)
-        x = [x]
-        for i in range(0, int(steps)):
-            k1 = self.state_transition_model(x[i], u)
-            k2 = self.state_transition_model(x[i] + 0.5*h*k1, u)
-            k3 = self.state_transition_model(x[i] + 0.5*h*k2, u)
-            k4 = self.state_transition_model(x[i] + k3*h, u)
-            new_x = x[i] + (h/6.0)*(k1 + 2.0*k2 + 2.0*k3 + k4)
-            x.append(new_x)
-        return x[-1]
+        x_i = np.copy(x)
+        for i in range(steps):
+            k1 = self.state_transition_model(x_i, u)
+            k2 = self.state_transition_model(x_i + 0.5*h*k1, u)
+            k3 = self.state_transition_model(x_i + 0.5*h*k2, u)
+            k4 = self.state_transition_model(x_i + k3*h, u)
+            x_i += (h/6.0)*(k1 + 2.0*k2 + 2.0*k3 + k4)
+        return x_i
 
     def state_transition_model(self, state, u):
-        u_d, u_v, = u
-        x, y, phi = state
-        dx = u_v*np.cos(phi)
-        dy = u_v*np.sin(phi)
-        dphi = (u_v/3.)*np.tan(u_d)
-        return np.array([dx, dy, dphi])
+        # must be implemented by subclass
+        raise NotImplementedError
 
     def mini_phi(self, state, u, dt):
         theta = state[2]
@@ -60,12 +55,15 @@ class DubinsVelocityDynamics(Dynamics):
         self.Ninputs = 2
 
     def state_transition_model(self, state, u):
-        u_d, u_v, = u
-        x, y, phi = state
-        dx = u_v*np.cos(phi)
-        dy = u_v*np.sin(phi)
-        dphi = (u_v/0.3)*np.tan(u_d)
-        return np.array([dx, dy, dphi])
+        u = np.asarray(u)
+        state = np.asarray(state)
+        u_d, u_v = u[...,0], u[...,1]
+        x, y, phi = state[...,0], state[...,1], state[...,2]
+        dstate = np.zeros_like(state)
+        dstate[...,0] = u_v*np.cos(phi) # dx
+        dstate[...,1] = u_v*np.sin(phi) # dy
+        dstate[...,2] = (u_v/0.3)*np.tan(u_d) # dphi
+        return dstate
 
     def mini_phi(self, state, u, dt):
         theta = state[2]
@@ -82,12 +80,15 @@ class RoombaDynamics(Dynamics):
         self.Ninputs = 2
 
     def state_transition_model(self, state, u):
-        u_w, u_v, = u
-        x, y, phi = state
-        dx = u_v*np.cos(phi)
-        dy = u_v*np.sin(phi)
-        dphi = u_w
-        return np.array([dx, dy, dphi])
+        u = np.asarray(u)
+        state = np.asarray(state)
+        u_w, u_v = u[...,0], u[...,1]
+        x, y, phi = state[...,0], state[...,1], state[...,2]
+        dstate = np.zeros_like(state)
+        dstate[...,0] = u_v*np.cos(phi) # dx
+        dstate[...,1] = u_v*np.sin(phi) # dy
+        dstate[...,2] = u_w # dphi
+        return dstate
 
     def mini_phi(self, state, u, dt):
         theta = state[2]
@@ -104,9 +105,12 @@ class PointDynamics(Dynamics):
 
     def state_transition_model(self, state, u):
         # phi is an unused dead state
-        dx = state[2]
-        dy = state[3]
-        return np.array([dx, dy, 0, 0])
+        state = np.asarray(state)
+        x, y, dx, dy = state[...,0], state[...,1], state[...,2], state[...,3]
+        dstate = np.zeros_like(state)
+        dstate[...,0] = dx
+        dstate[...,1] = dy
+        return dstate
 
     def mini_phi(self, state, u, dt):
         return np.array([[1,  0, dt,  0],

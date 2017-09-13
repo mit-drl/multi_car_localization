@@ -57,21 +57,18 @@ class MultiCarParticleFilter(object):
         return multivariate_normal.pdf(
             meas.flatten(), mean=mean.flatten(), cov=cov)
 
-    def sample(self, mean, cov):
+    def sample(self, mean, cov, size):
         return np.random.multivariate_normal(
-            mean.flatten(), cov).reshape(mean.shape)
+            mean.flatten(), cov, size).reshape(size + mean.shape)
 
     def update_particles(self, u, dt):
-        for i in xrange(self.Np):
-            u_noise = self.sample(np.zeros_like(self.x0), self.x_cov)
-            new_particle = np.zeros_like(self.x0)
-            # new_particle = self.particles[j] + u * dt
-            # self.particles[j] = new_particle + u_noise
-            for j in xrange(self.Ncars):
-                new_particle[j] = self.robot.state_transition(
-                    self.particles[i, j], u[j], dt)
-            self.weights[i] *= self.pdf(new_particle + u_noise, new_particle, self.x_cov)
-            self.particles[i] = new_particle + u_noise
+        u_noise = self.sample(np.zeros_like(self.x0), self.x_cov, (self.Np,))
+        # new_particles = np.zeros((self.Np,) + self.x0.shape)
+        # new_particle = self.particles[j] + u * dt
+        # self.particles[j] = new_particle + u_noise
+        new_particles = self.robot.state_transition(self.particles, u, dt)
+        # self.weights *= self.pdf(new_particles + u_noise, new_particles, self.x_cov)
+        self.particles = new_particles + u_noise
         return self.particles
 
     def set_meas_cov(self, new_meas_cov):
@@ -111,9 +108,9 @@ class MultiCarParticleFilter(object):
         if n_eff < self.resample_perc * self.Np:
             distr = rv_discrete(values=(np.arange(self.Np), self.weights))
             self.particles = self.particles[distr.rvs(size=self.Np)]
-            for i, _ in enumerate(self.particles):
-                u_noise = self.sample(np.zeros_like(self.x0), self.x_cov)
-                self.particles[i] += u_noise
+            u_noise = self.sample(np.zeros_like(self.x0), self.x_cov,
+                                  self.particles.shape[:1])
+            self.particles += u_noise
             self.weights = np.ones_like(self.weights) / self.Np
         return self
 
@@ -184,9 +181,8 @@ if __name__ == "__main__":
     for i in trange(1, Nsteps):
         us = u_func(i * dt)
 
-        for j in xrange(Ncars):
-            xs[i, j] = mcpf.robot.state_transition(xs[i - 1, j], us[j], dt)
-            #xs[i] += mcpf.sample(np.zeros_like(x0), x_cov)
+        xs[i] = mcpf.robot.state_transition(xs[i - 1], us, dt)
+        #xs[i] += mcpf.sample(np.zeros_like(x0), x_cov)
 
         means = np.zeros((Ncars, Nmeas))
 
