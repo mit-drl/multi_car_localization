@@ -4,6 +4,7 @@ import math
 import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 from scipy.stats import rv_discrete
+from scipy.spatial import distance
 import rospy
 import dynamics
 
@@ -55,7 +56,7 @@ class MultiCarParticleFilter(object):
 
     def pdf(self, meas, mean, cov):
         return multivariate_normal.pdf(
-            meas.flatten(), mean=mean.flatten(), cov=cov)
+            meas.reshape(meas.shape[0], mean.size), mean=mean.flatten(), cov=cov)
 
     def sample(self, mean, cov, size):
         return np.random.multivariate_normal(
@@ -65,7 +66,6 @@ class MultiCarParticleFilter(object):
         u_noise = self.sample(np.zeros_like(self.x0), self.x_cov, (self.Np,))
         # new_particles = np.zeros((self.Np,) + self.x0.shape)
         # new_particle = self.particles[j] + u * dt
-        # self.particles[j] = new_particle + u_noise
         new_particles = self.robot.state_transition(self.particles, u, dt)
         # self.weights *= self.pdf(new_particles + u_noise, new_particles, self.x_cov)
         self.particles = new_particles + u_noise
@@ -77,19 +77,16 @@ class MultiCarParticleFilter(object):
     def update_weights(self, meas):
         #print self.weights
         #avg_error = np.zeros_like(meas)
+        p_means = np.zeros((self.Np, self.Ncars, self.Nmeas))
+        # gps measurements
+        p_means[:, :, :2] = self.particles[:, :, :2]
+        p_means[:, :, 2:5] = self.particles[:, :]
         for j in xrange(self.Np):
-            p_means = np.zeros((self.Ncars, self.Nmeas))
-            for k in xrange(self.Ncars):
-                # 'gps measurements'
-                p_means[k, :2] = self.particles[j, k, :2]
-                p_means[k, 2:5] = self.particles[j, k]
-                # 'uwb measurements'
-                for l in xrange(self.Ncars):
-                    if k != l:
-                        p_means[k, l + 5] = np.linalg.norm(
-                            self.particles[j, k, :2] - self.particles[j, l, :2])
+            # uwb measurements
+            # compute all-pairs distances
+            p_means[j, :, 5:] = distance.squareform(distance.pdist(self.particles[j, :, :2]))
             #avg_error += np.abs(meas - p_means) / self.Np
-            self.weights[j] *= self.pdf(meas, p_means, self.meas_cov)
+        self.weights *= self.pdf(p_means, meas, self.meas_cov)
         #self.weights += 1e-32
         #print avg_error
         #print self.weights.sum()
