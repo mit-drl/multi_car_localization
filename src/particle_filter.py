@@ -75,7 +75,6 @@ class MultiCarParticleFilter(object):
 
     def update_weights(self, meas):
         #print self.weights
-        #avg_error = np.zeros_like(meas)
         p_means = np.zeros((self.Np, self.Ncars, self.Nmeas))
         # gps measurements
         p_means[:, :, :2] = self.particles[:, :, :2]
@@ -88,16 +87,12 @@ class MultiCarParticleFilter(object):
         p_means[:, :, 5:] = np.linalg.norm(differences, axis=-1)
 
         self.weights *= self.pdf(p_means, meas, self.meas_cov)
-        #self.weights += 1e-32
-        #print avg_error
-        #print self.weights.sum()
-        if self.weights.sum() != 0:
-            self.weights /= self.weights.sum()
-            # print "after: %f" % (self.weights.sum())
-        else:
+        if self.weights.sum() <= 0:
             self.weights = np.ones_like(self.weights) / self.Np
             print "NEEDED TO RESAMPLEEE"
             self.resample()
+
+        self.weights /= self.weights.sum()
         return self
 
     def resample(self):
