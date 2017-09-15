@@ -65,7 +65,7 @@ class Metrics(object):
         pf_good = True
         for ID in self.own_connections:
             pf = self.pf_state[ID]
-            if pf == None:
+            if pf is None:
                 pf_good = False
 
         if pf_good:

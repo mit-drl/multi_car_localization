@@ -39,7 +39,7 @@ class FakeUWB(object):
     def publish_range(self):
         pos_good = True
         for pos in self.positions:
-            if pos == None:
+            if pos is None:
                 pos_good = False
 
         if pos_good:

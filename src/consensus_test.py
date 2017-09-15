@@ -140,7 +140,7 @@ class Consensus(object):
         self.zi = np.array(cs.state)
         self.Bi = np.array(cs.inf).reshape((self.Nconn*self.Ndim, self.Nconn*self.Ndim))
 
-        if self.xi_prior == None:
+        if self.xi_prior is None:
             self.xi_prior = np.zeros((self.Ncars*self.Ndim,))
             for i, ID in enumerate(self.own_connections):
                 self.xi_prior[ID*self.Ndim:(ID+1)*self.Ndim] = self.zi[i*self.Ndim:(i+1)*self.Ndim]

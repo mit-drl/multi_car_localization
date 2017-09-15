@@ -118,7 +118,7 @@ class ParticleFilter(object):
 
         self.lidar = meas.lidar
 
-        if self.x0 == None:
+        if self.x0 is None:
             self.x0 = np.zeros((self.Nconn, self.Ndim))
             # try using lidar instead of gps?
             for i, j in enumerate(self.own_connections):
@@ -157,7 +157,7 @@ class ParticleFilter(object):
 
         while not rospy.is_shutdown():
 
-            if self.x0 == None or self.filter == None or not self.new_meas:
+            if self.x0 is None or self.filter is None or not self.new_meas:
                 start_time = rospy.get_time()
             else:
                 self.new_meas = False
