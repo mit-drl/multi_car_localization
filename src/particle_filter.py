@@ -4,7 +4,6 @@ import math
 import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 from scipy.stats import rv_discrete
-from scipy.spatial import distance
 import rospy
 import dynamics
 
@@ -81,11 +80,13 @@ class MultiCarParticleFilter(object):
         # gps measurements
         p_means[:, :, :2] = self.particles[:, :, :2]
         p_means[:, :, 2:5] = self.particles[:, :]
-        for j in xrange(self.Np):
-            # uwb measurements
-            # compute all-pairs distances
-            p_means[j, :, 5:] = distance.squareform(distance.pdist(self.particles[j, :, :2]))
-            #avg_error += np.abs(meas - p_means) / self.Np
+        # uwb measurements
+        # compute all-pairs distances
+        particles_transposed = self.particles[:, :, None, :2].swapaxes(0, 1)
+        differences_transposed = particles_transposed - self.particles[:, :, :2]
+        differences = differences_transposed.swapaxes(0, 1)
+        p_means[:, :, 5:] = np.linalg.norm(differences, axis=-1)
+
         self.weights *= self.pdf(p_means, meas, self.meas_cov)
         #self.weights += 1e-32
         #print avg_error
