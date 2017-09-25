@@ -9,6 +9,7 @@ from multi_car_msgs.msg import CarMeasurement
 from multi_car_msgs.msg import UWBRange
 from multi_car_msgs.msg import CarControl
 from multi_car_msgs.msg import LidarPose
+from multi_car_msgs.msg import SimplePose
 from multi_car_msgs.msg import MeasurementDebug
 from sensor_msgs.msg import NavSatFix
 from nav_msgs.msg import Odometry
@@ -59,7 +60,7 @@ class Measurements(object):
 		for i, ID in enumerate(self.own_connections):
 			self.gps_sub.append(
 				rospy.Subscriber(
-				"odom" + str(ID), Odometry, self.gps_cb, (i,), queue_size=1))
+				"odom" + str(ID), SimplePose, self.gps_cb, (i,), queue_size=1))
 
 			if self.car_id == ID:
 				self.control_sub.append(
@@ -155,8 +156,6 @@ class Measurements(object):
 		self.debug.num_control = num_control
 		self.debug.success = False
 
-		gps_good = True
-
 		if gps_good and uwb_good and control_good and lidar_good and num_uwb > 4:
 			if self.first_time:
 				self.first_time = False
@@ -172,7 +171,7 @@ class Measurements(object):
 
 			for gps in self.gps:
 				if gps is None:
-					blank_gps = Odometry()
+					blank_gps = SimplePose()
 					blank_gps.header.frame_id = "None"
 					self.meas.gps.append(blank_gps)
 				else:

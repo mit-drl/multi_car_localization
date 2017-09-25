@@ -173,11 +173,11 @@ class ParticleFilter(object):
 
                 meas = np.zeros((self.Nconn, self.Nmeas))
                 for j in xrange(self.Nconn):
-                    meas[j, 0] = self.gps[j].pose.pose.position.x - self.trans[0]
-                    meas[j, 1] = self.gps[j].pose.pose.position.y - self.trans[1]
+                    meas[j, 0] = self.gps[j].x - self.trans[0]
+                    meas[j, 1] = self.gps[j].y - self.trans[1]
                     meas[j, 2:5] = [self.lidar[j].x, self.lidar[j].y, self.lidar[j].theta]
                     if j == 0:
-                        print self.gps[j].pose.pose.position.x - self.trans[0], self.lidar[j].x
+                        print self.gps[j].x - self.trans[0], self.lidar[j].x
                     # print "--------------------------------------"
 
                     if self.gps[j].header.frame_id == "None":
