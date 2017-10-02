@@ -69,8 +69,8 @@ class Metrics(object):
                 pf_good = False
 
         if pf_good:
-            if None not in self.con_state:
-                if None not in self.true_state:
+            if all(x is not None for x in self.con_state):
+                if all(x is not None for x in self.true_state):
                     # publish
                     self.calculate_and_publish_errors()
                     # reset

@@ -56,18 +56,18 @@ class ParticleFilter(object):
         self.uwbs = {}
         self.init_angle = rospy.get_param("/init_angle", [0.0, 1.0, 2.5, -0.5])
 
-        gps_cov   = rospy.get_param("/gps_cov", [0.6, 0.6])
-        lidar_cov = rospy.get_param("/lidar_cov", [0.15, 0.15, 0.05])
-        uwb_cov   = rospy.get_param("/uwb_cov", 0.1)
+        self.gps_cov   = rospy.get_param("/gps_cov", [0.6, 0.6])
+        self.lidar_cov = rospy.get_param("/lidar_cov", [0.15, 0.15, 0.05])
+        self.uwb_cov   = rospy.get_param("/uwb_cov", 0.1)
         self.num_uwb_meas = len(self.graph.neighbors(self.car_id)) + 1
-        self.Nmeas = len(gps_cov) + len(lidar_cov) + self.num_uwb_meas
+        self.Nmeas = len(self.gps_cov) + len(self.lidar_cov) + self.num_uwb_meas
 
         self.init_cov = np.diag(self.Nconn * rospy.get_param("/init_cov", [0.1, 0.1, 0.01]))
-        self.x_cov = np.diag(self.Nconn * rospy.get_param("/x_cov", [0.05, 0.05, 0.03]))
+        self.x_cov = np.diag(rospy.get_param("/x_cov", [0.05, 0.05, 0.03]))
         
-        cov_diags = gps_cov + lidar_cov
-        for i in range(self.Nmeas - len(gps_cov) - len(lidar_cov)):
-            cov_diags.append(uwb_cov)
+        cov_diags = self.gps_cov + self.lidar_cov
+        for i in range(self.Nmeas - len(self.gps_cov) - len(self.lidar_cov)):
+            cov_diags.append(self.uwb_cov)
         self.meas_cov = np.diag(self.Nconn * cov_diags)
 
         self.resample_perc = rospy.get_param("~resample_perc", 0.3)
@@ -120,28 +120,24 @@ class ParticleFilter(object):
 
         if self.x0 is None:
             self.x0 = np.zeros((self.Nconn, self.Ndim))
-            # try using lidar instead of gps?
             for i, j in enumerate(self.own_connections):
                 self.x0[i, 0] = self.lidar[i].x
                 self.x0[i, 1] = self.lidar[i].y
                 self.x0[i, 2] = self.lidar[i].theta
-
-                # self.x0[i, 0] = self.gps[i].pose.pose.position.x - self.trans[0]
-                # self.x0[i, 1] = self.gps[i].pose.pose.position.y - self.trans[1]
-                # self.x0[i, 2] = self.init_angle[j]
 
             self.xs_pred = self.x0
 
             self.filter = pf.MultiCarParticleFilter(
                 num_particles=self.Np,
                 num_cars=self.Nconn,
-                num_measurements=self.Nmeas,
+                car_id=self.car_id,
+                connections=self.own_connections,
                 x0=self.x0,
-                init_cov=self.init_cov,
                 x_cov=self.x_cov,
-                measurement_cov=self.meas_cov,
-                resample_perc=self.resample_perc,
-                dynamics_model=self.dynamics_model)
+                uwb0=self.uwbs,
+                pose_cov=np.diag(self.lidar_cov),
+                uwb_var=self.uwb_cov,
+            )
 
         self.new_meas = True
 
@@ -230,14 +226,14 @@ class ParticleFilter(object):
                 # the callbacks - i think they were interrupting
                 # this function and causing it to take longer
                 st0 = rospy.get_time()
-                self.filter.set_meas_cov(new_meas_cov)
-                particles = self.filter.update_particles(us, dt)
+                # self.filter.set_meas_cov(new_meas_cov)
+                particles = self.filter.update_particles()
                 tim0 = rospy.get_time() - st0
                 # print "FWD SIMULATE:     %f" % (tim0)
 
                 # negligible time
                 for j in range(self.Nconn):
-                    infs[j] = np.linalg.inv(np.cov(particles[:, j, :].T))
+                    infs[j] = np.linalg.inv(np.cov(particles[:, j, :].T) + 1e-4*np.eye(3))
 
                 pa = PoseArray()
                 pa.header = Header()
@@ -259,8 +255,8 @@ class ParticleFilter(object):
                 # these two are usually 0.05 seconds
                 # could take up to 0.2 seconds though
                 st1 = rospy.get_time()
-                self.filter.update_weights(meas)
-                self.xs_pred = self.filter.predicted_state()
+                self.filter.update_weights(meas[:,2:5], self.uwbs)
+                self.xs_pred, _ = self.filter.predicted_state()
                 tim1 = rospy.get_time() - st1
                 # print "update weights:   %f" % (tim1)
 

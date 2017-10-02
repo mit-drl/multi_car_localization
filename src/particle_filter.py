@@ -2,16 +2,15 @@
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-from scipy.stats import multivariate_normal
-from scipy.stats import rv_discrete
+from scipy.stats import multivariate_normal, norm, rv_discrete
 import rospy
+
 import dynamics
+import utils
 
 """
 State:
-    [x0, y0, phi (angle), delta (steering angle), v
-     x1, y1
-     x2, y2]
+    [x0, y0, phi (angle)]
 
 Control:
     [dx0, dy0
@@ -28,102 +27,175 @@ Measurements:
 class MultiCarParticleFilter(object):
 
     def __init__(self, **kwargs):
-        self.Np = kwargs.get("num_particles", 100)
-        self.Ncars = kwargs.get("num_cars", 3)
-        self.dynamics_model = kwargs.get("dynamics_model", "dubins")
-        self.robot = dynamics.model(self.dynamics_model)
+        self.Np = kwargs.get('num_particles', 100)
+        self.num_cars = kwargs['num_cars']
+        self.connections = kwargs['connections']
+        self.car_id = kwargs['car_id']
+        self.car_index = self.connections.index(self.car_id)
+        self.x0 = kwargs['x0']
+        self.x_cov = kwargs['x_cov']
+        self.uwb0 = kwargs['uwb0']
+        self.pose_cov = kwargs['pose_cov']
+        self.uwb_var = kwargs['uwb_var']
+        self.mcpfs = {}
+        self.id_to_index = {}
+        for i, target in enumerate(self.connections):
+            self.id_to_index[target] = i
+            if target == self.car_id:
+                self.mcpfs[target] = IdentityCarParticleFilter(
+                    num_particles=self.Np,
+                )
+            else:
+                self.mcpfs[target] = SingleCarParticleFilter(
+                    num_particles=self.Np,
+                    x_cov=self.x_cov,
+                    local_pose=self.x0[i],
+                    local_pose_cov=self.pose_cov,
+                    uwb_meas=self.uwb0[(self.car_id, target)].distance,
+                    uwb_var=self.uwb_var,
+                    target_pose=self.x0[i],
+                    target_pose_cov=self.pose_cov,
+                )
 
-        self.Ndim = self.robot.Ndim
-        self.Nmeas = kwargs.get("num_measurements", 6)
-        self.x0 = kwargs.get("x0")
-        self.x_cov = kwargs.get(
-            "x_cov")
-        self.init_cov = kwargs.get(
-            "init_cov")
-        self.meas_cov = kwargs.get(
-            "measurement_cov")
-        self.control_cov = kwargs.get(
-            "control_cov",
-            np.diag(self.Ncars * self.Ndim * [0.1]))
-        self.resample_perc = kwargs.get("resample_perc", 0.3)
-        self.particles = np.random.multivariate_normal(
-            self.x0.flatten(),
-            self.init_cov,
-            size=self.Np).reshape((self.Np, self.Ncars, self.Ndim))
-        self.weights = 1.0 / self.Np * np.ones((self.Np,))
-        self.prev_angle_estimate = 0
+    def update_particles(self):
+        particles = []
+        for mcpf in self.mcpfs.values():
+            particles.append(mcpf.update_particles())
+        return np.stack(particles)
 
-    def pdf(self, meas, mean, cov):
-        return multivariate_normal.pdf(
-            meas.reshape(meas.shape[0], mean.size), mean=mean.flatten(), cov=cov)
+    def update_weights(self, pose_meas, uwb_meas):
+        poses = np.zeros_like(pose_meas)
+        covs = np.zeros(pose_meas.shape[:-1]+(3,3))
+        for i, pose in enumerate(pose_meas):
+            mcpf = self.mcpfs[self.connections[i]]
+            pose, cov = utils.average(mcpf.transform(pose), mcpf.weights)
+            poses[i] = pose
+            covs[i] = cov
+        for (car_t, car_s), uwb in uwb_meas.items():
+            ti = self.id_to_index[car_t]
+            si = self.id_to_index[car_s]
+            local_pose = poses[si]
+            local_pose_cov = covs[si] + self.pose_cov
+            rel_pose = pose_meas[ti]
+            rel_pose_cov = self.pose_cov
+            self.mcpfs[car_t].update_weights(
+                local_pose, local_pose_cov,
+                uwb.distance, self.uwb_var,
+                rel_pose, rel_pose_cov)
 
-    def sample(self, mean, cov, size):
-        return np.random.multivariate_normal(
-            mean.flatten(), cov, size).reshape(size + mean.shape)
+    def resample(self):
+        for mcpf in self.mcpfs.values():
+            mcpf.resample()
 
-    def update_particles(self, u, dt):
-        u_noise = self.sample(np.zeros_like(self.x0), self.x_cov, (self.Np,))
-        # new_particles = np.zeros((self.Np,) + self.x0.shape)
-        # new_particle = self.particles[j] + u * dt
-        new_particles = self.robot.state_transition(self.particles, u, dt)
-        # self.weights *= self.pdf(new_particles + u_noise, new_particles, self.x_cov)
-        self.particles = new_particles + u_noise
+    def predicted_state(self):
+        states, covs = zip(*(mcpf.predicted_state() for i, mcpf in sorted(self.mcpfs.items())))
+        return np.array(states), np.array(covs)
+
+class SingleCarParticleFilter(object):
+
+    def __init__(self, **kwargs):
+        self.Np = kwargs['num_particles']
+        self.x_cov = kwargs['x_cov']
+        self.particles = self.init_particles(
+            local_pose=kwargs['local_pose'],
+            local_pose_cov=kwargs['local_pose_cov'],
+            d=kwargs['uwb_meas'],
+            d_var=kwargs['uwb_var'],
+            rel_pose=kwargs['target_pose'],
+            rel_pose_cov=kwargs['target_pose_cov'],
+        )
+        self.weights = np.ones(self.Np) / self.Np
+
+    def init_particles(self,
+                       local_pose, local_pose_cov,
+                       d, d_var,
+                       rel_pose, rel_pose_cov):
+        noisy_local = np.random.multivariate_normal(local_pose[:2], local_pose_cov[:2,:2], size=self.Np)
+        distances = np.random.normal(d, math.sqrt(d_var), size=(self.Np,1))
+        angles = np.random.uniform(0, 2*math.pi, size=(self.Np,1))
+        rel = noisy_local + distances * np.concatenate((np.cos(angles), np.sin(angles)), axis=-1)
+        thetas = np.random.uniform(0, 2*math.pi, size=(self.Np,1))
+        noisy_rel = np.random.multivariate_normal(local_pose[:2], rel_pose_cov[:2,:2], size=self.Np)
+        rel_rotated = utils.rotate(rel_pose, thetas)
+        offsets = rel - rel_rotated[...,:2]
+        return np.concatenate((offsets, thetas), axis=-1)
+
+    def itransform(self, pose):
+        xys, thetas = self.particles[:,:2], particles[:,2:]
+        poses = np.full_like(self.particles, pose)
+        poses[...,:2] -= xys
+        poses = utils.rotate(poses, -thetas)
+        return poses
+
+    def transform(self, pose):
+        xys, thetas = self.particles[:,:2], self.particles[:,2:]
+        poses = utils.rotate(pose, thetas)
+        poses[...,:2] += xys
+        return poses
+
+    def update_particles(self):
+        u_noise = np.random.multivariate_normal(np.zeros(3), self.x_cov, (self.Np,))
+        # new_particles = self.robot.state_transition(self.particles, u, dt)
+        self.particles += u_noise
         return self.particles
 
-    def set_meas_cov(self, new_meas_cov):
-        self.meas_cov = new_meas_cov
+    def update_weights(self,
+                       local_pose, local_pose_cov,
+                       d, d_var,
+                       rel_pose, rel_pose_cov):
+        # local_pose is the target pose in the ego car's frame
+        # rel_pose is the source pose in the mcpf's frame
+        # d is the distance between them
+        rel_poses = self.transform(rel_pose)
+        differences = rel_poses - local_pose
+        local_pose_var = utils.directional_variance(local_pose_cov, differences)
+        rel_pose_var = utils.directional_variance(rel_pose_cov, differences)
+        var = local_pose_var + d_var + rel_pose_var
+        distances = np.linalg.norm(differences, axis=-1)
+        self.weights *= norm.pdf(distances, d, np.sqrt(var))
 
-    def update_weights(self, meas):
-        #print self.weights
-        p_means = np.zeros((self.Np, self.Ncars, self.Nmeas))
-        # gps measurements
-        p_means[:, :, :2] = self.particles[:, :, :2]
-        p_means[:, :, 2:5] = self.particles[:, :]
-        # uwb measurements
-        # compute all-pairs distances
-        particles_transposed = self.particles[:, :, None, :2].swapaxes(0, 1)
-        differences_transposed = particles_transposed - self.particles[:, :, :2]
-        differences = differences_transposed.swapaxes(0, 1)
-        p_means[:, :, 5:] = np.linalg.norm(differences, axis=-1)
-
-        self.weights *= self.pdf(p_means, meas, self.meas_cov)
         if self.weights.sum() <= 0:
             self.weights = np.ones_like(self.weights) / self.Np
             print "NEEDED TO RESAMPLEEE"
             self.resample()
 
         self.weights /= self.weights.sum()
-        return self
 
     def resample(self):
-        n_eff = 1.0 / (self.weights ** 2).sum()
-        #rospy.loginfo("n_eff: %f" % (n_eff))
-        if n_eff < self.resample_perc * self.Np:
-            distr = rv_discrete(values=(np.arange(self.Np), self.weights))
-            self.particles = self.particles[distr.rvs(size=self.Np)]
-            u_noise = self.sample(np.zeros_like(self.x0), self.x_cov,
-                                  self.particles.shape[:1])
-            self.particles += u_noise
-            self.weights = np.ones_like(self.weights) / self.Np
-        return self
+        resampled_indices = np.random.choice(np.arange(self.Np), self.Np, p=self.weights)
+        self.weights = np.ones_like(self.weights) / self.Np
 
     def predicted_state(self):
-        pred = np.zeros_like(self.x0)
-        a_x = 0
-        a_y = 0
-        #total_weight = self.weights.sum()
-        top_weight_indices = np.flipud(np.argsort(self.weights))[:10]
-        total_weight = self.weights[top_weight_indices].sum()
-        pred[2] -= self.prev_angle_estimate
-        for i in top_weight_indices:
-            #a_x += (self.weights[i] / total_weight)*np.cos(self.particles[i, 2])
-            #a_y += (self.weights[i] / total_weight)*np.sin(self.particles[i, 2])
-            pred += (self.weights[i] / total_weight) * self.particles[i]
-        #angle = np.arctan2(a_y, a_x)
-        #pred[2] = angle
-        pred[2] += self.prev_angle_estimate
-        self.prev_angle_estimate = pred[2]
-        return pred
+        return utils.average(self.particles, self.weights)
+
+class IdentityCarParticleFilter(object):
+    '''Identity transform'''
+
+    def __init__(self, **kwargs):
+        self.Np = kwargs['num_particles']
+        self.particles = np.zeros((self.Np,3))
+        self.weights = np.ones(self.Np) / self.Np
+
+    def itransform(self, pose):
+        return np.full_like(self.particles, pose)
+
+    def transform(self, pose):
+        return np.full_like(self.particles, pose)
+
+    def update_particles(self):
+        return self.particles
+
+    def update_weights(self,
+                       local_pose, local_pose_cov,
+                       d, d_var,
+                       rel_pose, rel_pose_cov):
+        pass
+
+    def resample(self):
+        pass
+
+    def predicted_state(self):
+        return utils.average(self.particles, self.weights)
 
 if __name__ == "__main__":
     from tqdm import trange
@@ -166,8 +238,7 @@ if __name__ == "__main__":
         x0=x0,
         init_cov=init_cov,
         x_cov=x_cov,
-        measurement_cov=measurement_cov,
-        resample_perc=0.3)
+        measurement_cov=measurement_cov)
 
     error = np.zeros((Nsteps,))
 
