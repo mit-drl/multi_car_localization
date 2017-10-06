@@ -160,15 +160,17 @@ class SingleCarParticleFilter(object):
         # local_pose is the target pose in the ego car's frame
         # rel_pose is the source pose in the mcpf's frame
         # d is the distance between them
+        FUDGE_NOISE = 1
+        FUDGE_MEAS = 2
+        SMOOTH_FACTOR = 0.1
         rel_poses = self.transform(rel_pose)
         differences = rel_poses - local_pose
         local_pose_var = utils.directional_variance(local_pose_cov, differences)
         rel_pose_var = utils.directional_variance(rel_pose_cov, differences)
         var = local_pose_var + d_var + rel_pose_var
-        distances = np.linalg.norm(differences[...,:2], axis=-1)
-        FUDGE_NOISE = 1
-        factors = norm.pdf(distances, d, np.sqrt(var)+FUDGE_NOISE)
-        SMOOTH_FACTOR = 0.1
+        stddev = FUDGE_MEAS * np.sqrt(var) + FUDGE_NOISE
+        distances = np.linalg.norm(differences[...,:1], axis=-1)
+        factors = norm.pdf(distances, d, stddev)
         self.weights *= norm.pdf(distances, d, np.sqrt(var))**SMOOTH_FACTOR
 
         if self.weights.sum() <= 0:

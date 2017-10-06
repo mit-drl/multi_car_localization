@@ -91,6 +91,7 @@ class ParticleFilter(object):
             print "TRANSFORM FAILEDDDDDDDDDDDDDDDDDDD"
             pass
 
+        self.pa_max = 100
         self.pa_pub = rospy.Publisher("particles", PoseArray, queue_size=1)
 
         self.state_pub = rospy.Publisher("states", CarState, queue_size=1)
@@ -244,7 +245,7 @@ class ParticleFilter(object):
                 pa.header = Header()
                 pa.header.stamp = rospy.Time.now()
                 pa.header.frame_id = "map"
-                for p in particles:
+                for p in particles[:self.pa_max]:
                     for j in range(self.Nconn):
                         pose = Pose()
                         quat = quaternion_from_euler(0, 0, p[j, 2])
