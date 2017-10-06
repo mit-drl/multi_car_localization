@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="only_canopy" default="false"/>
+
+    <group unless="$(arg only_canopy)">
+        <include file="$(find pozyx_comm)/launch/sensors.launch">
+            <arg name="receiver_port" value="/dev/ttyACM1"/>
+            <arg name="sender_port" value="/dev/ttyACM2"/>
+        </include>
+
+        <remap from="initialpose" to="observer/initial_pose_$(env CAR_FRAME_ID)"/>
+        <include file="$(find racecar)/launch/teleop.launch"/>
+
+    </group>
+
+    <include file="$(find multi_car_localization)/launch/lidar_odom.launch"/>
+
+    <node pkg="canopy_client" type="client_node.py" name="canopy_node"
+        output="screen">
+		<param name="name" value="$(env CAR_FRAME_ID)"/>
+		<param name="description" value="Racecar. $(env CAR_FRAME_ID)" />
+        <rosparam subst_value="True">
+            publishing:
+                - /control
+                - /fix
+                - /consensus
+                - /lidar_pose
+                - /poseupdate
+                - /particles
+                - /consensus_poses
+                - /pf/viz/inferred_pose
+                - /slam_out_pose
+                - /map
+            types:
+                - multi_car_msgs/CarControl
+                - multi_car_msgs/GPS
+                - multi_car_msgs/ConsensusMsg
+                - multi_car_msgs/LidarPose
+                - geometry_msgs/PoseWithCovarianceStamped
+                - geometry_msgs/PoseArray
+                - geometry_msgs/PoseArray
+                - geometry_msgs/PoseStamped
+                - geometry_msgs/PoseStamped
+                - nav_msgs/OccupancyGrid
+            trusted:
+                - "car[0-2]"
+                - "car[0-2]"
+                - "car[0-2]"
+                - "car[0-2]"
+                - "car[0-2]"
+                - observer
+                - observer
+                - observer
+                - observer
+                - observer
+            global_frames:
+                - "$(env CAR_FRAME_ID)"
+                - earth
+        </rosparam>
+        <rosparam command="load"
+            file="$(find multi_car_localization)/param/canopy.yaml"/>
+	</node>
+</launch>
