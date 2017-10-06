@@ -31,9 +31,9 @@ def average(poses, weights):
     a_y = np.sum(np.sin(thetas) * weights)
     mean[2] = math.atan2(a_y, a_x)
     var = np.zeros((3, 3))
-    var[:2, :2] = np.cov(poses[:,:2].T, aweights=weights)
+    var[:2, :2] = np.cov(poses[:,:2], ddof=0, aweights=weights, rowvar=False)
     # circular variance
-    var[2, 2] = -math.log(float(a_x**2 + a_y**2) / np.sum(weights))
+    var[2, 2] = max(0, -math.log(float(a_x**2 + a_y**2) / np.sum(weights)))
     return mean, var
 
 def directional_variance(cov, directions):

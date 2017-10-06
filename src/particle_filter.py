@@ -57,31 +57,40 @@ class MultiCarParticleFilter(object):
                     target_pose_cov=self.pose_cov,
                 )
 
-    def update_particles(self):
+    def update_particles(self, pose_meas):
         particles = []
-        for mcpf in self.mcpfs.values():
-            particles.append(mcpf.update_particles())
-        return np.stack(particles)
+        for i, (target, mcpf) in enumerate(sorted(self.mcpfs.items())):
+            particles.append(mcpf.update_particles(pose_meas[i]))
+        return np.stack(particles, axis=1)
 
     def update_weights(self, pose_meas, uwb_meas):
-        poses = np.zeros_like(pose_meas)
-        covs = np.zeros(pose_meas.shape[:-1]+(3,3))
+        poses = []
+        covs = []
         for i, pose in enumerate(pose_meas):
-            mcpf = self.mcpfs[self.connections[i]]
-            pose, cov = utils.average(mcpf.transform(pose), mcpf.weights)
-            poses[i] = pose
-            covs[i] = cov
+            if pose is None:
+                poses.append(None)
+                covs.append(None)
+            else:
+                mcpf = self.mcpfs[self.connections[i]]
+                pose, cov = utils.average(mcpf.transform(pose), mcpf.weights)
+                poses.append(pose)
+                covs.append(cov)
         for (car_t, car_s), uwb in uwb_meas.items():
-            ti = self.id_to_index[car_t]
-            si = self.id_to_index[car_s]
-            local_pose = poses[si]
-            local_pose_cov = covs[si] + self.pose_cov
-            rel_pose = pose_meas[ti]
-            rel_pose_cov = self.pose_cov
-            self.mcpfs[car_t].update_weights(
-                local_pose, local_pose_cov,
-                uwb.distance, self.uwb_var,
-                rel_pose, rel_pose_cov)
+            if uwb.distance > 0:
+                ti = self.id_to_index[car_t]
+                si = self.id_to_index[car_s]
+                local_pose = poses[si]
+                rel_pose = pose_meas[ti]
+                if local_pose is None or rel_pose is None:
+                    continue
+                local_pose_cov = covs[si] + self.pose_cov
+                rel_pose_cov = self.pose_cov
+                self.mcpfs[car_t].update_weights(
+                    # cheating by giving correct transformed pose (correct when transformation is identity)
+                    # local_pose, local_pose_cov,
+                    pose_meas[si], local_pose_cov,
+                    uwb.distance, self.uwb_var,
+                    rel_pose, rel_pose_cov)
 
     def resample(self):
         for mcpf in self.mcpfs.values():
@@ -110,13 +119,13 @@ class SingleCarParticleFilter(object):
                        local_pose, local_pose_cov,
                        d, d_var,
                        rel_pose, rel_pose_cov):
-        noisy_local = np.random.multivariate_normal(local_pose[:2], local_pose_cov[:2,:2], size=self.Np)
+        noisy_local = np.random.multivariate_normal(local_pose, local_pose_cov, size=self.Np)
         distances = np.random.normal(d, math.sqrt(d_var), size=(self.Np,1))
         angles = np.random.uniform(0, 2*math.pi, size=(self.Np,1))
-        rel = noisy_local + distances * np.concatenate((np.cos(angles), np.sin(angles)), axis=-1)
+        rel = noisy_local[...,:2] + distances * np.concatenate((np.cos(angles), np.sin(angles)), axis=-1)
         thetas = np.random.uniform(0, 2*math.pi, size=(self.Np,1))
-        noisy_rel = np.random.multivariate_normal(local_pose[:2], rel_pose_cov[:2,:2], size=self.Np)
-        rel_rotated = utils.rotate(rel_pose, thetas)
+        noisy_rel = np.random.multivariate_normal(rel_pose, rel_pose_cov, size=self.Np)
+        rel_rotated = utils.rotate(noisy_rel, thetas)
         offsets = rel - rel_rotated[...,:2]
         return np.concatenate((offsets, thetas), axis=-1)
 
@@ -133,10 +142,15 @@ class SingleCarParticleFilter(object):
         poses[...,:2] += xys
         return poses
 
-    def update_particles(self):
-        u_noise = np.random.multivariate_normal(np.zeros(3), self.x_cov, (self.Np,))
-        # new_particles = self.robot.state_transition(self.particles, u, dt)
-        self.particles += u_noise
+    def update_particles(self, pose):
+        if pose is not None:
+            u_noise = np.random.multivariate_normal(np.zeros(3), self.x_cov, (self.Np,))
+            # new_particles = self.robot.state_transition(self.particles, u, dt)
+            origin = self.transform(pose)
+            self.particles[...,:2] -= origin[...,:2]
+            self.particles = utils.rotate(self.particles, u_noise[...,2:])
+            self.particles[...,:2] += u_noise[...,:2]
+            self.particles[...,:2] += origin[...,:2]
         return self.particles
 
     def update_weights(self,
@@ -151,8 +165,11 @@ class SingleCarParticleFilter(object):
         local_pose_var = utils.directional_variance(local_pose_cov, differences)
         rel_pose_var = utils.directional_variance(rel_pose_cov, differences)
         var = local_pose_var + d_var + rel_pose_var
-        distances = np.linalg.norm(differences, axis=-1)
-        self.weights *= norm.pdf(distances, d, np.sqrt(var))
+        distances = np.linalg.norm(differences[...,:2], axis=-1)
+        FUDGE_NOISE = 1
+        factors = norm.pdf(distances, d, np.sqrt(var)+FUDGE_NOISE)
+        SMOOTH_FACTOR = 0.1
+        self.weights *= norm.pdf(distances, d, np.sqrt(var))**SMOOTH_FACTOR
 
         if self.weights.sum() <= 0:
             self.weights = np.ones_like(self.weights) / self.Np
@@ -163,6 +180,7 @@ class SingleCarParticleFilter(object):
 
     def resample(self):
         resampled_indices = np.random.choice(np.arange(self.Np), self.Np, p=self.weights)
+        self.particles = self.particles[resampled_indices]
         self.weights = np.ones_like(self.weights) / self.Np
 
     def predicted_state(self):
@@ -182,7 +200,7 @@ class IdentityCarParticleFilter(object):
     def transform(self, pose):
         return np.full_like(self.particles, pose)
 
-    def update_particles(self):
+    def update_particles(self, pose):
         return self.particles
 
     def update_weights(self,

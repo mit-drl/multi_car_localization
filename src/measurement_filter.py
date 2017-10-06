@@ -166,14 +166,19 @@ class ParticleFilter(object):
                 us = self.u
 
                 new_meas_cov = self.meas_cov
+                pose_meas = []
 
                 meas = np.zeros((self.Nconn, self.Nmeas))
                 for j in xrange(self.Nconn):
                     meas[j, 0] = self.gps[j].x - self.trans[0]
                     meas[j, 1] = self.gps[j].y - self.trans[1]
                     meas[j, 2:5] = [self.lidar[j].x, self.lidar[j].y, self.lidar[j].theta]
-                    if j == 0:
-                        print self.gps[j].x - self.trans[0], self.lidar[j].x
+                    if self.lidar[j].header.frame_id == 'None':
+                        pose_meas.append(None)
+                    else:
+                        pose_meas.append(np.array([self.lidar[j].x, self.lidar[j].y, self.lidar[j].theta]))
+                    # if j == 0:
+                        # print self.gps[j].x - self.trans[0], self.lidar[j].x
                     # print "--------------------------------------"
 
                     if self.gps[j].header.frame_id == "None":
@@ -227,13 +232,13 @@ class ParticleFilter(object):
                 # this function and causing it to take longer
                 st0 = rospy.get_time()
                 # self.filter.set_meas_cov(new_meas_cov)
-                particles = self.filter.update_particles()
+                particles = self.filter.update_particles(pose_meas)
                 tim0 = rospy.get_time() - st0
                 # print "FWD SIMULATE:     %f" % (tim0)
 
                 # negligible time
                 for j in range(self.Nconn):
-                    infs[j] = np.linalg.inv(np.cov(particles[:, j, :].T) + 1e-4*np.eye(3))
+                    infs[j] = np.linalg.inv(np.cov(particles[:, j, :], rowvar=False) + 1e-4*np.eye(3))
 
                 pa = PoseArray()
                 pa.header = Header()
@@ -255,8 +260,9 @@ class ParticleFilter(object):
                 # these two are usually 0.05 seconds
                 # could take up to 0.2 seconds though
                 st1 = rospy.get_time()
-                self.filter.update_weights(meas[:,2:5], self.uwbs)
-                self.xs_pred, _ = self.filter.predicted_state()
+                self.filter.update_weights(pose_meas, self.uwbs)
+                self.xs_pred, covs = self.filter.predicted_state()
+                # print self.car_id, np.stack((np.linalg.det(covs[...,:2,:2]), covs[...,2,2]), axis=-1)
                 tim1 = rospy.get_time() - st1
                 # print "update weights:   %f" % (tim1)
 
@@ -303,7 +309,7 @@ class ParticleFilter(object):
 
                 # self.prev_time = self.current_time
 
-                #self.rate.sleep()
+                self.rate.sleep()
 
 if __name__ == "__main__":
     rospy.init_node("filter", anonymous=False)

@@ -2,7 +2,7 @@
 <launch>
 
 	<arg name="car_id" default="0" />
-	<arg name="num_particles" default="100" />
+	<arg name="num_particles" default="1000" />
 	<arg name="resample_perc" default="0.8" />
 	<arg name="dynamics_model" default="dubins" />
 
