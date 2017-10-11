@@ -86,9 +86,9 @@ class MultiCarParticleFilter(object):
                 local_pose_cov = covs[si] + self.pose_cov
                 rel_pose_cov = self.pose_cov
                 self.mcpfs[car_t].update_weights(
-                    # cheating by giving correct transformed pose (correct when transformation is identity)
-                    # local_pose, local_pose_cov,
-                    pose_meas[si], local_pose_cov,
+                    # to cheat, uncomment to give correct transformed pose (correct when transformation is identity)
+                    # pose_meas[si], local_pose_cov,
+                    local_pose, local_pose_cov,
                     uwb.distance, self.uwb_var,
                     rel_pose, rel_pose_cov)
 
@@ -120,10 +120,10 @@ class SingleCarParticleFilter(object):
                        d, d_var,
                        rel_pose, rel_pose_cov):
         noisy_local = np.random.multivariate_normal(local_pose, local_pose_cov, size=self.Np)
-        distances = np.random.normal(d, math.sqrt(d_var), size=(self.Np,1))
-        angles = np.random.uniform(0, 2*math.pi, size=(self.Np,1))
+        distances = np.random.normal(d, np.sqrt(d_var), size=(self.Np,1))
+        angles = np.random.uniform(0, 2*np.pi, size=(self.Np,1))
         rel = noisy_local[...,:2] + distances * np.concatenate((np.cos(angles), np.sin(angles)), axis=-1)
-        thetas = np.random.uniform(0, 2*math.pi, size=(self.Np,1))
+        thetas = np.random.uniform(0, 2*np.pi, size=(self.Np,1))
         noisy_rel = np.random.multivariate_normal(rel_pose, rel_pose_cov, size=self.Np)
         rel_rotated = utils.rotate(noisy_rel, thetas)
         offsets = rel - rel_rotated[...,:2]
@@ -169,9 +169,8 @@ class SingleCarParticleFilter(object):
         rel_pose_var = utils.directional_variance(rel_pose_cov, differences)
         var = local_pose_var + d_var + rel_pose_var
         stddev = FUDGE_MEAS * np.sqrt(var) + FUDGE_NOISE
-        distances = np.linalg.norm(differences[...,:1], axis=-1)
-        factors = norm.pdf(distances, d, stddev)
-        self.weights *= norm.pdf(distances, d, np.sqrt(var))**SMOOTH_FACTOR
+        distances = np.linalg.norm(differences[...,:2], axis=-1)
+        self.weights *= norm.pdf(distances, d, stddev)**SMOOTH_FACTOR
 
         if self.weights.sum() <= 0:
             self.weights = np.ones_like(self.weights) / self.Np
