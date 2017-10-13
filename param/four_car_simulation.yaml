@@ -1,8 +1,12 @@
 num_cars: 4
 init_angle: [0.0, 1.0, 2.5, -0.5]
 frame_name: ["car0", "car1", "car2", "car3"]
-
-
+frame_origin: [
+    [0, 0, 0],
+    [10, 20, 3.1415],
+    [-40, 10, -1.57], # -pi/2
+    [50, -30, 1.047], # pi/3
+    ]
 
 
 # fake car
@@ -13,7 +17,7 @@ uwb_sigma:      0.07
 
 # measurement filter
 init_cov:      [0.1, 0.1, 0.01]
-x_cov:         [0.1, 0.1, 0.005]
+x_cov:         [0.1, 0.1, 0.001]
 gps_cov:       [0.6, 0.6]
 lidar_cov:     [0.15, 0.15, 0.05]
 uwb_cov:        0.1

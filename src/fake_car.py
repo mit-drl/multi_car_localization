@@ -12,6 +12,9 @@ import numpy as np
 import random
 import tf
 import dynamics
+
+import utils
+
 """
 State:
     [x0, y0
@@ -98,6 +101,7 @@ class FakeCar(object):
         self.control.car_id = self.car_id
 
         self.pose_pub = rospy.Publisher("/range_position", CarState, queue_size=1)
+        self.real_pose_pub = rospy.Publisher("real_position", PoseStamped, queue_size=1)
         self.control_pub = rospy.Publisher("control", CarControl, queue_size=1)
         self.control_pub2 = rospy.Publisher("/control", CarControl, queue_size=1)
 
@@ -110,6 +114,8 @@ class FakeCar(object):
         self.control.velocity = self.state.u[1]
 
         self.pose_pub.publish(self.state)
+        pose = utils.make_pose(self.state.state)
+        self.real_pose_pub.publish(PoseStamped(pose=pose, header=self.state.header))
         self.control_pub.publish(self.control)
         self.control_pub2.publish(self.control)
 

@@ -25,6 +25,7 @@ from scipy.linalg import block_diag
 import dict_to_graph
 import networkx as nx
 import dynamics
+import utils
 
 class ParticleFilter(object):
 
@@ -93,6 +94,7 @@ class ParticleFilter(object):
 
         self.pa_max = 100
         self.pa_pub = rospy.Publisher("particles", PoseArray, queue_size=1)
+        self.pos_pub = rospy.Publisher("positions", PoseArray, queue_size=1)
 
         self.state_pub = rospy.Publisher("states", CarState, queue_size=1)
         self.combined_pub = rospy.Publisher("combined", CombinedState, queue_size=1)
@@ -241,22 +243,21 @@ class ParticleFilter(object):
                 for j in range(self.Nconn):
                     infs[j] = np.linalg.inv(np.cov(particles[:, j, :], rowvar=False) + 1e-4*np.eye(3))
 
-                pa = PoseArray()
-                pa.header = Header()
-                pa.header.stamp = rospy.Time.now()
-                pa.header.frame_id = "map"
+                frames = PoseArray()
+                frames.header = Header()
+                frames.header.stamp = rospy.Time.now()
+                frames.header.frame_id = "map"
+                positions = PoseArray()
+                positions.header = Header()
+                positions.header.stamp = rospy.Time.now()
+                positions.header.frame_id = "map"
                 for p in particles[:self.pa_max]:
                     for j in range(self.Nconn):
-                        pose = Pose()
-                        quat = quaternion_from_euler(0, 0, p[j, 2])
-                        pose.position.x = p[j, 0]
-                        pose.position.y = p[j, 1]
-                        pose.orientation.x = quat[0]
-                        pose.orientation.y = quat[1]
-                        pose.orientation.z = quat[2]
-                        pose.orientation.w = quat[3]
-                        pa.poses.append(pose)
-                self.pa_pub.publish(pa)
+                        frames.poses.append(utils.make_pose(p[j]))
+                        if pose_meas[j] is not None:
+                            positions.poses.append(utils.make_pose(utils.transform(pose_meas[j], p[j])))
+                self.pa_pub.publish(frames)
+                self.pos_pub.publish(positions)
 
                 # these two are usually 0.05 seconds
                 # could take up to 0.2 seconds though

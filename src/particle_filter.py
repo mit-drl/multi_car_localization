@@ -129,18 +129,11 @@ class SingleCarParticleFilter(object):
         offsets = rel - rel_rotated[...,:2]
         return np.concatenate((offsets, thetas), axis=-1)
 
-    def itransform(self, pose):
-        xys, thetas = self.particles[:,:2], particles[:,2:]
-        poses = np.full_like(self.particles, pose)
-        poses[...,:2] -= xys
-        poses = utils.rotate(poses, -thetas)
-        return poses
-
     def transform(self, pose):
-        xys, thetas = self.particles[:,:2], self.particles[:,2:]
-        poses = utils.rotate(pose, thetas)
-        poses[...,:2] += xys
-        return poses
+        return utils.transform(pose, self.particles)
+
+    def itransform(self, pose):
+        return utils.itransform(pose, self.particles)
 
     def update_particles(self, pose):
         if pose is not None:
@@ -160,9 +153,9 @@ class SingleCarParticleFilter(object):
         # local_pose is the target pose in the ego car's frame
         # rel_pose is the source pose in the mcpf's frame
         # d is the distance between them
-        FUDGE_NOISE = 1
+        FUDGE_NOISE = 4
         FUDGE_MEAS = 2
-        SMOOTH_FACTOR = 0.1
+        SMOOTH_FACTOR = 0.01
         rel_poses = self.transform(rel_pose)
         differences = rel_poses - local_pose
         local_pose_var = utils.directional_variance(local_pose_cov, differences)

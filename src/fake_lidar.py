@@ -11,6 +11,8 @@ import tf
 import numpy as np
 import dynamics
 
+import utils
+
 # Corey's particle filter publishes a transform
 # from /laser to /map
 
@@ -25,6 +27,7 @@ class FakeLidar(object):
         self.car_id = rospy.get_param("~car_id", 0)
         self.frame_name = rospy.get_param("/frame_name")
         self.frame_id = self.frame_name[self.car_id]
+        self.frame_origin = np.array(rospy.get_param("/frame_origin")[self.car_id])
         self.ID = self.car_id
 
         self.num_particles = 100
@@ -46,7 +49,8 @@ class FakeLidar(object):
 
     def range_sub_cb(self, cs):
         if cs.car_id == self.ID:
-            self.state = list(cs.state)
+            self.state = np.array(cs.state)
+            self.state = utils.itransform(self.state, self.frame_origin)
             self.state[0] += random.gauss(0.0, self.sigma)
             self.state[1] += random.gauss(0.0, self.sigma)
             self.state[2] += random.gauss(0.0, 0.05)

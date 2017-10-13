@@ -1,6 +1,9 @@
 import math
 import numpy as np
 
+from geometry_msgs.msg import Pose
+from tf.transformations import quaternion_from_euler
+
 def rotate(poses, phis, covs=None, return_covs=False):
     # construct rotation matrices
     rot = np.array([[np.cos(phis), -np.sin(phis)],
@@ -13,7 +16,7 @@ def rotate(poses, phis, covs=None, return_covs=False):
     # if we have covariance matrices, rotate those too
     new_covs = None
     if covs is not None:
-        covs_xy = np.matmul(rot, np.matmul(covs[...,:2:2], np.linalg.inv(rot)))
+        covs_xy = np.matmul(rot, np.matmul(covs[...,:2,:2], np.linalg.inv(rot)))
         covs_shape = covs_xy.shape
         covs_shape[-1] += 1
         covs_shape[-2] += 1
@@ -23,6 +26,25 @@ def rotate(poses, phis, covs=None, return_covs=False):
     if return_covs:
         return new_poses, new_covs
     return new_poses
+
+def transform(poses, origins):
+    '''
+    Transform poses from the coordinate frame defined by origins to the
+    standard coordinate frame.
+    '''
+    xys, thetas = origins[...,:2], origins[...,2:]
+    poses = rotate(poses, thetas)
+    poses = poses + np.concatenate((xys, np.zeros_like(thetas)), axis=-1)
+    return poses
+
+def itransform(poses, origins):
+    '''
+    Do the inverse coordinate transform.
+    '''
+    xys, thetas = origins[...,:2], origins[...,2:]
+    poses = poses - np.concatenate((xys, np.zeros_like(thetas)), axis=-1)
+    poses = rotate(poses, -thetas)
+    return poses
 
 def average(poses, weights):
     mean = np.average(poses, axis=0, weights=weights)
@@ -40,3 +62,25 @@ def directional_variance(cov, directions):
     xys = directions[...,:2]
     xys = xys / np.linalg.norm(xys, axis=-1, keepdims=True)
     return np.matmul(xys[:,None,:], np.matmul(cov[:2,:2], xys[:,:,None]))[...,0,0]
+
+def make_pose(p):
+    pose = Pose()
+    quat = quaternion_from_euler(0, 0, p[2])
+    pose.position.x = p[0]
+    pose.position.y = p[1]
+    pose.orientation.x = quat[0]
+    pose.orientation.y = quat[1]
+    pose.orientation.z = quat[2]
+    pose.orientation.w = quat[3]
+    return pose
+
+
+if __name__ == '__main__':
+    poses = np.array([
+        [2, 3, 0],
+        [5, -5, np.pi/2],
+    ])
+    origin = np.array([4, -3, np.pi/2])
+    print poses
+    print transform(poses, origin)
+    print itransform(transform(poses, origin), origin)
