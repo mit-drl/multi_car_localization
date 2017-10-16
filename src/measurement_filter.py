@@ -41,6 +41,8 @@ class ParticleFilter(object):
         self.car_id = rospy.get_param("~car_id", 0)
         self.frame_name = rospy.get_param("/frame_name")
         self.frame_id = self.frame_name[self.car_id]
+        # for visualization only
+        self.frame_origin = np.array(rospy.get_param("/frame_origin", None))
 
         self.connections = rospy.get_param("/connections", None)
         self.own_connections = self.connections[str(self.car_id)]
@@ -255,7 +257,9 @@ class ParticleFilter(object):
                     for j in range(self.Nconn):
                         frames.poses.append(utils.make_pose(p[j]))
                         if pose_meas[j] is not None:
-                            positions.poses.append(utils.make_pose(utils.transform(pose_meas[j], p[j])))
+                            pose = utils.transform(utils.transform(pose_meas[j], p[j]),
+                                                   self.frame_origin[self.car_id])
+                            positions.poses.append(utils.make_pose(pose))
                 self.pa_pub.publish(frames)
                 self.pos_pub.publish(positions)
 

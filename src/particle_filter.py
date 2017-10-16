@@ -49,7 +49,7 @@ class MultiCarParticleFilter(object):
                 self.mcpfs[target] = SingleCarParticleFilter(
                     num_particles=self.Np,
                     x_cov=self.x_cov,
-                    local_pose=self.x0[i],
+                    local_pose=self.x0[self.car_index],
                     local_pose_cov=self.pose_cov,
                     uwb_meas=self.uwb0[(self.car_id, target)].distance,
                     uwb_var=self.uwb_var,
@@ -155,7 +155,7 @@ class SingleCarParticleFilter(object):
         # d is the distance between them
         FUDGE_NOISE = 4
         FUDGE_MEAS = 2
-        SMOOTH_FACTOR = 0.01
+        SMOOTH_FACTOR = 0.05
         rel_poses = self.transform(rel_pose)
         differences = rel_poses - local_pose
         local_pose_var = utils.directional_variance(local_pose_cov, differences)
