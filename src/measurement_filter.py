@@ -110,41 +110,42 @@ class ParticleFilter(object):
            queue_size=1)
 
     def meas_cb(self, meas):
-        self.gps = meas.gps
+        if not self.new_meas:
+            self.gps = meas.gps
 
-        self.u = np.zeros((self.Nconn, self.Ninputs))
-        for i, control in enumerate(meas.control):
-            self.u[i, 0] = meas.control[i].steering_angle
-            self.u[i, 1] = meas.control[i].velocity
+            self.u = np.zeros((self.Nconn, self.Ninputs))
+            for i, control in enumerate(meas.control):
+                self.u[i, 0] = meas.control[i].steering_angle
+                self.u[i, 1] = meas.control[i].velocity
 
-        self.uwbs = {}
-        for uwb in meas.range:
-            self.uwbs[(uwb.to_id, uwb.from_id)] = uwb
+            self.uwbs = {}
+            for uwb in meas.range:
+                self.uwbs[(uwb.to_id, uwb.from_id)] = uwb
 
-        self.lidar = meas.lidar
+            self.lidar = meas.lidar
 
-        if self.x0 is None:
-            self.x0 = np.zeros((self.Nconn, self.Ndim))
-            for i, j in enumerate(self.own_connections):
-                self.x0[i, 0] = self.lidar[i].x
-                self.x0[i, 1] = self.lidar[i].y
-                self.x0[i, 2] = self.lidar[i].theta
+            if self.x0 is None:
+                self.x0 = np.zeros((self.Nconn, self.Ndim))
+                for i, j in enumerate(self.own_connections):
+                    self.x0[i, 0] = self.lidar[i].x
+                    self.x0[i, 1] = self.lidar[i].y
+                    self.x0[i, 2] = self.lidar[i].theta
 
-            self.xs_pred = self.x0
+                self.xs_pred = self.x0
 
-            self.filter = pf.MultiCarParticleFilter(
-                num_particles=self.Np,
-                num_cars=self.Nconn,
-                car_id=self.car_id,
-                connections=self.own_connections,
-                x0=self.x0,
-                x_cov=self.x_cov,
-                uwb0=self.uwbs,
-                pose_cov=np.diag(self.lidar_cov),
-                uwb_var=self.uwb_cov,
-            )
+                self.filter = pf.MultiCarParticleFilter(
+                    num_particles=self.Np,
+                    num_cars=self.Nconn,
+                    car_id=self.car_id,
+                    connections=self.own_connections,
+                    x0=self.x0,
+                    x_cov=self.x_cov,
+                    uwb0=self.uwbs,
+                    pose_cov=np.diag(self.lidar_cov),
+                    uwb_var=self.uwb_cov,
+                )
 
-        self.new_meas = True
+            self.new_meas = True
 
     def run(self):
         filter_paths = []
@@ -161,7 +162,6 @@ class ParticleFilter(object):
             if self.x0 is None or self.filter is None or not self.new_meas:
                 start_time = rospy.get_time()
             else:
-                self.new_meas = False
                 self.current_time = rospy.get_time()
                 dt = self.current_time - self.prev_time
                 self.prev_time = self.current_time
@@ -230,6 +230,9 @@ class ParticleFilter(object):
                             new_meas_cov[j*self.Nmeas + k + 5, j*self.Nmeas + k + 5] = 0.001
                         elif to_id != from_id:
                             new_meas_cov[j*self.Nmeas + k + 5, j*self.Nmeas + k + 5] = 2345.0
+
+                # unset semaphore
+                self.new_meas = False
 
                 # about 0.1-0.2 seconds
                 # much shorter now that i reduced the rate of

@@ -61,7 +61,7 @@ def average(poses, weights):
 def directional_variance(cov, directions):
     xys = directions[...,:2]
     xys = xys / np.linalg.norm(xys, axis=-1, keepdims=True)
-    return np.matmul(xys[:,None,:], np.matmul(cov[:2,:2], xys[:,:,None]))[...,0,0]
+    return np.matmul(xys[...,None,:], np.matmul(cov[:2,:2], xys[...,:,None]))[...,0,0]
 
 def make_pose(p):
     pose = Pose()
