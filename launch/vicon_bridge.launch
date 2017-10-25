@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="canopy_client" type="client_node.py" name="canopy_node"
+        output="screen" clear_params="true">
+		<param name="name" value="observer"/>
+        <param name="description"
+            value="Observer machine" />
+        <rosparam>
+            publishing:
+                - /vicon/ba_car0/ba_car0
+                - /vicon/ba_car1/ba_car1
+                - /vicon/ba_car2/ba_car2
+            types:
+                - geometry_msgs/TransformStamped
+                - geometry_msgs/TransformStamped
+                - geometry_msgs/TransformStamped
+            trusted:
+                - "car[0-2]"
+                - "car[0-2]"
+                - "car[0-2]"
+            global_frames:
+                - world
+        </rosparam>
+        <rosparam command="load"
+            file="$(find multi_car_localization)/param/canopy.yaml"/>
+	</node>
+
+    <node pkg="multi_car_localization" type="initial_pose_node.py"
+        name="initial_pose_node" output="screen"/>
+
+    <!-- <node pkg="map_server" type="map_server" name="map_server" -->
+    <!--     args="$(find particle_filter)/maps/racecar_test3.yaml"/> -->
+</launch>
