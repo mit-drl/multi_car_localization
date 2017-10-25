@@ -46,15 +46,15 @@
                 - geometry_msgs/PoseStamped
                 - nav_msgs/OccupancyGrid
             trusted:
-                - "car[0-2]"
-                - "car[0-2]"
-                - "car[0-2]"
-                - "car[0-2]"
-                - "car[0-2]"
-                - "car[0-2]"
-                - "car[0-2]"
-                - "car[0-2]"
-                - "car[0-2]"
+                - "car[0-2] observer"
+                - "car[0-2] observer"
+                - "car[0-2] observer"
+                - "car[0-2] observer"
+                - "car[0-2] observer"
+                - "car[0-2] observer"
+                - "car[0-2] observer"
+                - "car[0-2] observer"
+                - "car[0-2] observer"
             global_frames:
                 - "$(env CAR_FRAME_ID)"
                 - earth
