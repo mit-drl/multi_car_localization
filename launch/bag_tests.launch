@@ -33,8 +33,8 @@
             types:
                 - multi_car_msgs/CarControl
                 - multi_car_msgs/LidarPose
-                - nav_msgs/Odometry
                 - sensor_msgs/Imu
+                - nav_msgs/Odometry
                 - vesc_msgs/VescStateStamped
                 - std_msgs/Float64
                 - geometry_msgs/PoseWithCovarianceStamped
@@ -48,8 +48,8 @@
                 - "car[0-2]"
                 - "car[0-2]"
                 - "car[0-2]"
-                - observer
-                - observer
+                - "car[0-2]"
+                - "car[0-2]"
             global_frames:
                 - "$(env CAR_FRAME_ID)"
                 - earth
