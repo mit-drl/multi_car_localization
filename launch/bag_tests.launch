@@ -23,16 +23,28 @@
             publishing:
                 - /control
                 - /lidar_pose
+                - /imu
+                - /odom
+                - /vesc/sensors/core
+                - /vesc/sensors/servo_position_command
                 - /poseupdate
                 - /slam_out_pose
                 - /map
             types:
                 - multi_car_msgs/CarControl
                 - multi_car_msgs/LidarPose
+                - nav_msgs/Odometry
+                - sensor_msgs/Imu
+                - vesc_msgs/VescStateStamped
+                - std_msgs/Float64
                 - geometry_msgs/PoseWithCovarianceStamped
                 - geometry_msgs/PoseStamped
                 - nav_msgs/OccupancyGrid
             trusted:
+                - "car[0-2]"
+                - "car[0-2]"
+                - "car[0-2]"
+                - "car[0-2]"
                 - "car[0-2]"
                 - "car[0-2]"
                 - "car[0-2]"
