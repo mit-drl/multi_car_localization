@@ -25,6 +25,7 @@
                 - /lidar_pose
                 - /imu
                 - /odom
+                - /ranges
                 - /vesc/sensors/core
                 - /vesc/sensors/servo_position_command
                 - /poseupdate
@@ -35,12 +36,14 @@
                 - multi_car_msgs/LidarPose
                 - sensor_msgs/Imu
                 - nav_msgs/Odometry
+                - multi_car_msgs/UWBRange
                 - vesc_msgs/VescStateStamped
                 - std_msgs/Float64
                 - geometry_msgs/PoseWithCovarianceStamped
                 - geometry_msgs/PoseStamped
                 - nav_msgs/OccupancyGrid
             trusted:
+                - "car[0-2] observer"
                 - "car[0-2] observer"
                 - "car[0-2] observer"
                 - "car[0-2] observer"

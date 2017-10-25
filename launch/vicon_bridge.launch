@@ -15,9 +15,9 @@
                 - geometry_msgs/TransformStamped
                 - geometry_msgs/TransformStamped
             trusted:
-                - "car[0-2]"
-                - "car[0-2]"
-                - "car[0-2]"
+                - "car[0-2] observer"
+                - "car[0-2] observer"
+                - "car[0-2] observer"
             global_frames:
                 - world
         </rosparam>
