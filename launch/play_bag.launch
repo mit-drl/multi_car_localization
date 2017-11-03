@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<launch>
+
+    <param name="/use_sim_time" type="bool" value="true" />
+
+    <node pkg="rviz" type="rviz" name="visualization" 
+        args="-d $(find multi_car_localization)/config/play_bag.rviz" />
+
+    <node pkg="rosbag" type="play" name="player" 
+        args="--clock $(find multi_car_localization)/bags/2017-10-25-18-49-49.bag"/>
+
+    <node pkg="tf" type="static_transform_publisher" name="map_to_world"
+        args="0 0 0 0 0 0  /map /world 100" />
+
+    <node pkg="multi_car_localization" type="tf_bag_publisher.py" name="tf_bag_publisher" output="screen"/>
+
+
+    <node pkg="tf" type="static_transform_publisher" name="imu_to_vicon0"
+        args="0 0 0 0 0 0 /vicon/ba_car0/ba_car0 /car0/base_imu_link 100" />
+
+    <node pkg="tf" type="static_transform_publisher" name="imu_to_vicon1"
+        args="0 0 0 0 0 0 /vicon/ba_car1/ba_car1 /car1/base_imu_link 100" />
+
+    <node pkg="tf" type="static_transform_publisher" name="imu_to_vicon2"
+        args="0 0 0 0 0 0 /vicon/ba_car2/ba_car2 /car2/base_imu_link 100" />
+
+</launch>
