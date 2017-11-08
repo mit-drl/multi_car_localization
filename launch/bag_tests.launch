@@ -31,6 +31,7 @@
                 - /poseupdate
                 - /slam_out_pose
                 - /map
+                - /tf
             types:
                 - multi_car_msgs/CarControl
                 - multi_car_msgs/LidarPose
@@ -42,7 +43,9 @@
                 - geometry_msgs/PoseWithCovarianceStamped
                 - geometry_msgs/PoseStamped
                 - nav_msgs/OccupancyGrid
+                - tf2_msgs/TFMessage
             trusted:
+                - "car[0-2] observer"
                 - "car[0-2] observer"
                 - "car[0-2] observer"
                 - "car[0-2] observer"

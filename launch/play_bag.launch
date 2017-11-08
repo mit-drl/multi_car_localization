@@ -7,7 +7,14 @@
         args="-d $(find multi_car_localization)/config/play_bag.rviz" />
 
     <node pkg="rosbag" type="play" name="player" 
-        args="--clock $(find multi_car_localization)/bags/2017-10-25-18-49-49.bag"/>
+        args="--clock --quiet $(find multi_car_localization)/bags/2017-10-25-18-49-49.bag">
+        <remap from="/car0/imu" to="/car0/imu_old" />
+        <remap from="/car1/imu" to="/car1/imu_old" />
+        <remap from="/car2/imu" to="/car2/imu_old" />
+        <remap from="/car0/odom" to="/car0/odom_old" />
+        <remap from="/car1/odom" to="/car1/odom_old" />
+        <remap from="/car2/odom" to="/car2/odom_old" />
+    </node>
 
     <node pkg="tf" type="static_transform_publisher" name="map_to_world"
         args="0 0 0 0 0 0  /map /world 100" />

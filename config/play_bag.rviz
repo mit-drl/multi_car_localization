@@ -6,6 +6,8 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /Pose3
+        - /Odometry2
       Splitter Ratio: 0.5
     Tree Height: 1012
   - Class: rviz/Selection
@@ -103,12 +105,12 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz_plugin_tutorials/Imu
       Color: 204; 51; 204
-      Enabled: true
+      Enabled: false
       History Length: 1
       Name: Imu
-      Topic: /car0/imu_fixed
+      Topic: /car0/imu
       Unreliable: false
-      Value: true
+      Value: false
     - Angle Tolerance: 0.1
       Class: rviz/Odometry
       Color: 255; 25; 0
@@ -117,7 +119,62 @@ Visualization Manager:
       Length: 1
       Name: Odometry
       Position Tolerance: 0.1
-      Topic: /car0/odom_fixed
+      Topic: /car0/odom
+      Value: true
+    - Alpha: 0.9
+      Axes Length: 1
+      Axes Radius: 0.1
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.3
+      Head Radius: 0.3
+      Name: Pose
+      Shaft Length: 0.6
+      Shaft Radius: 0.1
+      Shape: Arrow
+      Topic: /car0/yaw
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.1
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.3
+      Head Radius: 0.1
+      Name: Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05
+      Shape: Arrow
+      Topic: /car1/yaw
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.1
+      Class: rviz/Pose
+      Color: 0; 255; 255
+      Enabled: true
+      Head Length: 0.3
+      Head Radius: 0.1
+      Name: Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05
+      Shape: Arrow
+      Topic: /car2/yaw
+      Unreliable: false
+      Value: true
+    - Angle Tolerance: 0.1
+      Class: rviz/Odometry
+      Color: 0; 255; 255
+      Enabled: true
+      Keep: 100
+      Length: 1
+      Name: Odometry
+      Position Tolerance: 0.1
+      Topic: /car2/odom
       Value: true
   Enabled: true
   Global Options:
@@ -143,16 +200,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 32.6803
+      Distance: 41.4807
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.49867
-        Y: 2.17783
-        Z: -26.62
+        X: 1.61842
+        Y: 1.11378
+        Z: -26.6857
       Name: Current View
       Near Clip Distance: 0.01
       Pitch: 1.5048
@@ -176,5 +233,5 @@ Window Geometry:
   Views:
     collapsed: true
   Width: 1687
-  X: 55
-  Y: 14
+  X: 1530
+  Y: 47

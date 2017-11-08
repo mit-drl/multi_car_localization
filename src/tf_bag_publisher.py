@@ -6,21 +6,25 @@ import tf
 from rosgraph_msgs.msg import Clock
 from sensor_msgs.msg import Imu
 from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
 
 class TFBagPublisher(object):
 
     def __init__(self):
+        self.Ncars = 3
+
         self.rate = rospy.Rate(100)
         self.listener = tf.TransformListener(True, rospy.Duration(1.0))
 
-        self.starting_position = []
+        self.start_pose = []
+        self.init_yaw = [None]*self.Ncars
         for i in range(3):
             num = str(i)
             now = rospy.Time.now()
             self.listener.waitForTransform("/world", "/vicon/ba_car" + num + "/ba_car" + num, now, rospy.Duration(3.0))
             (trans, rot) = self.listener.lookupTransform("/world", "/vicon/ba_car" + num + "/ba_car" + num, now)
-            self.starting_position.append(Pose(position=trans, orientation=rot))
+            self.start_pose.append(Pose(position=trans, orientation=rot))
 
         self.br = tf.TransformBroadcaster()
 
@@ -33,14 +37,16 @@ class TFBagPublisher(object):
         self.odom_sub = []
         self.odom_pub = []
         self.first_odom = []
+        self.yaw_pub = []
         for i in range(3):
             num = str(i)
             self.imu_sub.append(
-                        rospy.Subscriber("/car" + num + "/imu", Imu, self.imu_cb, (i,), queue_size=1))
-            self.imu_pub.append(rospy.Publisher("/car" + num + "/imu_fixed", Imu, queue_size=1))
+                        rospy.Subscriber("/car" + num + "/imu_old", Imu, self.imu_cb, (i,), queue_size=1))
+            self.imu_pub.append(rospy.Publisher("/car" + num + "/imu", Imu, queue_size=1))
+            self.yaw_pub.append(rospy.Publisher("/car" + num + "/yaw", PoseStamped, queue_size=1))
             
-            self.odom_sub.append(rospy.Subscriber("/car" + num + "/odom", Odometry, self.odom_cb, (i,), queue_size=1))
-            self.odom_pub.append(rospy.Publisher("/car" + num + "/odom_fixed", Odometry, queue_size=1))
+            self.odom_sub.append(rospy.Subscriber("/car" + num + "/odom_old", Odometry, self.odom_cb, (i,), queue_size=1))
+            self.odom_pub.append(rospy.Publisher("/car" + num + "/odom", Odometry, queue_size=1))
             self.first_odom.append(None)
 
     def odom_cb(self, odom, args):
@@ -59,6 +65,28 @@ class TFBagPublisher(object):
     def imu_cb(self, imu, args):
         num = args[0]
         imu.header.stamp = self.time
+
+        old_quat = (imu.orientation.x,
+                    imu.orientation.y,
+                    imu.orientation.z,
+                    imu.orientation.w)
+        (r, p, y) = tf.transformations.euler_from_quaternion(old_quat)
+
+        if self.init_yaw[num] is None:
+            self.init_yaw[num] = y
+
+        yaw = y - 3.14159/2.0#self.init_yaw[num]
+
+        quat = tf.transformations.quaternion_from_euler(0, 0, yaw)
+        pose = Pose()
+        pose.orientation.x = quat[0]
+        pose.orientation.y = quat[1]
+        pose.orientation.z = quat[2]
+        pose.orientation.w = quat[3]
+
+        ps = PoseStamped(header=imu.header, pose=pose)
+        self.yaw_pub[num].publish(ps)
+
         self.imu_pub[num].publish(imu)
 
     def run(self):
