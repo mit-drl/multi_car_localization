@@ -3,18 +3,21 @@
 
 	<arg name="car_id" default="0" />
     <arg name="dynamics_model" default="dubins" />
+	<arg name="fake_sensors" default="True" />
 
-    <node pkg="multi_car_localization" type="fake_car.py" name="car$(arg car_id)" output="screen">
-		<param name="car_id" value="$(arg car_id)"/>
-        <param name="dynamics_model" value="$(arg dynamics_model)" />
-    </node>
+    <group if="$(arg fake_sensors)">
+        <node pkg="multi_car_localization" type="fake_car.py" name="car$(arg car_id)" output="screen">
+            <param name="car_id" value="$(arg car_id)"/>
+            <param name="dynamics_model" value="$(arg dynamics_model)" />
+        </node>
 
-    <node pkg="multi_car_localization" type="fake_lidar.py" name="uwb" output="screen">
-        <param name="car_id" value="$(arg car_id)" />
-        <param name="dynamics_model" value="$(arg dynamics_model)" />
-    </node>
+        <node pkg="multi_car_localization" type="fake_lidar.py" name="uwb" output="screen">
+            <param name="car_id" value="$(arg car_id)" />
+            <param name="dynamics_model" value="$(arg dynamics_model)" />
+        </node>
 
-    <node pkg="multi_car_localization" type="fake_vicon.py" name="fake_vicon" output="screen" />
+        <node pkg="multi_car_localization" type="fake_vicon.py" name="fake_vicon" output="screen" />
+    </group>
 
  	<include file="$(find multi_car_localization)/launch/particle_filter.launch">
  		<arg name="car_id" value="$(arg car_id)" />
