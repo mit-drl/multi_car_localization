@@ -4,7 +4,7 @@ import math
 import rospy
 from std_msgs.msg import Header
 from sensor_msgs.msg import Range
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
 from multi_car_msgs.msg import CarMeasurement
 from multi_car_msgs.msg import UWBRange
 from multi_car_msgs.msg import CarControl
@@ -56,22 +56,27 @@ class Measurements(object):
         self.control_sub = []
         self.control_sub2 = []
         self.lidar_sub = []
+        # in case sensor data is broadcast on global topics
         self.uwb_sub = rospy.Subscriber("/ranges", UWBRange, self.range_cb, queue_size=1)
+        self.uwb_sub2 = []
+        # control topic is gathered currently for face cars but not real
+        self.control_sub.append(
+            rospy.Subscriber("/control", CarControl, self.control_cb, queue_size=1))
+        self.lidar_sub.append(
+            rospy.Subscriber("/lidar_pose", LidarPose, self.lidar_cb, queue_size=1))
+        # for sensor data broadcast in car namespaces
         for i, ID in enumerate(self.own_connections):
             self.gps_sub.append(
-                rospy.Subscriber(
-                "odom" + str(ID), SimplePose, self.gps_cb, (i,), queue_size=1))
-
-            if self.car_id == ID:
-                self.control_sub.append(
-                    rospy.Subscriber("/control", CarControl, self.control_cb, queue_size=1))
-                self.lidar_sub.append(
-                    rospy.Subscriber("/lidar_pose", LidarPose, self.lidar_cb, queue_size=1))
-            else:
-                self.control_sub.append(
-                    rospy.Subscriber("/car" + str(ID) + "/control", CarControl, self.control_cb, queue_size=1))
-                self.lidar_sub.append(
-                    rospy.Subscriber("/car" + str(ID) + "/lidar_pose", LidarPose, self.lidar_cb, queue_size=1))
+                rospy.Subscriber("odom" + str(ID), SimplePose, self.gps_cb, (i,), queue_size=1))
+            self.gps_sub.append(
+                rospy.Subscriber("/car" + str(ID) + "/odom", Odometry, self.odom_cb, (ID, i), queue_size=1))
+            self.control_sub.append(
+                rospy.Subscriber("/car" + str(ID) + "/control", CarControl, self.control_cb, queue_size=1))
+            self.lidar_sub.append(
+                rospy.Subscriber("/car" + str(ID) + "/lidar_pose", LidarPose, self.lidar_cb, queue_size=1))
+            self.lidar_sub.append(
+                rospy.Subscriber("/car" + str(ID) + "/poseupdate", PoseWithCovarianceStamped, self.slam_cb, (ID,), queue_size=1))
+            self.uwb_sub2.append(rospy.Subscriber("/car" + str(ID) + "/ranges", UWBRange, self.range_cb, queue_size=1))
 
     def init_uwb(self):
         uwbs = {}
@@ -84,6 +89,11 @@ class Measurements(object):
                     null_uwb.from_id = k
                     uwbs[(j, k)] = null_uwb
         return uwbs
+
+    def slam_cb(self, slam_pose, args):
+        '''Convert a PoseWithCovarianceStamped message to a lidar message and use the lidar callback.'''
+        lp = pose_to_simplepose(LidarPose, slam_pose, args[0])
+        return self.lidar_cb(lp)
 
     def lidar_cb(self, lp):
         car_id = self.id_dict[str(lp.car_id)]
@@ -102,6 +112,10 @@ class Measurements(object):
         uwb.from_id = self.id_dict[str(uwb.from_id)]
         if (uwb.to_id, uwb.from_id) in self.graph.edges():
             self.uwb_ranges[(uwb.to_id, uwb.from_id)] = uwb
+
+    def odom_cb(self, odom, args):
+        sp = pose_to_simplepose(SimplePose, odom, args[0])
+        return self.gps_cb(sp, args[1:])
 
     def gps_cb(self, gps, args):
         num = args[0]
@@ -201,6 +215,19 @@ class Measurements(object):
         while not rospy.is_shutdown():
             self.publish_measurements()
             self.rate.sleep()
+
+def pose_to_simplepose(cls, pose_stamped, car_id):
+    sp = cls()
+    sp.header = pose_stamped.header
+    pose = pose_stamped.pose.pose
+    sp.x = pose.position.x
+    sp.y = pose.position.y
+    o = pose.orientation
+    quaternion = (o.x, o.y, o.z, o.w)
+    sp.theta = tf.transformations.euler_from_quaternion(quaternion)[2]
+    sp.car_id = car_id
+    sp.cov = pose_stamped.pose.covariance
+    return sp
 
 if __name__ == "__main__":
     rospy.init_node("measurements", anonymous=False)
