@@ -153,9 +153,11 @@ class Measurements(object):
             if gps is not None:
                 num_gps += 1
         num_control = 0
-        for cont in self.control:
+        for i, cont in enumerate(self.control):
             if cont is not None:
                 num_control += 1
+            else:
+                self.control[i] = CarControl()
         num_lidar = 0
         for lidar in self.lidar:
             if lidar is not None:
@@ -170,7 +172,7 @@ class Measurements(object):
         self.debug.num_control = num_control
         self.debug.success = False
 
-        if gps_good and uwb_good and control_good and lidar_good and num_uwb > 4:
+        if gps_good and uwb_good and lidar_good and num_uwb > 4:
             if self.first_time:
                 self.first_time = False
             self.debug.success = True
