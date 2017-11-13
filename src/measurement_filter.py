@@ -3,9 +3,7 @@
 import math
 import rospy
 from sensor_msgs.msg import Range
-from geometry_msgs.msg import PoseStamped
-from geometry_msgs.msg import Pose
-from geometry_msgs.msg import PoseArray
+from geometry_msgs.msg import Pose, PoseArray, PoseStamped, TransformStamped
 from multi_car_msgs.msg import CarMeasurement
 from multi_car_msgs.msg import CarState
 from multi_car_msgs.msg import CombinedState
@@ -33,6 +31,7 @@ class ParticleFilter(object):
         self.rate = rospy.Rate(rospy.get_param("~frequency", 10))
         self.Np = rospy.get_param("~num_particles", 150)
         self.Ncars = rospy.get_param("/num_cars", 3)
+        self.fake_sensors = rospy.get_param("~fake_sensors", "True") == 'True'
         self.dynamics_model = rospy.get_param("~dynamics_model", "dubins")
         self.dynamics = dynamics.model(self.dynamics_model)
         self.Ndim = self.dynamics.Ndim
@@ -41,12 +40,17 @@ class ParticleFilter(object):
         self.car_id = rospy.get_param("~car_id", 0)
         self.frame_name = rospy.get_param("/frame_name")
         self.frame_id = self.frame_name[self.car_id]
+
         # for visualization only
         self.frame_origin = np.array(rospy.get_param("/frame_origin", None))
+        self.vicon_pose = None
+        self.vicon_sub = rospy.Subscriber('/vicon/ba_car%d/ba_car%d' % (self.car_id, self.car_id),
+                                          TransformStamped, self.vicon_cb, queue_size=1)
 
         self.connections = rospy.get_param("/connections", None)
         self.own_connections = self.connections[str(self.car_id)]
         self.Nconn = len(self.own_connections)
+        self.car_index = self.own_connections.index(self.car_id)
 
         self.full_graph = dict_to_graph.convert(self.connections)
         self.graph = dict_to_graph.prune(self.full_graph, self.car_id)
@@ -146,6 +150,12 @@ class ParticleFilter(object):
                 )
 
             self.new_meas = True
+
+    def vicon_cb(self, meas):
+        x = meas.transform.translation.x
+        y = meas.transform.translation.y
+        theta = utils.theta_from_quaternion(meas.transform.rotation)
+        self.vicon_pose = np.array([x, y, theta])
 
     def run(self):
         filter_paths = []
@@ -256,13 +266,20 @@ class ParticleFilter(object):
                 positions.header = Header()
                 positions.header.stamp = rospy.Time.now()
                 positions.header.frame_id = "map"
-                for p in particles[:self.pa_max]:
-                    for j in range(self.Nconn):
-                        frames.poses.append(utils.make_pose(p[j]))
-                        if pose_meas[j] is not None:
-                            pose = utils.transform(utils.transform(pose_meas[j], p[j]),
-                                                   self.frame_origin[self.car_id])
-                            positions.poses.append(utils.make_pose(pose))
+                if self.fake_sensors or self.vicon_pose is not None and pose_meas[self.car_index] is not None:
+                    for p in particles[:self.pa_max]:
+                        for j in range(self.Nconn):
+                            frames.poses.append(utils.make_pose(p[j]))
+                            if pose_meas[j] is not None:
+                                if self.fake_sensors:
+                                    pose = utils.transform(utils.transform(pose_meas[j], p[j]),
+                                                           self.frame_origin[self.car_id])
+                                else:
+                                    pose = utils.transform(
+                                        utils.itransform(utils.transform(pose_meas[j], p[j]),
+                                                         pose_meas[self.car_index]),
+                                        self.vicon_pose)
+                                positions.poses.append(utils.make_pose(pose))
                 self.pa_pub.publish(frames)
                 self.pos_pub.publish(positions)
 

@@ -22,6 +22,7 @@
  	<include file="$(find multi_car_localization)/launch/particle_filter.launch">
  		<arg name="car_id" value="$(arg car_id)" />
         <arg name="dynamics_model" value="$(arg dynamics_model)" />
+        <arg name="fake_sensors" value="$(arg fake_sensors)" />
 	</include>
 
 	<node pkg="multi_car_localization" type="measurements.py" name="measurements" output="screen">

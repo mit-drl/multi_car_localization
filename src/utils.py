@@ -2,7 +2,7 @@ import math
 import numpy as np
 
 from geometry_msgs.msg import Pose
-from tf.transformations import quaternion_from_euler
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 def rotate(poses, phis, covs=None, return_covs=False):
     # construct rotation matrices
@@ -73,6 +73,10 @@ def make_pose(p):
     pose.orientation.z = quat[2]
     pose.orientation.w = quat[3]
     return pose
+
+def theta_from_quaternion(q):
+    quaternion = (q.x, q.y, q.z, q.w)
+    return euler_from_quaternion(quaternion)[2]
 
 
 if __name__ == '__main__':

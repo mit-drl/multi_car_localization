@@ -19,7 +19,7 @@ class TFBagPublisher(object):
 
         self.start_pose = []
         self.init_yaw = [None]*self.Ncars
-        for i in range(3):
+        for i in range(self.Ncars):
             num = str(i)
             now = rospy.Time.now()
             self.listener.waitForTransform("/world", "/vicon/ba_car" + num + "/ba_car" + num, now, rospy.Duration(3.0))

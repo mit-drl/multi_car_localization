@@ -16,6 +16,8 @@
         <node pkg="multi_car_localization" type="fake_uwb.py" name="uwb" output="screen" />
     </group>
 
+    <!-- <node pkg="multi_car_localization" type="tf_bag_publisher.py" name="tf_bag_publisher" output="screen"/> -->
+
     <include file="$(find multi_car_localization)/launch/fake_car.launch" ns="car0">
         <arg name="car_id" value="0" />
         <arg name="dynamics_model" value="dubins" />

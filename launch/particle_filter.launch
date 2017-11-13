@@ -5,6 +5,7 @@
 	<arg name="num_particles" default="1000" />
 	<arg name="resample_perc" default="0.8" />
 	<arg name="dynamics_model" default="dubins" />
+	<arg name="fake_sensors" default="True" />
 
     <node pkg="tf" type="static_transform_publisher" name="car$(arg car_id)_tf"
         args="0 0 0 0 0 0 map car$(arg car_id) 100" />
@@ -14,6 +15,7 @@
     	<param name="num_particles" value="$(arg num_particles)"/>
 		<param name="resample_perc" value="$(arg resample_perc)"/>
 		<param name="dynamics_model" value="$(arg dynamics_model)"/> 
+        <param name="fake_sensors" value="$(arg fake_sensors)" />
     </node>
 
 </launch>

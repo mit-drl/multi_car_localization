@@ -18,6 +18,8 @@ import tf
 import dict_to_graph
 import networkx as nx
 
+import utils
+
 class Measurements(object):
 
     def __init__(self):
@@ -224,9 +226,7 @@ def pose_to_simplepose(cls, pose_stamped, car_id):
     pose = pose_stamped.pose.pose
     sp.x = pose.position.x
     sp.y = pose.position.y
-    o = pose.orientation
-    quaternion = (o.x, o.y, o.z, o.w)
-    sp.theta = tf.transformations.euler_from_quaternion(quaternion)[2]
+    sp.theta = utils.theta_from_quaternion(pose.orientation)
     sp.car_id = car_id
     sp.cov = pose_stamped.pose.covariance
     return sp
