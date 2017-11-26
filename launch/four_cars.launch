@@ -1,20 +1,7 @@
 <?xml version="1.0"?>
 <launch>
     
-	<arg name="fake_sensors" default="True" />
-    <arg name="id_dict" default="$(find multi_car_localization)/param/ids.yaml"/>
-    <arg name="connections" default="$(find multi_car_localization)/param/connections_four_cars.yaml"/>
-    <arg name="sim_params" default="$(find multi_car_localization)/param/four_car_simulation.yaml" />
-
-    <rosparam command="load" file="$(arg id_dict)"/>
-    <rosparam command="load" file="$(arg connections)"/>
-    <rosparam command="load" file="$(arg sim_params)" />
-
-    <group if="$(arg fake_sensors)">
-        <node pkg="multi_car_localization" type="vicon_to_gps.py" name="vicon_to_gps" output="screen" />
-
-        <node pkg="multi_car_localization" type="fake_uwb.py" name="uwb" output="screen" />
-    </group>
+    <arg name="fake_sensors" default="True" />
 
     <include file="$(find multi_car_localization)/launch/fake_car.launch" ns="car0">
         <arg name="car_id" value="0" />
@@ -39,11 +26,5 @@
         <arg name="dynamics_model" value="dubins" />
         <arg name="fake_sensors" value="$(arg fake_sensors)" />
     </include>
-
-    <node pkg="tf" type="static_transform_publisher" name="map_to_gps"
-        args="0 0 0 0 0 0 earth utm 100" />
-
-    <node pkg="tf" type="static_transform_publisher" name="map_to_utm"
-        args="327841.212895 4692094.36513 0 0 0 0 utm map 100" />
 
 </launch>

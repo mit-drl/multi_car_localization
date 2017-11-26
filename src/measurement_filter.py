@@ -261,11 +261,11 @@ class ParticleFilter(object):
                 frames = PoseArray()
                 frames.header = Header()
                 frames.header.stamp = rospy.Time.now()
-                frames.header.frame_id = "map"
+                frames.header.frame_id = "car%d/map" % self.car_id
                 positions = PoseArray()
                 positions.header = Header()
                 positions.header.stamp = rospy.Time.now()
-                positions.header.frame_id = "map"
+                positions.header.frame_id = "car%d/map" % self.car_id
                 if self.fake_sensors or self.vicon_pose is not None and pose_meas[self.car_index] is not None:
                     for p in particles[:self.pa_max]:
                         for j in range(self.Nconn):

@@ -19,6 +19,13 @@
         <node pkg="multi_car_localization" type="fake_vicon.py" name="fake_vicon" output="screen" />
     </group>
 
+    <!-- remap tf for vicon bag data -->
+    <node pkg="tf" type="tf_remap" name="tf_remapper" output="screen">
+        <rosparam param="mappings" subst_value="True">
+            [{old: vicon/ba_car$(arg car_id)/ba_car$(arg car_id), new: car$(arg car_id)/map}]
+        </rosparam>
+    </node>
+
  	<include file="$(find multi_car_localization)/launch/particle_filter.launch">
  		<arg name="car_id" value="$(arg car_id)" />
         <arg name="dynamics_model" value="$(arg dynamics_model)" />

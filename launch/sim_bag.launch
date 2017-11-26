@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+
+    <param name="/use_sim_time" value="True"/>
+    
+	<arg name="n" default="3" />
+    <arg name="id_dict" default="$(find multi_car_localization)/param/ids.yaml"/>
+    <arg name="bag" default="$(find multi_car_localization)/bags/2017-11-08-18-02-07.bag"/>
+
+    <include file="$(find multi_car_localization)/launch/sim_cars.launch">
+        <arg name="fake_sensors" value="False" />
+        <arg name="n" value="$(arg n)" />
+        <arg name="id_dict" value="$(arg id_dict)"/>
+    </include>
+
+    <node pkg="rosbag" type="play" name="player" args="--clock $(arg bag)">
+        <remap from="tf" to="tf_old" />
+    </node>
+
+</launch>
