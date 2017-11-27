@@ -7,8 +7,8 @@
 	<arg name="dynamics_model" default="dubins" />
 	<arg name="fake_sensors" default="True" />
 
-    <node pkg="tf" type="static_transform_publisher" name="car$(arg car_id)_tf"
-        args="0 0 0 0 0 0 map car$(arg car_id) 100" />
+    <!-- <node pkg="tf" type="static_transform_publisher" name="car$(arg car_id)_tf" -->
+        <!-- args="0 0 0 0 0 0 map car$(arg car_id) 100" /> -->
 
     <node pkg="multi_car_localization" type="measurement_filter.py" name="filter" output="screen">
     	<param name="car_id" value="$(arg car_id)"/>

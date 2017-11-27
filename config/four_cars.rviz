@@ -55,7 +55,7 @@ Visualization Manager:
       Axes Radius: 0.00999999978
       Class: rviz/PoseArray
       Color: 255; 25; 0
-      Enabled: false
+      Enabled: true
       Head Length: 0.0700000003
       Head Radius: 0.0299999993
       Name: PoseArray
@@ -64,14 +64,14 @@ Visualization Manager:
       Shape: Arrow (Flat)
       Topic: /car0/positions
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Arrow Length: 0.300000012
       Axes Length: 0.300000012
       Axes Radius: 0.00999999978
       Class: rviz/PoseArray
       Color: 255; 255; 0
-      Enabled: true
+      Enabled: false
       Head Length: 0.0700000003
       Head Radius: 0.0299999993
       Name: PoseArray
@@ -80,7 +80,7 @@ Visualization Manager:
       Shape: Arrow (Flat)
       Topic: /car1/positions
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Arrow Length: 0.300000012
       Axes Length: 0.300000012
@@ -177,75 +177,75 @@ Visualization Manager:
       Enabled: true
       Frame Timeout: 15
       Frames:
-        All Enabled: true
+        All Enabled: false
         car0:
           Value: true
         car0/base_imu_link:
-          Value: true
+          Value: false
         car0/base_link:
-          Value: true
+          Value: false
         car0/car0/base_link:
-          Value: true
+          Value: false
         car0/car1/base_link:
-          Value: true
+          Value: false
         car0/car2/base_link:
-          Value: true
+          Value: false
         car0/map:
-          Value: true
+          Value: false
         car0/odom:
-          Value: true
+          Value: false
         car0/scanmatcher_frame:
-          Value: true
+          Value: false
         car1:
           Value: true
         car1/base_imu_link:
-          Value: true
+          Value: false
         car1/base_link:
-          Value: true
+          Value: false
         car1/car0/base_link:
-          Value: true
+          Value: false
         car1/car1/base_link:
-          Value: true
+          Value: false
         car1/car2/base_link:
-          Value: true
+          Value: false
         car1/map:
-          Value: true
+          Value: false
         car1/odom:
-          Value: true
+          Value: false
         car1/scanmatcher_frame:
-          Value: true
+          Value: false
         car2:
           Value: true
         car2/base_imu_link:
-          Value: true
+          Value: false
         car2/base_link:
-          Value: true
+          Value: false
         car2/car0/base_link:
-          Value: true
+          Value: false
         car2/car1/base_link:
-          Value: true
+          Value: false
         car2/car2/base_link:
-          Value: true
+          Value: false
         car2/map:
-          Value: true
+          Value: false
         car2/odom:
-          Value: true
+          Value: false
         car2/scanmatcher_frame:
-          Value: true
+          Value: false
         earth:
-          Value: true
+          Value: false
         map:
-          Value: true
+          Value: false
         utm:
-          Value: true
+          Value: false
         vicon/ba_car0/ba_car0:
-          Value: true
+          Value: false
         vicon/ba_car1/ba_car1:
-          Value: true
+          Value: false
         vicon/ba_car2/ba_car2:
-          Value: true
+          Value: false
         world:
-          Value: true
+          Value: false
       Marker Scale: 1
       Name: TF
       Show Arrows: true
@@ -253,15 +253,18 @@ Visualization Manager:
       Show Names: true
       Tree:
         world:
-          car0/map:
-            car0/scanmatcher_frame:
-              {}
-          car1/map:
-            car1/scanmatcher_frame:
-              {}
-          car2/map:
-            car2/scanmatcher_frame:
-              {}
+          car0:
+            car0/map:
+              car0/scanmatcher_frame:
+                {}
+          car1:
+            car1/map:
+              car1/scanmatcher_frame:
+                {}
+          car2:
+            car2/map:
+              car2/scanmatcher_frame:
+                {}
           vicon/ba_car0/ba_car0:
             {}
           vicon/ba_car1/ba_car1:
@@ -273,7 +276,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: world
+    Fixed Frame: car0
     Frame Rate: 30
   Name: root
   Tools:
@@ -294,7 +297,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 14.2461367
+      Distance: 23.4656506
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1

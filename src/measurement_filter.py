@@ -164,7 +164,7 @@ class ParticleFilter(object):
             filter_path = Path()
             filter_path.header = Header()
             filter_path.header.stamp = rospy.Time(0)
-            filter_path.header.frame_id = "map"
+            filter_path.header.frame_id = "%smap" % rospy.get_namespace()
             filter_paths.append(filter_path)
 
         while not rospy.is_shutdown():
@@ -261,11 +261,11 @@ class ParticleFilter(object):
                 frames = PoseArray()
                 frames.header = Header()
                 frames.header.stamp = rospy.Time.now()
-                frames.header.frame_id = "car%d/map" % self.car_id
+                frames.header.frame_id = "%smap" % rospy.get_namespace()
                 positions = PoseArray()
                 positions.header = Header()
                 positions.header.stamp = rospy.Time.now()
-                positions.header.frame_id = "car%d/map" % self.car_id
+                positions.header.frame_id = "%smap" % rospy.get_namespace()
                 if self.fake_sensors or self.vicon_pose is not None and pose_meas[self.car_index] is not None:
                     for p in particles[:self.pa_max]:
                         for j in range(self.Nconn):

@@ -1,7 +1,7 @@
 import math
 import numpy as np
 
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, PoseStamped, TransformStamped
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 def rotate(poses, phis, covs=None, return_covs=False):
@@ -78,6 +78,23 @@ def theta_from_quaternion(q):
     quaternion = (q.x, q.y, q.z, q.w)
     return euler_from_quaternion(quaternion)[2]
 
+def pose_to_tf(pose, child_frame_id):
+    tf = TransformStamped()
+    tf.header = pose.header
+    tf.child_frame_id = child_frame_id
+    tf.transform.translation = pose.pose.position
+    tf.transform.rotation = pose.pose.orientation
+    return tf
+
+def tf_to_pose(tf):
+    pose = PoseStamped()
+    pose.header = tf.header
+    pose.pose.position = tf.transform.translation
+    pose.pose.orientation = tf.transform.rotation
+    return pose
+
+def msg_to_tuple(msg):
+    return tuple(getattr(msg, field) for field in msg.__slots__)
 
 if __name__ == '__main__':
     poses = np.array([

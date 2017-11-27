@@ -14,6 +14,7 @@ from multi_car_msgs.msg import MeasurementDebug
 from sensor_msgs.msg import NavSatFix
 from nav_msgs.msg import Odometry
 import tf
+from tf.transformations import quaternion_inverse
 
 import dict_to_graph
 import networkx as nx
@@ -48,6 +49,7 @@ class Measurements(object):
         self.lidar = [None] * self.Nconn
         self.first_time = True
 
+        self.br = tf.TransformBroadcaster()
         self.debug = MeasurementDebug()
         self.debug.header.frame_id = self.frame_id
         self.debug_pub = rospy.Publisher("meas_debug", MeasurementDebug, queue_size=1)
@@ -95,6 +97,13 @@ class Measurements(object):
     def slam_cb(self, slam_pose, args):
         '''Convert a PoseWithCovarianceStamped message to a lidar message and use the lidar callback.'''
         lp = pose_to_simplepose(LidarPose, slam_pose, args[0])
+        translation = tuple(-i for i in utils.msg_to_tuple(slam_pose.pose.pose.position))
+        rotation = quaternion_inverse(utils.msg_to_tuple(slam_pose.pose.pose.orientation))
+        self.br.sendTransform(translation,
+                              rotation,
+                              slam_pose.header.stamp,
+                              '%smap' % rospy.get_namespace(),
+                              rospy.get_namespace()[:-1])
         return self.lidar_cb(lp)
 
     def lidar_cb(self, lp):

@@ -22,7 +22,7 @@
     <!-- remap tf for vicon bag data -->
     <node pkg="tf" type="tf_remap" name="tf_remapper" output="screen">
         <rosparam param="mappings" subst_value="True">
-            [{old: vicon/ba_car$(arg car_id)/ba_car$(arg car_id), new: car$(arg car_id)/map}]
+            [{old: vicon/ba_car$(arg car_id)/ba_car$(arg car_id), new: car$(arg car_id)}]
         </rosparam>
     </node>
 
