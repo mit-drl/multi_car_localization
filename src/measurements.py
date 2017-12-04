@@ -97,13 +97,6 @@ class Measurements(object):
     def slam_cb(self, slam_pose, args):
         '''Convert a PoseWithCovarianceStamped message to a lidar message and use the lidar callback.'''
         lp = pose_to_simplepose(LidarPose, slam_pose, args[0])
-        translation = tuple(-i for i in utils.msg_to_tuple(slam_pose.pose.pose.position))
-        rotation = quaternion_inverse(utils.msg_to_tuple(slam_pose.pose.pose.orientation))
-        self.br.sendTransform(translation,
-                              rotation,
-                              slam_pose.header.stamp,
-                              '%smap' % rospy.get_namespace(),
-                              rospy.get_namespace()[:-1])
         return self.lidar_cb(lp)
 
     def lidar_cb(self, lp):
@@ -111,6 +104,14 @@ class Measurements(object):
         if car_id in self.own_connections:
             lp.car_id = car_id
             self.lidar[self.own_connections.index(car_id)] = lp
+        if car_id == self.car_id:
+            translation = (lp.x, lp.y, 0)
+            rotation = quaternion_inverse(utils.quaternion_from_theta(lp.theta))
+            self.br.sendTransform(translation,
+                                  rotation,
+                                  lp.header.stamp,
+                                  '%smap' % rospy.get_namespace(), # /car#/map
+                                  rospy.get_namespace()[:-1]) # /car#
 
     def control_cb(self, control):
         car_id = self.id_dict[str(control.car_id)]

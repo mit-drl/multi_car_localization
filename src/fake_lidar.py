@@ -26,7 +26,7 @@ class FakeLidar(object):
         self.Ninputs = self.dynamics.Ninputs
         self.car_id = rospy.get_param("~car_id", 0)
         self.frame_name = rospy.get_param("/frame_name")
-        self.frame_id = self.frame_name[self.car_id]
+        self.frame_id = '%s/map' % self.frame_name[self.car_id]
         self.frame_origin = np.array(rospy.get_param("/frame_origin")[self.car_id])
         self.ID = self.car_id
 
@@ -64,6 +64,8 @@ class FakeLidar(object):
                                          self.state[2] + random.gauss(0.0, 0.05)])
             cov = np.cov(particles.T).flatten().tolist()
             ps = LidarPose()
+            ps.header.stamp = rospy.Time.now()
+            ps.header.frame_id = self.frame_id
             ps.x = self.state[0]
             ps.y = self.state[1]
             ps.theta = self.state[2]

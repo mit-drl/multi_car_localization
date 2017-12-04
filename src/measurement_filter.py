@@ -31,7 +31,7 @@ class ParticleFilter(object):
         self.rate = rospy.Rate(rospy.get_param("~frequency", 10))
         self.Np = rospy.get_param("~num_particles", 150)
         self.Ncars = rospy.get_param("/num_cars", 3)
-        self.fake_sensors = rospy.get_param("~fake_sensors", "True") == 'True'
+        self.fake_sensors = rospy.get_param("~fake_sensors", True)
         self.dynamics_model = rospy.get_param("~dynamics_model", "dubins")
         self.dynamics = dynamics.model(self.dynamics_model)
         self.Ndim = self.dynamics.Ndim

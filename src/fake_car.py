@@ -89,7 +89,7 @@ class FakeCar(object):
 
         self.state = CarState()
         self.state.header = Header()
-        self.state.header.frame_id = self.frame_id
+        self.state.header.frame_id = 'map'
         self.state.u.append(0.0)
         self.state.u.append(0.0)
 
@@ -118,6 +118,14 @@ class FakeCar(object):
         self.real_pose_pub.publish(PoseStamped(pose=pose, header=self.state.header))
         self.control_pub.publish(self.control)
         self.control_pub2.publish(self.control)
+
+        translation = utils.msg_to_tuple(pose.position)
+        rotation = utils.msg_to_tuple(pose.orientation)
+        self.br.sendTransform(translation,
+                              rotation,
+                              self.state.header.stamp,
+                              rospy.get_namespace()[:-1], # /car#
+                              'map')
 
     def run(self):
         maxcounts = 180

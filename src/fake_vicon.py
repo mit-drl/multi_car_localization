@@ -29,9 +29,9 @@ class FakeVicon(object):
                         "/car" + str(i), TransformStamped, queue_size=1))
 
         self.pose_sub = rospy.Subscriber("/range_position", CarState,
-                        self.pose_cb, queue_size=1)
+                        self.pose_cb, (i,), queue_size=1)
 
-    def pose_cb(self, cs):
+    def pose_cb(self, cs, (car_id,)):
         self.transform.header.stamp = rospy.Time.now()
         self.transform.header.frame_id = "vicon"
         self.transform.transform.translation.x = cs.state[0]
@@ -41,7 +41,6 @@ class FakeVicon(object):
         self.transform.transform.rotation.y = quaternion[1]
         self.transform.transform.rotation.z = quaternion[2]
         self.transform.transform.rotation.w = quaternion[3]
-        car_id = int(cs.header.frame_id[-1])
         self.pose_pub[car_id].publish(self.transform)
 
     # def run(self):
