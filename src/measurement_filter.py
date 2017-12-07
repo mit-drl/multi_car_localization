@@ -41,12 +41,6 @@ class ParticleFilter(object):
         self.frame_name = rospy.get_param("/frame_name")
         self.frame_id = self.frame_name[self.car_id]
 
-        # for visualization only
-        self.frame_origin = np.array(rospy.get_param("/frame_origin", None))
-        self.vicon_pose = None
-        self.vicon_sub = rospy.Subscriber('/vicon/ba_car%d/ba_car%d' % (self.car_id, self.car_id),
-                                          TransformStamped, self.vicon_cb, queue_size=1)
-
         self.connections = rospy.get_param("/connections", None)
         self.own_connections = self.connections[str(self.car_id)]
         self.Nconn = len(self.own_connections)
@@ -58,22 +52,20 @@ class ParticleFilter(object):
         self.listener = tf.TransformListener()
 
         self.x0 = None
-        self.gps = [None]*self.Nconn
         self.lidar = [None]*self.Nconn
         self.uwbs = {}
         self.init_angle = rospy.get_param("/init_angle", [0.0, 1.0, 2.5, -0.5])
 
-        self.gps_cov   = rospy.get_param("/gps_cov", [0.6, 0.6])
         self.lidar_cov = rospy.get_param("/lidar_cov", [0.15, 0.15, 0.05])
         self.uwb_cov   = rospy.get_param("/uwb_cov", 0.1)
         self.num_uwb_meas = len(self.graph.neighbors(self.car_id)) + 1
-        self.Nmeas = len(self.gps_cov) + len(self.lidar_cov) + self.num_uwb_meas
+        self.Nmeas = len(self.lidar_cov) + self.num_uwb_meas
 
         self.init_cov = np.diag(self.Nconn * rospy.get_param("/init_cov", [0.1, 0.1, 0.01]))
         self.x_cov = np.diag(rospy.get_param("/x_cov", [0.05, 0.05, 0.03]))
         
-        cov_diags = self.gps_cov + self.lidar_cov
-        for i in range(self.Nmeas - len(self.gps_cov) - len(self.lidar_cov)):
+        cov_diags = list(self.lidar_cov)
+        for i in range(self.Nmeas - len(self.lidar_cov)):
             cov_diags.append(self.uwb_cov)
         self.meas_cov = np.diag(self.Nconn * cov_diags)
 
@@ -90,13 +82,6 @@ class ParticleFilter(object):
 
         self.trans = None
         self.new_meas = False
-
-        try:
-            self.listener.waitForTransform("/utm", "/map", rospy.Time(), rospy.Duration(4.0))
-            (self.trans,rot) = self.listener.lookupTransform('/utm', '/map', rospy.Time(0))
-        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
-            print "TRANSFORM FAILEDDDDDDDDDDDDDDDDDDD"
-            pass
 
         self.pa_max = 100
         self.pa_pub = rospy.Publisher("particles", PoseArray, queue_size=1)
@@ -115,8 +100,6 @@ class ParticleFilter(object):
 
     def meas_cb(self, meas):
         if not self.new_meas:
-            self.gps = meas.gps
-
             self.u = np.zeros((self.Nconn, self.Ninputs))
             for i, control in enumerate(meas.control):
                 self.u[i, 0] = meas.control[i].steering_angle
@@ -151,12 +134,6 @@ class ParticleFilter(object):
 
             self.new_meas = True
 
-    def vicon_cb(self, meas):
-        x = meas.transform.translation.x
-        y = meas.transform.translation.y
-        theta = utils.theta_from_quaternion(meas.transform.rotation)
-        self.vicon_pose = np.array([x, y, theta])
-
     def run(self):
         filter_paths = []
         infs = np.zeros((self.Nconn, self.Ndim, self.Ndim))
@@ -185,41 +162,30 @@ class ParticleFilter(object):
 
                 meas = np.zeros((self.Nconn, self.Nmeas))
                 for j in xrange(self.Nconn):
-                    meas[j, 0] = self.gps[j].x - self.trans[0]
-                    meas[j, 1] = self.gps[j].y - self.trans[1]
-                    meas[j, 2:5] = [self.lidar[j].x, self.lidar[j].y, self.lidar[j].theta]
+                    meas[j, :3] = [self.lidar[j].x, self.lidar[j].y, self.lidar[j].theta]
                     if self.lidar[j].header.frame_id == 'None':
                         pose_meas.append(None)
                     else:
                         pose_meas.append(np.array([self.lidar[j].x, self.lidar[j].y, self.lidar[j].theta]))
-                    # if j == 0:
-                        # print self.gps[j].x - self.trans[0], self.lidar[j].x
-                    # print "--------------------------------------"
-
-                    if self.gps[j].header.frame_id == "None":
-                        meas[j, 0] = 0.0
-                        meas[j, 1] = 0.0
-                        new_meas_cov[j*self.Nmeas, j*self.Nmeas] = 2345.0
-                        new_meas_cov[j*self.Nmeas + 1, j*self.Nmeas + 1] = 2345.0
 
                     cov_dim = 3
                     if self.lidar[j].header.frame_id == "None":
-                        meas[j, 2:5] = [0.0, 0.0, 0.0]
-                        new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
+                        meas[j, :3] = [0.0, 0.0, 0.0]
+                        new_meas_cov[j*self.Nmeas:j*self.Nmeas+3, j*self.Nmeas:j*self.Nmeas+3] = \
                                 2345.0*np.diag([1.0, 1.0, 1.0])
                     elif self.lidar[j].car_id == 0:
-                        new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
+                        new_meas_cov[j*self.Nmeas:j*self.Nmeas+3, j*self.Nmeas:j*self.Nmeas+3] = \
                                 5000.0*np.diag([1.0, 1.0, 1.0])
                     else:
-                        new_meas_cov[j*self.Nmeas + 2:j*self.Nmeas + 5, j*self.Nmeas + 2:j*self.Nmeas + 5] = \
+                        new_meas_cov[j*self.Nmeas:j*self.Nmeas+3, j*self.Nmeas:j*self.Nmeas+3] = \
                                 np.diag([0.2, 0.2, 0.05])
                                 # 500*np.array(self.lidar[j].cov).reshape((cov_dim, cov_dim))
                     #     print np.array(self.lidar[j].cov).reshape((cov_dim, cov_dim))
                     """
                     Measurements:
-                        [gps_x0, gps_y0, lid_x0, lid_y0, lid_theta0, uwb_00, uwb_01, uwb_02
-                         gps_x1, gps_y1, lid_x1, lid_y1, lid_theta1, uwb_10, uwb_11, uwb_12
-                         gps_x2, gps_y2, lid_x2, lid_y2, lid_theta2, uwb_20, uwb_21, uwb_22]
+                        [lid_x0, lid_y0, lid_theta0, uwb_00, uwb_01, uwb_02
+                         lid_x1, lid_y1, lid_theta1, uwb_10, uwb_11, uwb_12
+                         lid_x2, lid_y2, lid_theta2, uwb_20, uwb_21, uwb_22]
                     """
                     # j k
                     # 0 1
@@ -232,14 +198,14 @@ class ParticleFilter(object):
                         to_id = self.own_connections[j]
                         from_id = self.own_connections[k]
                         if (to_id, from_id) in self.graph.edges():
-                            meas[j, k + 5] = self.uwbs[(to_id, from_id)].distance
+                            meas[j, k + 3] = self.uwbs[(to_id, from_id)].distance
                             if self.uwbs[(to_id, from_id)].distance == -1:
                                 self.uwbs[(to_id, from_id)].distance = self.uwbs[(from_id, to_id)].distance
-                                new_meas_cov[j*self.Nmeas + k + 5, j*self.Nmeas + k + 5] = 2345.0
+                                new_meas_cov[j*self.Nmeas + k + 3, j*self.Nmeas + k + 3] = 2345.0
                         elif to_id == from_id:
-                            new_meas_cov[j*self.Nmeas + k + 5, j*self.Nmeas + k + 5] = 0.001
+                            new_meas_cov[j*self.Nmeas + k + 3, j*self.Nmeas + k + 3] = 0.001
                         elif to_id != from_id:
-                            new_meas_cov[j*self.Nmeas + k + 5, j*self.Nmeas + k + 5] = 2345.0
+                            new_meas_cov[j*self.Nmeas + k + 3, j*self.Nmeas + k + 3] = 2345.0
 
                 # unset semaphore
                 self.new_meas = False
@@ -266,13 +232,12 @@ class ParticleFilter(object):
                 positions.header = Header()
                 positions.header.stamp = rospy.Time.now()
                 positions.header.frame_id = "%smap" % rospy.get_namespace()
-                if self.fake_sensors or self.vicon_pose is not None and pose_meas[self.car_index] is not None:
-                    for p in particles[:self.pa_max]:
-                        for j in range(self.Nconn):
-                            frames.poses.append(utils.make_pose(p[j]))
-                            if pose_meas[j] is not None:
-                                pose = utils.transform(pose_meas[j], p[j])
-                                positions.poses.append(utils.make_pose(pose))
+                for p in particles[:self.pa_max]:
+                    for j in range(self.Nconn):
+                        frames.poses.append(utils.make_pose(p[j]))
+                        if pose_meas[j] is not None:
+                            pose = utils.transform(pose_meas[j], p[j])
+                            positions.poses.append(utils.make_pose(pose))
                 self.pa_pub.publish(frames)
                 self.pos_pub.publish(positions)
 

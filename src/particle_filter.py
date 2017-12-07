@@ -18,9 +18,9 @@ Control:
      dx2, dy2]
 
 Measurements:
-    [gps_x0, gps_y0, lid_x0, lid_y0, lid_theta0, uwb_00, uwb_01, uwb_02
-     gps_x1, gps_y1, lid_x1, lid_y1, lid_theta1, uwb_10, uwb_11, uwb_12
-     gps_x2, gps_y2, lid_x2, lid_y2, lid_theta2, uwb_20, uwb_21, uwb_22]
+    [lid_x0, lid_y0, lid_theta0, uwb_00, uwb_01, uwb_02
+     lid_x1, lid_y1, lid_theta1, uwb_10, uwb_11, uwb_12
+     lid_x2, lid_y2, lid_theta2, uwb_20, uwb_21, uwb_22]
 """
 
 
