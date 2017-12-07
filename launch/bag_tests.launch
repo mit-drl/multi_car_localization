@@ -14,7 +14,7 @@
     </group>
 
     <include file="$(find multi_car_localization)/launch/lidar_odom.launch"/>
-    <node pkg="$(find multi_car_localization)" name="collector" type="car_message_collector.py" />
+    <node pkg="multi_car_localization" name="collector" type="car_message_collector.py" />
 
     <node pkg="tf" type="static_transform_publisher" name="base_link_imu" args="0 0 0 0 0 0 base_link base_imu_link 100"/>
 
@@ -27,10 +27,13 @@
             publishing:
                 - /canopy_msg
                 - /map
+                - /tf
             types:
                 - multi_car_msgs/CanopyCollector
                 - nav_msgs/OccupancyGrid
+                - tf2_msgs/TFMessage
             trusted:
+                - "car[0-2] observer"
                 - "car[0-2] observer"
                 - "car[0-2] observer"
                 - "car[0-2] observer"
