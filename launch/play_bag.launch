@@ -6,8 +6,9 @@
     <node pkg="rviz" type="rviz" name="visualization" 
         args="-d $(find multi_car_localization)/config/play_bag.rviz" />
 
+<!-- 2017-10-25-18-49-49  2017-11-08-18-02-07-->
     <node pkg="rosbag" type="play" name="player" 
-        args="--clock --quiet $(find multi_car_localization)/bags/2017-10-25-18-49-49.bag">
+        args="--clock --quiet -l $(find multi_car_localization)/bags/2017-10-25-18-49-49.bag">
         <remap from="/car0/imu" to="/car0/imu_old" />
         <remap from="/car1/imu" to="/car1/imu_old" />
         <remap from="/car2/imu" to="/car2/imu_old" />

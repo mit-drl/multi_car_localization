@@ -13,7 +13,7 @@
         <arg name="id_dict" value="$(arg id_dict)"/>
     </include>
 
-    <node pkg="rosbag" type="play" name="player" args="--clock $(arg bag)">
+    <node pkg="rosbag" type="play" name="player" args="-l --clock $(arg bag)">
         <remap from="tf" to="tf_old" />
     </node>
 

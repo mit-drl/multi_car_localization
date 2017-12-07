@@ -1,10 +1,14 @@
 <?xml version="1.0"?>
 <launch>
+    <node pkg="multi_car_localization" type="canopy_listener.py" name="canopy_listener" />
+
     <node pkg="canopy_client" type="client_node.py" name="canopy_node"
         output="screen" clear_params="true">
 		<param name="name" value="observer"/>
         <param name="description"
             value="Observer machine" />
+        <param name="use_local_time" value="true" />
+
         <rosparam>
             publishing:
                 - /vicon/ba_car0/ba_car0
