@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <launch>
+
     <group ns="car0">
         <node pkg="multi_car_localization" type="canopy_listener.py" name="canopy_listener" output="screen"/>
     </group>

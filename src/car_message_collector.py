@@ -16,6 +16,7 @@ class Collector(object):
 
     def __init__(self):
         self.rate = rospy.Rate(rospy.get_param("~frequency", 40))
+        self.car_id = rospy.get_param("~name", "bad car name")
 
         self.canopy_msg = CanopyCollector()
 
@@ -29,26 +30,26 @@ class Collector(object):
         self.canopy_pub    = rospy.Publisher("/canopy_msg", CanopyCollector, queue_size=1)
 
     def imu_cb(self, data):
-        data.header.frame_id = "car0/" + data.header.frame_id
+        data.header.frame_id = self.car_id + "/" + data.header.frame_id
     	self.canopy_msg.imu = data
 
     def odom_cb(self, data):
-        data.header.frame_id = "car0/" + data.header.frame_id
+        data.header.frame_id = self.car_id + "/" + data.header.frame_id
     	self.canopy_msg.odom = data
 
     def range_cb(self, data):
-        data.header.frame_id = "car0/" + data.header.frame_id
+        data.header.frame_id = self.car_id + "/" + data.header.frame_id
     	self.canopy_msg.ranges = data
 
     def core_cb(self, data):
-        data.header.frame_id = "car0/" + data.header.frame_id
+        data.header.frame_id = self.car_id + "/" + data.header.frame_id
     	self.canopy_msg.core = data
 
     def servo_cb(self, data):
     	self.canopy_msg.servo = data
 
     def lidar_cb(self, data):
-        data.header.frame_id = "car0/" + data.header.frame_id
+        data.header.frame_id = self.car_id + "/" + data.header.frame_id
     	self.canopy_msg.slam_out_pose = data
 
     def run(self):
