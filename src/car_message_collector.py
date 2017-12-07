@@ -25,34 +25,31 @@ class Collector(object):
         self.core_sub      = rospy.Subscriber("/vesc/sensors/core", VescStateStamped, self.core_cb)
         self.servo_sub     = rospy.Subscriber("/vesc/sensors/servo_position_command", Float64, self.servo_cb)
         self.lidar_sub     = rospy.Subscriber("/slam_out_pose", PoseStamped, self.lidar_cb)
-        self.tf_sub        = rospy.Subscriber("/tf", TFMessage, self.tf_cb)
-        self.tf_static_sub = rospy.Subscriber("/tf_static", TFMessage, self.tf_static_cb)
 
         self.canopy_pub    = rospy.Publisher("/canopy_msg", CanopyCollector, queue_size=1)
 
     def imu_cb(self, data):
+        data.header.frame_id = "car0/" + data.header.frame_id
     	self.canopy_msg.imu = data
 
     def odom_cb(self, data):
+        data.header.frame_id = "car0/" + data.header.frame_id
     	self.canopy_msg.odom = data
 
     def range_cb(self, data):
+        data.header.frame_id = "car0/" + data.header.frame_id
     	self.canopy_msg.ranges = data
 
     def core_cb(self, data):
+        data.header.frame_id = "car0/" + data.header.frame_id
     	self.canopy_msg.core = data
 
     def servo_cb(self, data):
     	self.canopy_msg.servo = data
 
     def lidar_cb(self, data):
+        data.header.frame_id = "car0/" + data.header.frame_id
     	self.canopy_msg.slam_out_pose = data
-
-    def tf_cb(self, data):
-    	self.canopy_msg.tf = data
-
-    def tf_static_cb(self, data):
-    	self.canopy_msg.tf_static = data
 
     def run(self):
         while not rospy.is_shutdown():
