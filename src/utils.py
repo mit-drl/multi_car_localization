@@ -78,6 +78,9 @@ def theta_from_quaternion(q):
     quaternion = (q.x, q.y, q.z, q.w)
     return euler_from_quaternion(quaternion)[2]
 
+def quaternion_from_theta(theta):
+    return quaternion_from_euler(0, 0, theta)
+
 def pose_to_tf(pose, child_frame_id):
     tf = TransformStamped()
     tf.header = pose.header
