@@ -271,14 +271,7 @@ class ParticleFilter(object):
                         for j in range(self.Nconn):
                             frames.poses.append(utils.make_pose(p[j]))
                             if pose_meas[j] is not None:
-                                if self.fake_sensors:
-                                    pose = utils.transform(utils.transform(pose_meas[j], p[j]),
-                                                           self.frame_origin[self.car_id])
-                                else:
-                                    pose = utils.transform(
-                                        utils.itransform(utils.transform(pose_meas[j], p[j]),
-                                                         pose_meas[self.car_index]),
-                                        self.vicon_pose)
+                                pose = utils.transform(pose_meas[j], p[j])
                                 positions.poses.append(utils.make_pose(pose))
                 self.pa_pub.publish(frames)
                 self.pos_pub.publish(positions)

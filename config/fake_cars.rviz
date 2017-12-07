@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /Grid1
+        - /TF1
         - /TF1/Tree1
       Splitter Ratio: 0.5
     Tree Height: 508
@@ -175,19 +176,96 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Class: rviz/TF
-      Enabled: false
+      Enabled: true
       Frame Timeout: 15
       Frames:
         All Enabled: false
-      Marker Scale: 1
+        car0:
+          Value: true
+        car0/car0/base_link:
+          Value: true
+        car0/car1/base_link:
+          Value: true
+        car0/car2/base_link:
+          Value: true
+        car0/map:
+          Value: true
+        car1:
+          Value: true
+        car1/car0/base_link:
+          Value: true
+        car1/car1/base_link:
+          Value: true
+        car1/car2/base_link:
+          Value: true
+        car1/map:
+          Value: true
+        car2:
+          Value: true
+        car2/car0/base_link:
+          Value: true
+        car2/car1/base_link:
+          Value: true
+        car2/car2/base_link:
+          Value: true
+        car2/map:
+          Value: true
+        earth:
+          Value: true
+        map:
+          Value: true
+        true_car0:
+          Value: true
+        true_car1:
+          Value: true
+        true_car2:
+          Value: true
+        utm:
+          Value: true
+      Marker Scale: 5
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        earth:
+          utm:
+            map:
+              car0:
+                car0/map:
+                  {}
+              car0/car0/base_link:
+                {}
+              car0/car1/base_link:
+                {}
+              car0/car2/base_link:
+                {}
+              car1:
+                car1/map:
+                  {}
+              car1/car0/base_link:
+                {}
+              car1/car1/base_link:
+                {}
+              car1/car2/base_link:
+                {}
+              car2:
+                car2/map:
+                  {}
+              car2/car0/base_link:
+                {}
+              car2/car1/base_link:
+                {}
+              car2/car2/base_link:
+                {}
+              true_car0:
+                {}
+              true_car1:
+                {}
+              true_car2:
+                {}
       Update Interval: 0
-      Value: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -212,7 +290,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 560.819153
+      Distance: 280.333221
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1

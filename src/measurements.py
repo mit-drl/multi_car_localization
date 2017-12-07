@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import math
+
+import numpy as np
 import rospy
 from std_msgs.msg import Header
 from sensor_msgs.msg import Range
@@ -14,7 +16,7 @@ from multi_car_msgs.msg import MeasurementDebug
 from sensor_msgs.msg import NavSatFix
 from nav_msgs.msg import Odometry
 import tf
-from tf.transformations import quaternion_inverse
+import tf.transformations
 
 import dict_to_graph
 import networkx as nx
@@ -105,10 +107,14 @@ class Measurements(object):
             lp.car_id = car_id
             self.lidar[self.own_connections.index(car_id)] = lp
         if car_id == self.car_id:
-            translation = (lp.x, lp.y, 0)
-            rotation = quaternion_inverse(utils.quaternion_from_theta(lp.theta))
-            self.br.sendTransform(translation,
-                                  rotation,
+            trans_mat = tf.transformations.translation_matrix((lp.x, lp.y, 0))
+            rot_mat = tf.transformations.quaternion_matrix(utils.quaternion_from_theta(lp.theta))
+            mat = np.dot(trans_mat, rot_mat)
+            mat_inv = np.linalg.pinv(mat)
+            trans_inv = tf.transformations.translation_from_matrix(mat_inv)
+            rot_inv = tf.transformations.quaternion_from_matrix(mat_inv)
+            self.br.sendTransform(trans_inv,
+                                  rot_inv,
                                   lp.header.stamp,
                                   '%smap' % rospy.get_namespace(), # /car#/map
                                   rospy.get_namespace()[:-1]) # /car#
