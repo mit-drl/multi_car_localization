@@ -5,6 +5,14 @@
         <node pkg="multi_car_localization" type="canopy_listener.py" name="canopy_listener" output="screen"/>
     </group>
 
+    <group ns="car1">
+        <node pkg="multi_car_localization" type="canopy_listener.py" name="canopy_listener" output="screen"/>
+    </group>
+
+    <group ns="car2">
+        <node pkg="multi_car_localization" type="canopy_listener.py" name="canopy_listener" output="screen"/>
+    </group>
+
     <node pkg="canopy_client" type="client_node.py" name="canopy_node"
         output="screen" clear_params="true">
 		<param name="name" value="observer"/>
