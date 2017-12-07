@@ -28,17 +28,23 @@ class CanopyListener(object):
         self.tf_pub        = rospy.Publisher("tf", TFMessage, queue_size=1)
         self.tf_static_pub = rospy.Publisher("tf_static", TFMessage, queue_size=1)
 
-        self.canopy_sub    = rospy.Subscriber("canopy_msg", CanopyCollector)
+        self.canopy_sub    = rospy.Subscriber("canopy_msg", CanopyCollector, self.canopy_cb)
 
-    def canopy_sub(self, data):
-        self.imu_pub.publish(data.imu)
-        self.odom_pub.publish(data.odom)
-        self.range_pub.publish(data.ranges)
-        self.core_pub.publish(data.core)
-        self.servo_pub.publish(data.servo)
-        self.lidar_pub.publish(data.slam_out_pose)
-        self.tf_pub.publish(data.tf)
-        self.tf_static.publish(data.tf_static)
+    def canopy_cb(self, data):
+        if data.imu != Imu():
+            self.imu_pub.publish(data.imu)
+        if data.odom != Odometry():
+            self.odom_pub.publish(data.odom)
+        if data.ranges != UWBRange():
+            self.range_pub.publish(data.ranges)
+        if data.core != VescStateStamped():
+            self.core_pub.publish(data.core)
+        if data.servo != Float64():
+            self.servo_pub.publish(data.servo)
+        if data.slam_out_pose != PoseStamped():
+            self.lidar_pub.publish(data.slam_out_pose)
+        # self.tf_pub.publish(data.tf)
+        # self.tf_static_pub.publish(data.tf_static)
 
 if __name__ == "__main__":
     rospy.init_node("canopy_listener", anonymous=False)

@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <launch>
-    <node pkg="multi_car_localization" type="canopy_listener.py" name="canopy_listener" />
+    <group ns="car0">
+        <node pkg="multi_car_localization" type="canopy_listener.py" name="canopy_listener" output="screen"/>
+    </group>
 
     <node pkg="canopy_client" type="client_node.py" name="canopy_node"
         output="screen" clear_params="true">
