@@ -23,8 +23,8 @@ class Collector(object):
         self.imu_sub       = rospy.Subscriber("/imu/data", Imu, self.imu_cb)
         self.odom_sub      = rospy.Subscriber("/odom", Odometry, self.odom_cb)
         self.range_sub     = rospy.Subscriber("/ranges", UWBRange, self.range_cb)
-        self.core_sub      = rospy.Subscriber("/vesc/sensors/core", VescStateStamped, self.core_cb)
-        self.servo_sub     = rospy.Subscriber("/vesc/sensors/servo_position_command", Float64, self.servo_cb)
+        self.core_sub      = rospy.Subscriber("/sensors/core", VescStateStamped, self.core_cb)
+        self.servo_sub     = rospy.Subscriber("/sensors/servo_position_command", Float64, self.servo_cb)
         self.lidar_sub     = rospy.Subscriber("/slam_out_pose", PoseStamped, self.lidar_cb)
 
         self.canopy_pub    = rospy.Publisher("/canopy_msg", CanopyCollector, queue_size=1)
