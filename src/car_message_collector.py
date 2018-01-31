@@ -20,7 +20,7 @@ class Collector(object):
 
         self.canopy_msg = CanopyCollector()
 
-        self.imu_sub       = rospy.Subscriber("/imu", Imu, self.imu_cb)
+        self.imu_sub       = rospy.Subscriber("/imu/data", Imu, self.imu_cb)
         self.odom_sub      = rospy.Subscriber("/odom", Odometry, self.odom_cb)
         self.range_sub     = rospy.Subscriber("/ranges", UWBRange, self.range_cb)
         self.core_sub      = rospy.Subscriber("/vesc/sensors/core", VescStateStamped, self.core_cb)
