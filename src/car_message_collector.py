@@ -11,6 +11,7 @@ from std_msgs.msg import Float64
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import OccupancyGrid
 from tf2_msgs.msg import TFMessage
+from multi_car_msgs.msg import CarControl
 
 class Collector(object):
 
@@ -20,12 +21,12 @@ class Collector(object):
 
         self.canopy_msg = CanopyCollector()
 
-        self.imu_sub       = rospy.Subscriber("/imu/data", Imu, self.imu_cb)
-        self.odom_sub      = rospy.Subscriber("/odom", Odometry, self.odom_cb)
+        # self.imu_sub       = rospy.Subscriber("/imu/data", Imu, self.imu_cb)
+        # self.odom_sub      = rospy.Subscriber("/odom", Odometry, self.odom_cb)
+        # self.core_sub      = rospy.Subscriber("/sensors/core", VescStateStamped, self.core_cb)
+        # self.servo_sub     = rospy.Subscriber("/sensors/servo_position_command", Float64, self.servo_cb)
         self.range_sub     = rospy.Subscriber("/ranges", UWBRange, self.range_cb)
-        self.core_sub      = rospy.Subscriber("/sensors/core", VescStateStamped, self.core_cb)
-        self.servo_sub     = rospy.Subscriber("/sensors/servo_position_command", Float64, self.servo_cb)
-        self.lidar_sub     = rospy.Subscriber("/slam_out_pose", PoseStamped, self.lidar_cb)
+        self.lidar_sub     = rospy.Subscriber("/control", CarControl, self.control_cb)
 
         self.canopy_pub    = rospy.Publisher("/canopy_msg", CanopyCollector, queue_size=1)
 
@@ -48,9 +49,9 @@ class Collector(object):
     def servo_cb(self, data):
     	self.canopy_msg.servo = data
 
-    def lidar_cb(self, data):
+    def control_cb(self, data):
         data.header.frame_id = self.car_id + "/" + data.header.frame_id
-    	self.canopy_msg.slam_out_pose = data
+    	self.canopy_msg.control = data
 
     def run(self):
         while not rospy.is_shutdown():
