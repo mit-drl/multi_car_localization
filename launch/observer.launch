@@ -7,7 +7,7 @@
 		<param name="name" value="observer"/>
         <param name="description"
             value="Observer machine" />
-        <param name="use_local_time" value="true" />
+        <param name="use_local_time" value="false" />
         <rosparam>
             publishing:
                 - /initial_pose_car0
