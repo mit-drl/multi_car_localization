@@ -36,15 +36,14 @@
         <param name="use_local_time" value="true" />
         <rosparam subst_value="True">
             publishing:
-                - /canopy_msg
-                - /tf
+                - /control
+                - /ranges
             types:
-                - multi_car_msgs/CanopyCollector
-                - tf2_msgs/TFMessage
+                - multi_car_msgs/CarControl
+                - multi_car_msgs/UWBRange
             trusted:
-                - "car[0-2] observer"
-                - "car[0-2] observer"
-                - "car[0-2] observer"
+                - "car[1-3] observer"
+                - "car[1-3] observer"
             global_frames:
                 - "$(env CAR_FRAME_ID)"
         </rosparam>

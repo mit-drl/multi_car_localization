@@ -16,7 +16,7 @@ from multi_car_msgs.msg import CarControl
 class Collector(object):
 
     def __init__(self):
-        self.rate = rospy.Rate(rospy.get_param("~frequency", 40))
+        self.rate = rospy.Rate(rospy.get_param("~frequency", 60))
         self.car_id = rospy.get_param("~name", "bad car name")
 
         self.canopy_msg = CanopyCollector()
