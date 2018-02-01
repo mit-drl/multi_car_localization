@@ -1,21 +1,11 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="only_canopy" default="false"/>
-
-    <group unless="$(arg only_canopy)">
-        <!-- <include file="$(find pozyx_comm)/launch/sensors.launch">
-            <arg name="receiver_port" value="/dev/ttyACM1"/>
-            <arg name="sender_port" value="/dev/ttyACM2"/>
-        </include> -->
-
 	<include file="$(find decawave_interface)/launch/run_decawave.launch">
 		<arg name="name" value="$(env CAR_FRAME_ID)"/>
 	</include>
 
-        <!-- <remap from="initialpose" to="observer/initial_pose_$(env CAR_FRAME_ID)"/> -->
-        <include file="$(find racecar)/launch/teleop.launch"/>
-
-    </group>
+	<!-- <remap from="initialpose" to="observer/initial_pose_$(env CAR_FRAME_ID)"/> -->
+	<include file="$(find racecar)/launch/teleop.launch"/>
 
     <include file="$(find multi_car_localization)/launch/lidar_odom.launch"/>
 
@@ -38,9 +28,8 @@
                 - multi_car_msgs/CanopyCollector
                 - tf2_msgs/TFMessage
             trusted:
-                - "car[0-2] observer"
-                - "car[0-2] observer"
-                - "car[0-2] observer"
+                - "car[1-3] observer"
+                - "car[1-3] observer"
             global_frames:
                 - "$(env CAR_FRAME_ID)"
         </rosparam>
