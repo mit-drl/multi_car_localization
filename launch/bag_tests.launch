@@ -13,11 +13,15 @@
 	</include>
 
         <!-- <remap from="initialpose" to="observer/initial_pose_$(env CAR_FRAME_ID)"/> -->
-        <include file="$(find racecar)/launch/teleop.launch"/>
+    <include file="$(find racecar)/launch/teleop.launch"/>
 
     </group>
 
     <include file="$(find multi_car_localization)/launch/lidar_odom.launch"/>
+
+    <node pkg="multi_car_localization" name="lidar_to_control" type="lidar_to_control.py">
+            <param name="name" value="$(env CAR_FRAME_ID)"/>
+    </node>
 
     <node pkg="multi_car_localization" name="collector" type="car_message_collector.py">
             <param name="name" value="$(env CAR_FRAME_ID)"/>

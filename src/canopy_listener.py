@@ -7,6 +7,7 @@ from nav_msgs.msg import Odometry
 from multi_car_msgs.msg import UWBRange
 from multi_car_msgs.msg import CanopyCollector
 from vesc_msgs.msg import VescStateStamped
+from multi_car_msgs.msg import CarControl
 from std_msgs.msg import Float64
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import OccupancyGrid
@@ -15,8 +16,6 @@ from tf2_msgs.msg import TFMessage
 class CanopyListener(object):
 
     def __init__(self):
-        self.rate = rospy.Rate(rospy.get_param("~frequency", 40))
-
         self.canopy_msg = CanopyCollector()
 
         # self.imu_pub       = rospy.Publisher("imu", Imu, queue_size=1)
@@ -25,7 +24,7 @@ class CanopyListener(object):
         # self.servo_pub     = rospy.Publisher("sensors/servo_position_command", Float64, queue_size=1)
 
         self.range_pub     = rospy.Publisher("ranges", UWBRange, queue_size=1)
-        self.lidar_pub     = rospy.Publisher("slam_out_pose", PoseStamped, queue_size=1)
+        self.lidar_pub     = rospy.Publisher("control", CarControl, queue_size=1)
         # self.tf_pub        = rospy.Publisher("tf", TFMessage, queue_size=1)
         # self.tf_static_pub = rospy.Publisher("tf_static", TFMessage, queue_size=1)
 
@@ -42,8 +41,8 @@ class CanopyListener(object):
         #     self.core_pub.publish(data.core)
         # if data.servo != Float64():
         #     self.servo_pub.publish(data.servo)
-        if data.slam_out_pose != PoseStamped():
-            self.lidar_pub.publish(data.slam_out_pose)
+        if data.control != CarControl():
+            self.lidar_pub.publish(data.control)
         # self.tf_pub.publish(data.tf)
         # self.tf_static_pub.publish(data.tf_static)
 
