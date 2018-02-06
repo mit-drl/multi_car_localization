@@ -17,6 +17,8 @@ from tf2_msgs.msg import TFMessage
 from geometry_msgs.msg import Point
 from nav_msgs.msg import Path
 import math
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
+
 
 class MeasViz(object):
 
@@ -26,6 +28,8 @@ class MeasViz(object):
         self.counter = 0
         self.paths = []
 
+        self.prev_vel = None
+        self.prev_vel2 = None
         self.marker_pubs = []
         self.path_pubs = []
         self.range_subs = []
@@ -44,17 +48,49 @@ class MeasViz(object):
             self.control_subs.append(
                 rospy.Subscriber("car" + str(i+1) + "/control", CarControl, self.control_cb))
             self.control_pubs.append(
-                rospy.Publisher("car" + str(i+1) + "/control_viz", PoseStamped, queue_size=1))
+                rospy.Publisher("car" + str(i+1) + "/control_viz", Marker, queue_size=1))
 
         self.listener = tf.TransformListener()
 
 
     def control_cb(self, data):
-        cp = PoseStamped()
-        cp.header.stamp = rospy.Time(0)
-        cp.header.frame_id = "/vicon/ba_car" + str(data.car_id) + "/ba_car" + str(data.car_id)
-        cp.pose.position.x = data.velocity
-        self.control_pubs[data.car_id-1].publish(cp)
+        vel_arr = Marker()
+        vel_arr.header.stamp = rospy.Time(0)
+        vel_arr.header.frame_id = "/vicon/ba_car" + str(data.car_id) + "/ba_car" + str(data.car_id)
+        vel_arr.id = data.car_id
+        vel_arr.type = 0
+        quat = quaternion_from_euler(0, 0, math.pi/2)
+        vel_arr.pose.orientation.x = quat[0]
+        vel_arr.pose.orientation.y = quat[1]
+        vel_arr.pose.orientation.z = quat[2]
+        vel_arr.pose.orientation.w = quat[3]
+        if self.prev_vel is not None:
+            if self.prev_vel2 is None:
+                self.prev_vel2 = self.prev_vel
+            vel_arr.scale.x = (abs(data.velocity) + abs(self.prev_vel) + abs(self.prev_vel2))/3
+            self.prev_vel2 = self.prev_vel
+        self.prev_vel = data.velocity
+        vel_arr.scale.y = 0.1
+        vel_arr.scale.z = 0.1
+        vel_arr.color.a = 1.0
+        vel_arr.color.r = 1.0
+        vel_arr.color.g = 1.0
+        vel_arr.color.b = 0.0
+        self.control_pubs[data.car_id-1].publish(vel_arr)
+
+        ang_arr = Marker()
+        ang_arr.header.stamp = rospy.Time(0)
+        ang_arr.header.frame_id = "/vicon/ba_car" + str(data.car_id) + "/ba_car" + str(data.car_id)
+        ang_arr.id = data.car_id + 10
+        ang_arr.type = 0
+        ang_arr.scale.x = data.steering_angle
+        ang_arr.scale.y = 0.1
+        ang_arr.scale.z = 0.1
+        ang_arr.color.a = 1.0
+        ang_arr.color.r = 1.0
+        ang_arr.color.g = 0.0
+        ang_arr.color.b = 0.0
+        self.control_pubs[data.car_id-1].publish(ang_arr)
 
 
     def range_cb(self, data, args):
@@ -73,7 +109,7 @@ class MeasViz(object):
         spheres.scale.y = 0.05;
         spheres.scale.z = 0.05;
         spheres.color.a = 1.0;
-        spheres.lifetime = rospy.Duration(1)
+        spheres.lifetime = rospy.Duration(0.7)
         if to_id == 1:
             spheres.color.r = 0.0;
             spheres.color.g = 1.0;

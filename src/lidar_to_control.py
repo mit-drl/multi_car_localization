@@ -22,7 +22,7 @@ class LidarToControl(object):
             dx = data.pose.position.x - self.prev_lidar.pose.position.x
             dy = data.pose.position.y - self.prev_lidar.pose.position.y
             vel = (dx**2 + dy**2)**0.5 / dt
-            if dy < 0:
+            if dx < 0:
             	vel = -1 * vel
 
             qp = self.prev_lidar.pose.orientation
