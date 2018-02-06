@@ -23,7 +23,7 @@
         output="screen">
 		<param name="name" value="$(env CAR_FRAME_ID)"/>
 		<param name="description" value="Racecar. $(env CAR_FRAME_ID)" />
-        <param name="use_local_time" value="true" />
+        <param name="use_local_time" value="false" />
         <rosparam subst_value="True">
             publishing:
                 - /control
