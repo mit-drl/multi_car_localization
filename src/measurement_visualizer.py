@@ -28,8 +28,6 @@ class MeasViz(object):
         self.counter = 0
         self.paths = []
 
-        self.prev_vel = None
-        self.prev_vel2 = None
         self.marker_pubs = []
         self.path_pubs = []
         self.range_subs = []
@@ -41,15 +39,14 @@ class MeasViz(object):
             self.paths.append(path)
             self.path_pubs.append(
                 rospy.Publisher("car" + str(i+1) + "/path", Path, queue_size=1))
-            self.range_subs.append(
-                rospy.Subscriber("car" + str(i+1) + "/ranges", UWBRange, self.range_cb, (i+1,)))
             self.marker_pubs.append(
                 rospy.Publisher("car" + str(i+1) + "/range_marker", Marker, queue_size=1))
-            self.control_subs.append(
-                rospy.Subscriber("car" + str(i+1) + "/control", CarControl, self.control_cb))
             self.control_pubs.append(
                 rospy.Publisher("car" + str(i+1) + "/control_viz", Marker, queue_size=1))
-
+            self.control_subs.append(
+                rospy.Subscriber("car" + str(i+1) + "/control", CarControl, self.control_cb))
+            self.range_subs.append(
+                rospy.Subscriber("car" + str(i+1) + "/ranges", UWBRange, self.range_cb, (i+1,)))
         self.listener = tf.TransformListener()
 
 
@@ -59,17 +56,7 @@ class MeasViz(object):
         vel_arr.header.frame_id = "/vicon/ba_car" + str(data.car_id) + "/ba_car" + str(data.car_id)
         vel_arr.id = data.car_id
         vel_arr.type = 0
-        quat = quaternion_from_euler(0, 0, math.pi/2)
-        vel_arr.pose.orientation.x = quat[0]
-        vel_arr.pose.orientation.y = quat[1]
-        vel_arr.pose.orientation.z = quat[2]
-        vel_arr.pose.orientation.w = quat[3]
-        if self.prev_vel is not None:
-            if self.prev_vel2 is None:
-                self.prev_vel2 = self.prev_vel
-            vel_arr.scale.x = (abs(data.velocity) + abs(self.prev_vel) + abs(self.prev_vel2))/3
-            self.prev_vel2 = self.prev_vel
-        self.prev_vel = data.velocity
+        vel_arr.scale.x = data.velocity
         vel_arr.scale.y = 0.1
         vel_arr.scale.z = 0.1
         vel_arr.color.a = 1.0
