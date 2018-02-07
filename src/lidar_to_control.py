@@ -11,7 +11,7 @@ class LidarToControl(object):
 
     def __init__(self):
         self.prev_lidar = None
-        self.car_id = rospy.get_param("~car_id", "car1")
+        self.car_id = rospy.get_param("~name", "car1")
         self.car_id = int(self.car_id[-1])
         # self.control_pub   = rospy.Publisher("control", CarControl, queue_size=1)
         # self.lidar_sub     = rospy.Subscriber("slam_out_pose", PoseStamped, self.lidar_cb)
