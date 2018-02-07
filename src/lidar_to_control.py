@@ -22,6 +22,7 @@ class LidarToControl(object):
     def odom_cb(self, data):
         control = CarControl()
         control.header = data.header
+	control.car_id = self.car_id
         control.steering_angle = data.twist.twist.angular.z
         control.velocity = data.twist.twist.linear.x
         self.odom_pub.publish(control)
