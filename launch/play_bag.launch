@@ -1,18 +1,19 @@
 <?xml version="1.0"?>
 <launch>
 
-    <param name="/use_sim_time" type="bool" value="false" />
+    <param name="/use_sim_time" type="bool" value="true" />
 
     <node pkg="rviz" type="rviz" name="visualization" 
         args="-d $(find multi_car_localization)/config/play_bag.rviz" />
 
-<!-- 2017-10-25-18-49-49  2017-11-08-18-02-07-->
     <node pkg="rosbag" type="play" name="player" 
-        args="--clock --quiet -l /home/brandon/bags/tests\ 2-1-17/2018-02-01-13-53-31.bag">
+        args="--clock --quiet -l $(find multi_car_localization)/bags/2018-02-14-18-34-41-good.bag">
     </node>
 
     <node pkg="tf" type="static_transform_publisher" name="map_to_world"
         args="0 0 0 0 0 0  /map /world 100" />
+
+    <node pkg="multi_car_localization" type="measurement_visualizer.py" name="meas_viz" output="screen" />
 
 <!--     <node pkg="multi_car_localization" type="tf_bag_publisher.py" name="tf_bag_publisher" output="screen"/>
  -->

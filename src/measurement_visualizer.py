@@ -53,7 +53,7 @@ class MeasViz(object):
     def control_cb(self, data):
         vel_arr = Marker()
         vel_arr.header.stamp = rospy.Time(0)
-        vel_arr.header.frame_id = "/vicon/ba_car" + str(data.car_id) + "/ba_car" + str(data.car_id)
+        vel_arr.header.frame_id = "/vicon/car" + str(data.car_id) + "/car" + str(data.car_id)
         vel_arr.id = data.car_id
         vel_arr.type = 0
         vel_arr.scale.x = data.velocity
@@ -67,10 +67,15 @@ class MeasViz(object):
 
         ang_arr = Marker()
         ang_arr.header.stamp = rospy.Time(0)
-        ang_arr.header.frame_id = "/vicon/ba_car" + str(data.car_id) + "/ba_car" + str(data.car_id)
+        ang_arr.header.frame_id = "/vicon/car" + str(data.car_id) + "/car" + str(data.car_id)
         ang_arr.id = data.car_id + 10
         ang_arr.type = 0
         ang_arr.scale.x = data.steering_angle
+        quat = quaternion_from_euler(0, 0, math.pi/2)
+        ang_arr.pose.orientation.x = quat[0]
+        ang_arr.pose.orientation.y = quat[1]
+        ang_arr.pose.orientation.z = quat[2]
+        ang_arr.pose.orientation.w = quat[3]
         ang_arr.scale.y = 0.1
         ang_arr.scale.z = 0.1
         ang_arr.color.a = 1.0
@@ -86,7 +91,7 @@ class MeasViz(object):
         # try:
         spheres = Marker()
         spheres.header.stamp = rospy.Time(0)
-        spheres.header.frame_id = "/vicon/ba_car" + str(from_id) + "/ba_car" + str(from_id)
+        spheres.header.frame_id = "/vicon/car" + str(from_id) + "/car" + str(from_id)
         spheres.id = self.counter
         self.counter = self.counter + 1
         spheres.type = 4 #linestrip
@@ -131,7 +136,7 @@ class MeasViz(object):
         while not rospy.is_shutdown():
             for i in range(self.Ncars):
                 try:
-                    pos, quat = self.listener.lookupTransform("/world", "/vicon/ba_car" + str(i+1) + "/ba_car" + str(i+1),rospy.Time(0))
+                    pos, quat = self.listener.lookupTransform("/world", "/vicon/car" + str(i+1) + "/car" + str(i+1),rospy.Time(0))
                     self.paths[i].header.stamp = rospy.Time(0)
                     new_pose = PoseStamped()
                     new_pose.header.stamp = rospy.Time(0)
@@ -144,7 +149,10 @@ class MeasViz(object):
                     self.path_pubs[i].publish(self.paths[i])
                 except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                     continue
-            self.rate.sleep()
+            try:
+                self.rate.sleep()
+            except (rospy.exceptions.ROSTimeMovedBackwardsException):
+                continue
 
 if __name__ == "__main__":
     rospy.init_node("meas_viz", anonymous=False)
