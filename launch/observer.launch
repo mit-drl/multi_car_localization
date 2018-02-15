@@ -9,32 +9,24 @@
             value="Observer machine" />
         <param name="use_local_time" value="false" />
         <rosparam>
-            publishing:
-                - /initial_pose_car0
-                - /initial_pose_car1
-                - /initial_pose_car2
-            types:
-                - geometry_msgs/PoseWithCovarianceStamped
-                - geometry_msgs/PoseWithCovarianceStamped
-                - geometry_msgs/PoseWithCovarianceStamped
             trusted:
-                - car0
                 - car1
                 - car2
+                - car3
             global_frames:
                 - earth
                 - map
-                - car0
                 - car1
                 - car2
+                - car3
                 - "/map"
         </rosparam>
         <rosparam command="load"
             file="$(find multi_car_localization)/param/canopy.yaml"/>
 	</node>
 
-    <node pkg="multi_car_localization" type="initial_pose_node.py"
-        name="initial_pose_node" output="screen"/>
+<!--    <node pkg="multi_car_localization" type="initial_pose_node.py"
+        name="initial_pose_node" output="screen"/> -->
 
     <!-- <node pkg="map_server" type="map_server" name="map_server" -->
     <!--     args="$(find particle_filter)/maps/racecar_test3.yaml"/> -->
