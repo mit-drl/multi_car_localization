@@ -7,13 +7,19 @@
         args="-d $(find multi_car_localization)/config/play_bag.rviz" />
 
     <node pkg="rosbag" type="play" name="player" 
-        args="--clock --quiet -l $(find multi_car_localization)/bags/2018-02-14-18-34-41-good.bag">
+        args="--clock --quiet $(find multi_car_localization)/bags/2018-02-14-18-34-41-good.bag">
     </node>
 
     <node pkg="tf" type="static_transform_publisher" name="map_to_world"
         args="0 0 0 0 0 0  /map /world 100" />
 
     <node pkg="multi_car_localization" type="measurement_visualizer.py" name="meas_viz" output="screen" />
+
+     <param name="robot_description" command="$(find xacro)/xacro '$(find racecar_description)/urdf/racecar.xacro'" />
+
+<!--     <node pkg="tf2_ros" type="static_transform_publisher" name="car1_to_vicon" args="0 0 0 0 0 0 /vicon/car1/car1 /car1/base_link"/>
+    <node pkg="tf2_ros" type="static_transform_publisher" name="chassis_to_car1" args="0 0 0 0 0 0 /car1/base_link /car1/chassis"/>
+ -->
 
 <!--     <node pkg="multi_car_localization" type="tf_bag_publisher.py" name="tf_bag_publisher" output="screen"/>
  -->
