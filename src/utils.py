@@ -4,6 +4,22 @@ import numpy as np
 from geometry_msgs.msg import Pose, PoseStamped, TransformStamped
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
+def rk4(y0, u, dt, f):
+    steps = 3
+    h = dt/steps
+
+    yn = y0
+
+    for n in range(steps):
+        k1 = f(yn, u)
+        k2 = f(yn + h*k1/2, u)
+        k3 = f(yn + h*k2/2, u)
+        k4 = f(yn + h*k3, u)
+
+        yn = yn + (h/6)*(k1+2*k2+2*k3+k4)
+
+    return yn
+
 def rotate(poses, phis, covs=None, return_covs=False):
     # construct rotation matrices
     rot = np.array([[np.cos(phis), -np.sin(phis)],
