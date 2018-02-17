@@ -5,6 +5,9 @@ from numpy.random import randn
 # sigma * np.random.randn(...) + mu
 from numpy.linalg import norm
 from relative_dubins_dynamics import RelativeDubinsDynamics
+from filterpy.monte_carlo import systematic_resample
+import scipy.stats
+import matplotlib.pyplot as plt
 import pdb
 
 
@@ -42,6 +45,13 @@ class ParticleFilter(object):
 
         self.weights += 1.e-100
         self.weights /= sum(self.weights)
+
+        N = np.shape(self.weights)[0]
+        if self.neff(self.weights) < N/2:
+            indexes = systematic_resample(self.weights)
+            self.particles, self.weights = self.resample_from_index(
+                self.particles, self.weights, indexes)
+
         return self.estimate(self.particles, self.weights)
 
     # u should be a column matrix
@@ -54,17 +64,40 @@ class ParticleFilter(object):
         self.particles = self.StateTransitionFcn(self.particles, dt, u)
 
     def estimate(self, particles, weights):
-        pdb.set_trace()
-        mean = np.average(particles, weights=np.asarray(weights.T)[0], axis=0).T
+        mean = np.average(
+            particles, weights=np.asarray(weights.T)[0], axis=0).T
         var = np.average(np.power((particles - mean.T), 2),
-            weights=np.asarray(weights.T)[0], axis=0)
+                         weights=np.asarray(weights.T)[0], axis=0)
         return mean, var
+
+    def resample_from_index(self, particles, weights, indexes):
+        particles[:] = particles[indexes]
+        weights[:] = weights[indexes]
+        weights.fill(1.0 / len(weights))
+
+        return particles, weights
+
+    def multinomial_resample(self, particles, weights):
+        N = len(particles)
+        cumulative_sum = np.cumsum(weights)
+        cumulative_sum[-1] = 1.
+        indexes = np.searchsorted(cumulative_sum, uniform(0, 1, N))
+
+        particles[:] = particles[indexes]
+        weights.fill(1.0 / N)
+        return particles, weights
+
+    def neff(self, weights):
+        return 1. / np.sum(np.square(weights))
 
 
 if __name__ == "__main__":
     pf = ParticleFilter()
 
     Ncars = 3
+    Nparticles = 1
+    total_time = 5.
+    dt = 0.05
 
     initial_positions = np.matrix(
         [[0, 0, np.pi / 2], [1, 1, -np.pi / 2], [-1, -2, 0]])
@@ -91,8 +124,24 @@ if __name__ == "__main__":
 
     pf.StateTransitionFcn = rel_model.pfStateTransition
     pf.MeasurementLikelihoodFcn = rel_model.pfMeasurementLikelihood
-    pf.create_uniform_particles(10, bounds, circ_var)
-    pf.predict(0.05, np.matrix([1, 1, 1, 1, 1, 1]).T)
+    pf.create_uniform_particles(Nparticles, bounds, circ_var)
+
+    plt.figure()
+    plt.scatter([pf.particles[:, 0]], [pf.particles[:, 1]],
+                color='k', marker=',', s=1)
+    plt.scatter([pf.particles[:, 3]], [pf.particles[:, 4]],
+                color='g', marker=',', s=1)
+
+    for t in np.arange(0, total_time, dt):
+        pf.predict(dt, np.matrix([1, 1, 1, 1, 1, 1]).T)
+        plt.scatter([pf.particles[:, 0]], [pf.particles[:, 1]],
+                    color='k', marker=',', s=1)
+        plt.scatter([pf.particles[:, 3]], [pf.particles[:, 4]],
+                    color='g', marker=',', s=1)
+
+    plt.xlim(-20, 20)
+    plt.ylim(-20, 20)
+    plt.show()
 
     for i in range(Ncars - 2):
         for j in range(i + 1, Ncars - 1):
@@ -110,5 +159,3 @@ if __name__ == "__main__":
                 measurement = norm(fx - sx) + np.sqrt(noise_uwb) * randn(1)[0]
                 stateCorrected, covCorrected = pf.correct(
                     measurement, i, j)
-
-    pdb.set_trace()
