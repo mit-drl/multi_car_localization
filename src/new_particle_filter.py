@@ -43,15 +43,12 @@ class ParticleFilter(object):
         self.weights = np.multiply(self.weights, self.MeasurementLikelihoodFcn(
             self.particles, *args))
 
-        # pdb.set_trace()
-
         self.weights += 1.e-100     # avoid round-off to zero
         self.weights /= sum(self.weights)
 
         N = np.shape(self.weights)[0]
         if self.neff(self.weights) < N/2:
-            print "resampled"
-            indexes = systematic_resample(self.weights)
+            indexes = systematic_resample(np.asarray(self.weights.T)[0])
             self.particles, self.weights = self.resample_from_index(
                 self.particles, self.weights, indexes)
 
@@ -92,7 +89,6 @@ class ParticleFilter(object):
 
     def neff(self, weights):
         neff = 1. / np.sum(np.square(weights))
-        print neff
         return neff
 
 
