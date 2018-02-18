@@ -1,8 +1,4 @@
 import numpy as np
-from numpy.random import uniform
-from numpy.random import randn
-# For random samples from N(\mu, \sigma^2), use:
-# sigma * np.random.randn(...) + mu
 from scipy.stats import norm
 from numpy.random import multivariate_normal
 from utils import rk4
@@ -16,6 +12,9 @@ class RelativeDubinsDynamics(object):
         self.Ncars = Ncars
         self.noise_u = noise_u
         self.noise_uwb = noise_uwb
+
+        # for simulation
+        self.state = np.reshape(initial_transforms, ((self.Ncars - 1) * 3, 1))
 
     def dynamics(self, T, u):
         u1 = u[:2]
@@ -32,13 +31,18 @@ class RelativeDubinsDynamics(object):
 
         return dT
 
+    def fwd_sim(self, dt, u):
+        self.state = rk4(self.state, u, dt, self.dynamics)
+        return self.state
+
     def pfStateTransition(self, prevParticles, dt, u):
         predictParticles = np.asmatrix(np.zeros(np.shape(prevParticles)))
 
         N = np.shape(prevParticles)[0]
 
         r = np.asmatrix(multivariate_normal(
-            (0, 0, 0, 0, 0, 0), np.diag([0.1, 0.05, 0.1, 0.05, 0.1, 0.05]), N))
+            np.array([0]*(self.Ncars-1)*3),
+            np.diag(np.asarray(self.noise_u)[0]), N))
 
         new_u = r + u.T
 
@@ -61,7 +65,8 @@ class RelativeDubinsDynamics(object):
             dy = predictParticles[:, yi] - predictParticles[:, yj]
             d = np.sqrt(np.power(dx, 2) + np.power(dy, 2))
         else:
-            d = np.sqrt(np.power(predictParticles[:, xi], 2) + np.power(predictParticles[:, yi], 2))
+            d = np.sqrt(np.power(predictParticles[:, xi], 2) +
+                        np.power(predictParticles[:, yi], 2))
 
         likelihood = norm.pdf(d, measurement, np.sqrt(self.noise_uwb))
         return likelihood

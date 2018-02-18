@@ -40,14 +40,17 @@ class ParticleFilter(object):
         self.weights /= sum(self.weights)
 
     def correct(self, *args):
-        np.multiply(self.weights, self.MeasurementLikelihoodFcn(
+        self.weights = np.multiply(self.weights, self.MeasurementLikelihoodFcn(
             self.particles, *args))
 
-        self.weights += 1.e-100
+        # pdb.set_trace()
+
+        self.weights += 1.e-100     # avoid round-off to zero
         self.weights /= sum(self.weights)
 
         N = np.shape(self.weights)[0]
         if self.neff(self.weights) < N/2:
+            print "resampled"
             indexes = systematic_resample(self.weights)
             self.particles, self.weights = self.resample_from_index(
                 self.particles, self.weights, indexes)
@@ -88,14 +91,16 @@ class ParticleFilter(object):
         return particles, weights
 
     def neff(self, weights):
-        return 1. / np.sum(np.square(weights))
+        neff = 1. / np.sum(np.square(weights))
+        print neff
+        return neff
 
 
 if __name__ == "__main__":
     pf = ParticleFilter()
 
     Ncars = 3
-    Nparticles = 1
+    Nparticles = 10
     total_time = 5.
     dt = 0.05
 
@@ -134,6 +139,28 @@ if __name__ == "__main__":
 
     for t in np.arange(0, total_time, dt):
         pf.predict(dt, np.matrix([1, 1, 1, 1, 1, 1]).T)
+        rel_model.fwd_sim(dt, np.matrix([1, 1, 1, 1, 1, 1]).T)
+
+        for i in np.arange(Ncars - 1):
+            for j in np.arange(i + 1, Ncars):
+                if i == 0:
+                    fi = 3 * (j - 1)
+                    measurement = norm(rel_model.state[0, fi:fi + 1]) + \
+                        np.sqrt(noise_uwb) * randn(1)[0]
+                else:
+                    fi = 3 * (i - 1) + 1
+                    si = 3 * (j - 1) + 1
+                    fx = rel_model.state[i, fi:fi + 1]
+                    sx = rel_model.state[j, si:si + 1]
+                    measurement = norm(fx - sx) + \
+                        np.sqrt(noise_uwb) * randn(1)[0]
+                stateCorrected, covCorrected = pf.correct(
+                        measurement, i, j)
+
+        # pdb.set_trace()
+        plt.scatter([stateCorrected[0], stateCorrected[3]],
+                    [stateCorrected[1], stateCorrected[4]],
+                    marker='+', color='r')
         plt.scatter([pf.particles[:, 0]], [pf.particles[:, 1]],
                     color='k', marker=',', s=1)
         plt.scatter([pf.particles[:, 3]], [pf.particles[:, 4]],
@@ -142,20 +169,3 @@ if __name__ == "__main__":
     plt.xlim(-20, 20)
     plt.ylim(-20, 20)
     plt.show()
-
-    for i in range(Ncars - 2):
-        for j in range(i + 1, Ncars - 1):
-            if i == 0:
-                fi = 3 * (j - 1)
-                measurement = norm(initial_transforms[0, fi:fi + 1]) + \
-                    np.sqrt(noise_uwb) * randn(1)[0]
-                stateCorrected, covCorrected = pf.correct(
-                    measurement, 0, j)
-            else:
-                fi = 3 * (i - 1) + 1
-                si = 3 * (j - 1) + 1
-                fx = initial_transforms[i, fi:fi + 1]
-                sx = initial_transforms[j, si:si + 1]
-                measurement = norm(fx - sx) + np.sqrt(noise_uwb) * randn(1)[0]
-                stateCorrected, covCorrected = pf.correct(
-                    measurement, i, j)
