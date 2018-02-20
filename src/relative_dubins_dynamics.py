@@ -54,6 +54,36 @@ class RelativeDubinsDynamics(object):
 
         return predictParticles
 
+    def pfStateTransitionIndividual(self, prevParticles, dt, u, car_index):
+        # car_index corresponds to the order of the cars in the state array:
+        # car_index = 0 means it is the ego car and all transforms are affected
+        # whereas car_index = 1 means it is the first car in the array and only
+        # the first transform is affected, etc
+        predictParticles = np.asmatrix(np.zeros(np.shape(prevParticles)))
+
+        N = np.shape(prevParticles)[0]
+
+        r = np.asmatrix(multivariate_normal(
+            np.array([0]*(self.Ncars-1)*3),
+            np.diag(np.asarray(self.noise_u)[0]), N))
+
+        for i in range(self.Ncars):
+            if i != car_index:
+                r[:, 2*i] = 0
+                r[:, 2*i+1] = 0
+
+        full_u = np.asmatrix(np.zeros(((self.Ncars-1)*3, 1)))
+        full_u[2*car_index:2*car_index+2, :] = u.T
+        new_u = r + full_u.T
+
+        for i in np.arange(np.shape(prevParticles)[0]):
+            state = prevParticles[i].T
+            u = new_u[i].T
+            newParticle = rk4(state, u, dt, self.dynamics)
+            predictParticles[i, :] = newParticle.T
+
+        return predictParticles
+
     def pfMeasurementLikelihood(self, predictParticles, measurement, n1, n2):
         xi = 3 * (n2 - 2)
         yi = 3 * (n2 - 2) + 1

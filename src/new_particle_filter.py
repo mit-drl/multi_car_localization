@@ -6,7 +6,6 @@ from numpy.random import randn
 from numpy.linalg import norm
 from relative_dubins_dynamics import RelativeDubinsDynamics
 from filterpy.monte_carlo import systematic_resample
-import scipy.stats
 import matplotlib.pyplot as plt
 import pdb
 
@@ -55,13 +54,14 @@ class ParticleFilter(object):
         return self.estimate(self.particles, self.weights)
 
     # u should be a column matrix
-    def predict(self, dt, u):
+    # args are in the order dt, u, etc
+    def predict(self, *args):
         if self.StateTransitionFcn is None:
             raise Exception(
                 "The particle filter has not been \
                  given a state transition function")
 
-        self.particles = self.StateTransitionFcn(self.particles, dt, u)
+        self.particles = self.StateTransitionFcn(self.particles, *args)
 
     def estimate(self, particles, weights):
         mean = np.average(
@@ -69,6 +69,10 @@ class ParticleFilter(object):
         var = np.average(np.power((particles - mean.T), 2),
                          weights=np.asarray(weights.T)[0], axis=0)
         return mean, var
+
+    def get_state(self):
+        mean, var = self.estimate(self.particles, self.weights)
+        return mean
 
     def resample_from_index(self, particles, weights, indexes):
         particles[:] = particles[indexes]
@@ -96,7 +100,7 @@ if __name__ == "__main__":
     pf = ParticleFilter()
 
     Ncars = 3
-    Nparticles = 10
+    Nparticles = 100
     total_time = 5.
     dt = 0.05
 

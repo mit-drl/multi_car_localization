@@ -7,6 +7,7 @@ from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Odometry
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
+
 class LidarToControl(object):
 
     def __init__(self):
@@ -15,14 +16,13 @@ class LidarToControl(object):
         self.car_id = int(self.car_id[-1])
         # self.control_pub   = rospy.Publisher("control", CarControl, queue_size=1)
         # self.lidar_sub     = rospy.Subscriber("slam_out_pose", PoseStamped, self.lidar_cb)
-        self.odom_pub      = rospy.Publisher("control", CarControl, queue_size=1)
-        self.odom_sub      = rospy.Subscriber("odom", Odometry, self.odom_cb)
-
+        self.odom_pub = rospy.Publisher("control", CarControl, queue_size=1)
+        self.odom_sub = rospy.Subscriber("odom", Odometry, self.odom_cb)
 
     def odom_cb(self, data):
         control = CarControl()
         control.header = data.header
-	control.car_id = self.car_id
+        control.car_id = self.car_id
         control.steering_angle = data.twist.twist.angular.z
         control.velocity = data.twist.twist.linear.x
         self.odom_pub.publish(control)
@@ -51,7 +51,7 @@ class LidarToControl(object):
  #            control.velocity = vel
 
  #            self.control_pub.publish(control)
-	# self.prev_lidar = data
+        # self.prev_lidar = data
 
 if __name__ == "__main__":
     rospy.init_node("lidar_to_control", anonymous=False)

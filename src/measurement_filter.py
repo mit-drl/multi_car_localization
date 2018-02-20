@@ -25,6 +25,7 @@ import networkx as nx
 import dynamics
 import utils
 
+
 class ParticleFilter(object):
 
     def __init__(self):
@@ -57,13 +58,13 @@ class ParticleFilter(object):
         self.init_angle = rospy.get_param("/init_angle", [0.0, 1.0, 2.5, -0.5])
 
         self.lidar_cov = rospy.get_param("/lidar_cov", [0.15, 0.15, 0.05])
-        self.uwb_cov   = rospy.get_param("/uwb_cov", 0.1)
+        self.uwb_cov = rospy.get_param("/uwb_cov", 0.1)
         self.num_uwb_meas = len(self.graph.neighbors(self.car_id)) + 1
         self.Nmeas = len(self.lidar_cov) + self.num_uwb_meas
 
         self.init_cov = np.diag(self.Nconn * rospy.get_param("/init_cov", [0.1, 0.1, 0.01]))
         self.x_cov = np.diag(rospy.get_param("/x_cov", [0.05, 0.05, 0.03]))
-        
+
         cov_diags = list(self.lidar_cov)
         for i in range(self.Nmeas - len(self.lidar_cov)):
             cov_diags.append(self.uwb_cov)
@@ -95,8 +96,8 @@ class ParticleFilter(object):
             self.filter_path_pub.append(
                 rospy.Publisher("path" + str(i) + str(i), Path, queue_size=1))
 
-        self.meas_sub = rospy.Subscriber("measurements", CarMeasurement, self.meas_cb,
-           queue_size=1)
+        self.meas_sub = rospy.Subscriber("measurements", CarMeasurement,
+                                         self.meas_cb, queue_size=1)
 
     def meas_cb(self, meas):
         if not self.new_meas:
