@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /Marker4
+        - /PoseArray1
       Splitter Ratio: 0.5
     Tree Height: 1107
   - Class: rviz/Selection
@@ -560,7 +561,7 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Alpha: 1
-      Arrow Length: 0.300000012
+      Arrow Length: 1
       Axes Length: 0.300000012
       Axes Radius: 0.00999999978
       Class: rviz/PoseArray
@@ -573,6 +574,22 @@ Visualization Manager:
       Shaft Radius: 0.00999999978
       Shape: Arrow (Flat)
       Topic: /car1/estimate
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Arrow Length: 0.300000012
+      Axes Length: 0.300000012
+      Axes Radius: 0.00999999978
+      Class: rviz/PoseArray
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.0700000003
+      Head Radius: 0.0299999993
+      Name: PoseArray
+      Shaft Length: 0.230000004
+      Shaft Radius: 0.00999999978
+      Shape: Arrow (Flat)
+      Topic: /car1/particles
       Unreliable: false
       Value: true
   Enabled: true
@@ -599,7 +616,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 13.9112349
+      Distance: 21.8895988
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -614,10 +631,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.689797521
+      Pitch: 1.40979683
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.36040056
+      Yaw: 1.07540083
     Saved: ~
 Window Geometry:
   Displays:
