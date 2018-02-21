@@ -23,13 +23,13 @@ class NewParticleFilter(object):
 
     def __init__(self):
         self.rate = rospy.Rate(10)
-        self.Np = rospy.get_param("~num_particles", 30)
+        self.Np = rospy.get_param("~num_particles", 100)
         self.Ncars = rospy.get_param("/num_cars", 3)
         self.car_id = 1
         self.car_ids = [1, 2, 3]
-        self.u_cov = np.matrix([0.1, 0.05, 0.1, 0.05, 0.1, 0.05]) # rospy.get_param("/u_cov", [0.15, 0.15, 0.05])
+        self.u_cov = [0.1, 0.05] * self.Ncars # rospy.get_param("/u_cov", [0.15, 0.15, 0.05])
         self.uwb_cov = rospy.get_param("/uwb_cov", 0.05)
-        self.limits = np.matrix([0.2, 0.2, np.pi / 2, 0.2, 0.2, np.pi / 2]).T
+        self.limits = np.matrix([0.1, 0.1, np.pi / 6, 0.1, 0.1, np.pi / 6]).T
         self.bounds = np.asmatrix(np.zeros((3 * (self.Ncars - 1), 2)))
         self.circ_var = [0, 0, 1, 0, 0, 1]
 
@@ -63,7 +63,7 @@ class NewParticleFilter(object):
 
     def range_cb(self, data, args):
         if self.initialized:
-            # self.filter.correct(data.distance, data.from_id-1, data.to_id-1)
+            self.filter.correct(data.distance, data.from_id, data.to_id)
             return
 
     def control_cb(self, data, args):
@@ -110,9 +110,10 @@ class NewParticleFilter(object):
     def run(self):
         while not rospy.is_shutdown():
             if not self.initialized:
+                rospy.sleep(1.0)
                 car_order_num = 0
                 car_id = str(self.car_id)
-                initial_transforms = np.asmatrix(np.zeros(((self.Ncars-1)*3, 1)))
+                initial_transforms = np.asmatrix(np.zeros(((self.Ncars-1), 3)))
                 for i in self.car_ids:
                     if i != self.car_id:
                         num = str(i)
@@ -126,8 +127,8 @@ class NewParticleFilter(object):
                                                                      ending_trans, now)
                         (r, p, y) = euler_from_quaternion(rot)
                         fi = 3*car_order_num
-                        initial_transforms[fi:fi+2] = [[trans[0]], [trans[1]]]
-                        initial_transforms[fi+2] = y
+                        initial_transforms[car_order_num, 0:2] = trans[0:2]
+                        initial_transforms[car_order_num, 2] = y
 
                         car_order_num += 1
                 print initial_transforms

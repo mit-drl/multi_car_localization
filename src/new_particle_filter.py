@@ -1,6 +1,7 @@
 import numpy as np
 from numpy.random import uniform
 from numpy.random import randn
+import time
 # For random samples from N(\mu, \sigma^2), use:
 # sigma * np.random.randn(...) + mu
 from numpy.linalg import norm
@@ -100,12 +101,12 @@ if __name__ == "__main__":
     pf = ParticleFilter()
 
     Ncars = 3
-    Nparticles = 100
+    Nparticles = 1000
     total_time = 5.
     dt = 0.05
 
     initial_positions = np.matrix(
-        [[0, 0, np.pi / 2], [1, 1, -np.pi / 2], [-1, -2, 0]])
+        [[0, 0, np.pi / 4], [2, 3, -np.pi / 4], [-1, 2, np.pi]])
     initial_transforms = np.asmatrix(np.zeros(((Ncars - 1), 3)))
     circ_var = [0, 0, 1, 0, 0, 1]
     limits = np.matrix([0.5, 0.5, np.pi / 2, 0.5, 0.5, np.pi / 2]).T
@@ -121,7 +122,7 @@ if __name__ == "__main__":
         bounds[fi:fi + 3, 0] = initial_transforms[i, :].T - limits[fi:fi + 3]
         bounds[fi:fi + 3, 1] = initial_transforms[i, :].T + limits[fi:fi + 3]
 
-    noise_u = np.matrix([0.1, 0.05, 0.1, 0.05, 0.1, 0.05])
+    noise_u = [0.1, 0.05] * Ncars
     noise_uwb = 0.05
 
     rel_model = RelativeDubinsDynamics(
@@ -138,33 +139,49 @@ if __name__ == "__main__":
                 color='g', marker=',', s=1)
 
     for t in np.arange(0, total_time, dt):
-        pf.predict(dt, np.matrix([1, 1, 1, 1, 1, 1]).T)
-        rel_model.fwd_sim(dt, np.matrix([1, 1, 1, 1, 1, 1]).T)
+        start = time.time()
+        u = []
+        for i in range(Ncars):
+            u.append(0.7*abs(np.sin(t)) + 0.1)
+            if i != 0:
+                u.append(0.12*np.cos(t))
+            else:
+                u.append(np.cos(2*t))
+        u = np.asmatrix(u).T
+
+        rel_model.fwd_sim(dt, u)
+        pf.predict(dt, u)
 
         for i in np.arange(Ncars - 1):
             for j in np.arange(i + 1, Ncars):
                 if i == 0:
                     fi = 3 * (j - 1)
-                    measurement = norm(rel_model.state[0, fi:fi + 1]) + \
+                    measurement = norm(rel_model.state[fi:fi + 2, 0]) + \
                         np.sqrt(noise_uwb) * randn(1)[0]
                 else:
-                    fi = 3 * (i - 1) + 1
-                    si = 3 * (j - 1) + 1
-                    fx = rel_model.state[i, fi:fi + 1]
-                    sx = rel_model.state[j, si:si + 1]
+                    fi = 3 * (i - 1)
+                    si = 3 * (j - 1)
+                    fx = rel_model.state[fi:fi + 2, 0]
+                    sx = rel_model.state[si:si + 2, 0]
                     measurement = norm(fx - sx) + \
                         np.sqrt(noise_uwb) * randn(1)[0]
                 stateCorrected, covCorrected = pf.correct(
-                        measurement, i, j)
+                        measurement, i+1, j+1)
+        end_time = time.time()
+        print end_time - start
 
         # pdb.set_trace()
         plt.scatter([stateCorrected[0], stateCorrected[3]],
                     [stateCorrected[1], stateCorrected[4]],
                     marker='+', color='r')
-        plt.scatter([pf.particles[:, 0]], [pf.particles[:, 1]],
-                    color='k', marker=',', s=1)
-        plt.scatter([pf.particles[:, 3]], [pf.particles[:, 4]],
-                    color='g', marker=',', s=1)
+        true_state = rel_model.state
+        plt.scatter([true_state[0], true_state[3]],
+                    [true_state[1], true_state[4]],
+                    marker='o', color='b')
+        # plt.scatter([pf.particles[:, 0]], [pf.particles[:, 1]],
+        #             color='k', marker=',', s=1)
+        # plt.scatter([pf.particles[:, 3]], [pf.particles[:, 4]],
+        #             color='g', marker=',', s=1)
 
     plt.xlim(-20, 20)
     plt.ylim(-20, 20)
