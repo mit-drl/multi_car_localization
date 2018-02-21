@@ -103,7 +103,7 @@ if __name__ == "__main__":
     Ncars = 3
     Nparticles = 1000
     total_time = 5.
-    dt = 0.05
+    dt = 0.03
 
     initial_positions = np.matrix(
         [[0, 0, np.pi / 4], [2, 3, -np.pi / 4], [-1, 2, np.pi]])
@@ -122,8 +122,8 @@ if __name__ == "__main__":
         bounds[fi:fi + 3, 0] = initial_transforms[i, :].T - limits[fi:fi + 3]
         bounds[fi:fi + 3, 1] = initial_transforms[i, :].T + limits[fi:fi + 3]
 
-    noise_u = [0.1, 0.05] * Ncars
-    noise_uwb = 0.05
+    noise_u = [1.2, 1.2] * Ncars
+    noise_uwb = 0.5
 
     rel_model = RelativeDubinsDynamics(
         Ncars, initial_transforms, noise_u, noise_uwb)
@@ -138,19 +138,25 @@ if __name__ == "__main__":
     plt.scatter([pf.particles[:, 3]], [pf.particles[:, 4]],
                 color='g', marker=',', s=1)
 
-    for t in np.arange(0, total_time, dt):
+    prev_t = 0
+    u = [0.0] * Ncars * 2
+    meas_u = np.array([0.0] * Ncars * 2)
+    for t in np.arange(0.0, total_time, dt):
         start = time.time()
-        u = []
-        for i in range(Ncars):
-            u.append(0.7*abs(np.sin(t)) + 0.1)
-            if i != 0:
-                u.append(0.12*np.cos(t))
-            else:
-                u.append(np.cos(2*t))
-        u = np.asmatrix(u).T
 
-        rel_model.fwd_sim(dt, u)
-        pf.predict(dt, u)
+        u[0::2] = [0.7*abs(np.sin(t)) + 0.1] * Ncars
+        u[1] = np.cos(2*t)
+        u[3::2] = [-0.12*np.cos(t)] * (Ncars - 1)
+
+        rel_model.fwd_sim(dt, np.asmatrix(u).T)
+        if uniform() < 0.5:
+            delt = t - prev_t
+            for i in range(Ncars):
+                if uniform() < 0.5:
+                    meas_u[2*i:2*i+2] = np.asarray(u[2*i:2*i+2]) + \
+                                        np.sqrt(delt)*np.multiply(np.sqrt(noise_u[2*i:2*i+2]), randn(2))
+            pf.predict(delt, np.asmatrix(meas_u).T)
+            prev_t = t
 
         for i in np.arange(Ncars - 1):
             for j in np.arange(i + 1, Ncars):
@@ -165,14 +171,16 @@ if __name__ == "__main__":
                     sx = rel_model.state[si:si + 2, 0]
                     measurement = norm(fx - sx) + \
                         np.sqrt(noise_uwb) * randn(1)[0]
-                stateCorrected, covCorrected = pf.correct(
-                        measurement, i+1, j+1)
+                if uniform() < 0.3:
+                    stateCorrected, covCorrected = pf.correct(
+                            measurement, i+1, j+1)
         end_time = time.time()
         print end_time - start
 
         # pdb.set_trace()
-        plt.scatter([stateCorrected[0], stateCorrected[3]],
-                    [stateCorrected[1], stateCorrected[4]],
+        state = pf.get_state()
+        plt.scatter([state[0], state[3]],
+                    [state[1], state[4]],
                     marker='+', color='r')
         true_state = rel_model.state
         plt.scatter([true_state[0], true_state[3]],

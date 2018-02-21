@@ -22,13 +22,13 @@ import heapq
 class NewParticleFilter(object):
 
     def __init__(self):
-        self.rate = rospy.Rate(10)
-        self.Np = rospy.get_param("~num_particles", 100)
+        self.rate = rospy.Rate(30)
+        self.Np = rospy.get_param("~num_particles", 500)
         self.Ncars = rospy.get_param("/num_cars", 3)
         self.car_id = 1
         self.car_ids = [1, 2, 3]
-        self.u_cov = [0.1, 0.05] * self.Ncars # rospy.get_param("/u_cov", [0.15, 0.15, 0.05])
-        self.uwb_cov = rospy.get_param("/uwb_cov", 0.05)
+        self.u_cov = [0.2, 0.4] * self.Ncars # rospy.get_param("/u_cov", [0.15, 0.15, 0.05])
+        self.uwb_cov = rospy.get_param("/uwb_cov", 0.2)
         self.limits = np.matrix([0.1, 0.1, np.pi / 6, 0.1, 0.1, np.pi / 6]).T
         self.bounds = np.asmatrix(np.zeros((3 * (self.Ncars - 1), 2)))
         self.circ_var = [0, 0, 1, 0, 0, 1]
@@ -44,10 +44,13 @@ class NewParticleFilter(object):
         self.car_controls = []
         for i in range(self.Ncars):
             self.car_controls.append([])
-        self.max_control_times = [0]*3
+        self.max_control_times = [0.0]*3
         self.prev_time = None
 
-        self.controls = [0] * self.Ncars * 2
+        self.controls = [0.0] * self.Ncars * 2
+        self.last_time = 0.0
+        self.recent_time = 0.0
+
         self.range_sub = []
         self.pa_pub = rospy.Publisher("/car" + str(self.car_id) + "/particles",
                                       PoseArray, queue_size=1)
@@ -64,9 +67,17 @@ class NewParticleFilter(object):
     def range_cb(self, data, args):
         if self.initialized:
             self.filter.correct(data.distance, data.from_id, data.to_id)
-            return
+            # return
 
     def control_cb(self, data, args):
+        if self.initialized:
+            index = args[0]
+            self.controls[2*index] = 0.6*data.velocity
+            self.controls[2*index+1] = 0.6*data.steering_angle # * (1 - 0.31 * (index == 0))
+            if data.header.stamp.to_sec() > self.recent_time:
+                self.recent_time = data.header.stamp.to_sec()
+
+    def control_cb_old(self, data, args):
         if self.initialized:
             index = args[0]
             data_time = data.header.stamp.to_sec()
@@ -93,7 +104,7 @@ class NewParticleFilter(object):
                 old_control = self.car_controls[car_idx].pop(0)
 
                 self.filter.predict(dt, np.asmatrix(self.controls).T)
-                # print self.controls
+                print self.controls
 
                 if self.car_controls[car_idx]:
                     self.controls[2*car_idx] = \
@@ -140,41 +151,51 @@ class NewParticleFilter(object):
                 self.filter.create_uniform_particles(self.Np, self.bounds, self.circ_var)
                 self.initialized = True
             else:
-                state = self.filter.get_state()
-                states = PoseArray()
-                states.header.stamp = rospy.Time(0)
-                states.header.frame_id = "/vicon/car1/car1"
-                for i in range(self.Ncars-1):
-                    fi = 3*i
-                    p = Pose()
-                    p.position.x = state[fi].item()
-                    p.position.y = state[fi+1].item()
-                    q = quaternion_from_euler(0, 0, state[fi+2].item())
-                    p.orientation.x = q[0]
-                    p.orientation.y = q[1]
-                    p.orientation.z = q[2]
-                    p.orientation.w = q[3]
-                    states.poses.append(p)
-                self.pos_pub.publish(states)
-
-                particles = self.filter.particles
-                pa = PoseArray()
-                pa.header.stamp = rospy.Time(0)
-                pa.header.frame_id = "/vicon/car1/car1"
-                for i in range(np.shape(particles)[0]):
-                    particle = particles[i, :]
-                    for j in range(self.Ncars-1):
-                        fj = 3*j
+                if self.last_time == 0:
+                    self.last_time = self.recent_time
+                else:
+                    dt = self.recent_time - self.last_time
+                    if dt != 0.0:
+                        print dt
+                        self.last_time = self.recent_time
+                        self.filter.predict(dt, np.asmatrix(self.controls).T)
+                    # if True:
+                    state = self.filter.get_state()
+                    states = PoseArray()
+                    states.header.stamp = rospy.Time(0)
+                    states.header.frame_id = "/vicon/car1/car1"
+                    for i in range(self.Ncars-1):
+                        fi = 3*i
                         p = Pose()
-                        p.position.x = particle[0, fj].item()
-                        p.position.y = particle[0, fj+1].item()
-                        q = quaternion_from_euler(0, 0, particle[0, fj+2])
+                        p.position.x = state[fi].item()
+                        p.position.y = state[fi+1].item()
+                        q = quaternion_from_euler(0, 0, state[fi+2].item())
                         p.orientation.x = q[0]
                         p.orientation.y = q[1]
                         p.orientation.z = q[2]
                         p.orientation.w = q[3]
-                        pa.poses.append(p)
-                self.pa_pub.publish(pa)
+                        states.poses.append(p)
+                    self.pos_pub.publish(states)
+
+                    particles = self.filter.particles
+                    pa = PoseArray()
+                    pa.header.stamp = rospy.Time(0)
+                    pa.header.frame_id = "/vicon/car1/car1"
+                    for i in range(np.shape(particles)[0]):
+                        particle = particles[i, :]
+                        for j in range(self.Ncars-1):
+                            fj = 3*j
+                            p = Pose()
+                            p.position.x = particle[0, fj].item()
+                            p.position.y = particle[0, fj+1].item()
+                            q = quaternion_from_euler(0, 0, particle[0, fj+2])
+                            p.orientation.x = q[0]
+                            p.orientation.y = q[1]
+                            p.orientation.z = q[2]
+                            p.orientation.w = q[3]
+                            pa.poses.append(p)
+                    self.pa_pub.publish(pa)
+            self.rate.sleep()
 
 
 if __name__ == "__main__":
