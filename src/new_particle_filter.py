@@ -149,10 +149,11 @@ if __name__ == "__main__":
         u[3::2] = [-0.12*np.cos(t)] * (Ncars - 1)
 
         rel_model.fwd_sim(dt, np.asmatrix(u).T)
-        if uniform() < 0.5:
-            delt = t - prev_t
+        if uniform() < 0.7:
+            delt = t - prev_t + randn() * 0.003
+            print delt
             for i in range(Ncars):
-                if uniform() < 0.5:
+                if uniform() < 1.0:
                     meas_u[2*i:2*i+2] = np.asarray(u[2*i:2*i+2]) + \
                                         np.sqrt(delt)*np.multiply(np.sqrt(noise_u[2*i:2*i+2]), randn(2))
             pf.predict(delt, np.asmatrix(meas_u).T)
@@ -175,7 +176,7 @@ if __name__ == "__main__":
                     stateCorrected, covCorrected = pf.correct(
                             measurement, i+1, j+1)
         end_time = time.time()
-        print end_time - start
+        # print end_time - start
 
         # pdb.set_trace()
         state = pf.get_state()

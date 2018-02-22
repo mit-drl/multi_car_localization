@@ -23,12 +23,12 @@ class NewParticleFilter(object):
 
     def __init__(self):
         self.rate = rospy.Rate(30)
-        self.Np = rospy.get_param("~num_particles", 500)
+        self.Np = rospy.get_param("~num_particles", 1500)
         self.Ncars = rospy.get_param("/num_cars", 3)
         self.car_id = 1
         self.car_ids = [1, 2, 3]
-        self.u_cov = [0.2, 0.4] * self.Ncars # rospy.get_param("/u_cov", [0.15, 0.15, 0.05])
-        self.uwb_cov = rospy.get_param("/uwb_cov", 0.2)
+        self.u_cov = [1.2, 1.2] * self.Ncars # rospy.get_param("/u_cov", [0.15, 0.15, 0.05])
+        self.uwb_cov = rospy.get_param("/uwb_cov", 0.3)
         self.limits = np.matrix([0.1, 0.1, np.pi / 6, 0.1, 0.1, np.pi / 6]).T
         self.bounds = np.asmatrix(np.zeros((3 * (self.Ncars - 1), 2)))
         self.circ_var = [0, 0, 1, 0, 0, 1]
@@ -71,11 +71,13 @@ class NewParticleFilter(object):
 
     def control_cb(self, data, args):
         if self.initialized:
+            # print rospy.get_time() - data.header.stamp.to_sec()
             index = args[0]
-            self.controls[2*index] = 0.6*data.velocity
-            self.controls[2*index+1] = 0.6*data.steering_angle # * (1 - 0.31 * (index == 0))
+            # make controls into a WEIGHTED AVERAGE
+            self.controls[2*index] = 0.56*data.velocity #*0.56
+            self.controls[2*index+1] = 0.58*data.steering_angle #*0.58 # * (1 - 0.07 * (index == 0))
             if data.header.stamp.to_sec() > self.recent_time:
-                self.recent_time = data.header.stamp.to_sec()
+                self.recent_time = data.header.stamp.to_sec() # rospy.get_time()
 
     def control_cb_old(self, data, args):
         if self.initialized:
@@ -104,7 +106,7 @@ class NewParticleFilter(object):
                 old_control = self.car_controls[car_idx].pop(0)
 
                 self.filter.predict(dt, np.asmatrix(self.controls).T)
-                print self.controls
+                # print self.controls
 
                 if self.car_controls[car_idx]:
                     self.controls[2*car_idx] = \
