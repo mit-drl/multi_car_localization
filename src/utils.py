@@ -5,22 +5,25 @@ from geometry_msgs.msg import Pose, PoseStamped, TransformStamped
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 def rk4(y0, u, dt, f):
-    steps = 1
+    if dt == 0.0:
+        return y0
+
+    steps = 1.0
     h = dt/steps
 
     yn = y0
 
-    for n in range(steps+1):
+    for n in range(int(steps)):
         k1 = f(yn, u)
-        k2 = f(yn + h*k1/2, u)
-        k3 = f(yn + h*k2/2, u)
+        k2 = f(yn + h*k1/2.0, u)
+        k3 = f(yn + h*k2/2.0, u)
         k4 = f(yn + h*k3, u)
 
-        yn = yn + (h/6)*(k1+2*k2+2*k3+k4)
+        yn = yn + (h/6.0)*(k1+2.0*k2+2.0*k3+k4)
 
     return yn
 
-def newton(y0, u, dt, f):
+def euler(y0, u, dt, f):
     # doesn't seem to work
     dy = f(y0, u)
     yn = y0 + dt*dy

@@ -22,15 +22,15 @@ import heapq
 class NewParticleFilter(object):
 
     def __init__(self):
-        self.rate = rospy.Rate(30)
-        self.Np = rospy.get_param("~num_particles", 1500)
+        self.rate = rospy.Rate(15)
+        self.Np = rospy.get_param("~num_particles", 2000)
         self.Ncars = rospy.get_param("/num_cars", 3)
         self.car_id = 1
         self.car_ids = [1, 2, 3]
-        self.u_cov = [1.2, 1.2] * self.Ncars # rospy.get_param("/u_cov", [0.15, 0.15, 0.05])
-        self.uwb_cov = rospy.get_param("/uwb_cov", 0.3)
-        self.limits = np.matrix([0.1, 0.1, np.pi / 6, 0.1, 0.1, np.pi / 6]).T
-        self.bounds = np.asmatrix(np.zeros((3 * (self.Ncars - 1), 2)))
+        self.u_cov = [1.5, 1.5] * self.Ncars # rospy.get_param("/u_cov", [0.15, 0.15, 0.05])
+        self.uwb_cov = rospy.get_param("/uwb_cov", 0.6)
+        self.limits = np.array([0.1, 0.1, np.pi / 6.0, 0.1, 0.1, np.pi / 6.0]).T
+        self.bounds = np.zeros((3 * (self.Ncars - 1), 2))
         self.circ_var = [0, 0, 1, 0, 0, 1]
 
         self.listener = tf.TransformListener()
@@ -66,18 +66,23 @@ class NewParticleFilter(object):
 
     def range_cb(self, data, args):
         if self.initialized:
-            self.filter.correct(data.distance, data.from_id, data.to_id)
-            # return
+            if data.from_id < data.to_id:
+                self.filter.correct(data.distance, data.from_id-1, data.to_id-1)
+            else:
+                self.filter.correct(data.distance, data.to_id-1, data.from_id-1)
 
     def control_cb(self, data, args):
         if self.initialized:
             # print rospy.get_time() - data.header.stamp.to_sec()
             index = args[0]
             # make controls into a WEIGHTED AVERAGE
-            self.controls[2*index] = 0.56*data.velocity #*0.56
-            self.controls[2*index+1] = 0.58*data.steering_angle #*0.58 # * (1 - 0.07 * (index == 0))
-            if data.header.stamp.to_sec() > self.recent_time:
-                self.recent_time = data.header.stamp.to_sec() # rospy.get_time()
+            self.controls[2*index] = 0.5*data.velocity + 0.5*self.controls[2*index]
+            self.controls[2*index+1] = 0.5*data.steering_angle + 0.5*self.controls[2*index+1]
+            if data.header.stamp.to_sec() > self.recent_time: 
+                # rospy.loginfo("Update recent time DT = {}, CarId = {}".format(
+                #     data.header.stamp.to_sec() - self.recent_time,
+                #     index+1))
+                self.recent_time =  data.header.stamp.to_sec() # rospy.get_time()
 
     def control_cb_old(self, data, args):
         if self.initialized:
@@ -105,7 +110,7 @@ class NewParticleFilter(object):
                 car_idx = control_info[1] - 1
                 old_control = self.car_controls[car_idx].pop(0)
 
-                self.filter.predict(dt, np.asmatrix(self.controls).T)
+                self.filter.predict(dt, np.asarray(self.controls))
                 # print self.controls
 
                 if self.car_controls[car_idx]:
@@ -126,7 +131,7 @@ class NewParticleFilter(object):
                 rospy.sleep(1.0)
                 car_order_num = 0
                 car_id = str(self.car_id)
-                initial_transforms = np.asmatrix(np.zeros(((self.Ncars-1), 3)))
+                initial_transforms = np.zeros(((self.Ncars-1), 3))
                 for i in self.car_ids:
                     if i != self.car_id:
                         num = str(i)
@@ -153,14 +158,16 @@ class NewParticleFilter(object):
                 self.filter.create_uniform_particles(self.Np, self.bounds, self.circ_var)
                 self.initialized = True
             else:
-                if self.last_time == 0:
+                if self.last_time <= 0:
                     self.last_time = self.recent_time
                 else:
                     dt = self.recent_time - self.last_time
-                    if dt != 0.0:
+                    if dt > 0.0:
                         print dt
                         self.last_time = self.recent_time
-                        self.filter.predict(dt, np.asmatrix(self.controls).T)
+                        self.filter.predict(dt, np.asarray(self.controls))
+                    else:
+                        rospy.logwarn("DT < 0: DT = {}".format(dt))
                     # if True:
                     state = self.filter.get_state()
                     states = PoseArray()
@@ -169,9 +176,9 @@ class NewParticleFilter(object):
                     for i in range(self.Ncars-1):
                         fi = 3*i
                         p = Pose()
-                        p.position.x = state[fi].item()
-                        p.position.y = state[fi+1].item()
-                        q = quaternion_from_euler(0, 0, state[fi+2].item())
+                        p.position.x = state[fi]
+                        p.position.y = state[fi+1]
+                        q = quaternion_from_euler(0, 0, state[fi+2])
                         p.orientation.x = q[0]
                         p.orientation.y = q[1]
                         p.orientation.z = q[2]
@@ -183,14 +190,14 @@ class NewParticleFilter(object):
                     pa = PoseArray()
                     pa.header.stamp = rospy.Time(0)
                     pa.header.frame_id = "/vicon/car1/car1"
-                    for i in range(np.shape(particles)[0]):
+                    for i in range(0, np.shape(particles)[0], 10):
                         particle = particles[i, :]
                         for j in range(self.Ncars-1):
                             fj = 3*j
                             p = Pose()
-                            p.position.x = particle[0, fj].item()
-                            p.position.y = particle[0, fj+1].item()
-                            q = quaternion_from_euler(0, 0, particle[0, fj+2])
+                            p.position.x = particle[fj]
+                            p.position.y = particle[fj+1]
+                            q = quaternion_from_euler(0, 0, particle[fj+2])
                             p.orientation.x = q[0]
                             p.orientation.y = q[1]
                             p.orientation.z = q[2]
