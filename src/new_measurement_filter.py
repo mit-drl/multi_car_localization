@@ -66,10 +66,7 @@ class NewParticleFilter(object):
 
     def range_cb(self, data, args):
         if self.initialized:
-            if data.from_id < data.to_id:
-                self.filter.correct(data.distance, data.from_id-1, data.to_id-1)
-            else:
-                self.filter.correct(data.distance, data.to_id-1, data.from_id-1)
+            self.filter.correct(data.distance, data.from_id-1, data.to_id-1)
 
     def control_cb(self, data, args):
         if self.initialized:

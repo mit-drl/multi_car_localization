@@ -47,8 +47,15 @@ class RelativeDubinsDynamics(object):
 
         return predictParticles
 
-    def pfMeasurementLikelihood(self, predictParticles, measurement, n1, n2):
+    def pfMeasurementLikelihood(self, predictParticles, measurement, m1, m2):
         # n1 and n2 are their positions in the array
+        if m1 < m2:
+            n1 = m1
+            n2 = m2
+        else:
+            n1 = m2
+            n2 = m1
+
         xi = 3 * (n2 - 1)
         yi = 3 * (n2 - 1) + 1
 
