@@ -25,19 +25,26 @@ import tf2_ros
 class MeasViz(object):
 
     def __init__(self):
-        self.rate = rospy.Rate(50)
+        self.rate = rospy.Rate(30)
         self.Ncars = 3
         self.counter = 0
         self.paths = []
+        self.estimate_paths = []
+        self.car_id = 1
 
         self.marker_pubs = []
         self.path_pubs = []
         self.range_subs = []
         self.control_subs = []
         self.control_pubs = []
+        self.estimate_subs = []
+        self.estimate_pubs = []
         for i in range(self.Ncars):
             path = Path()
             path.header.frame_id = "/world"
+            estimate_path = Path()
+            estimate_path.header.frame_id = "/world"
+            self.estimate_paths.append(estimate_path)
             self.paths.append(path)
             self.path_pubs.append(
                 rospy.Publisher("car" + str(i+1) + "/path", Path, queue_size=1))
@@ -49,6 +56,11 @@ class MeasViz(object):
                 rospy.Subscriber("car" + str(i+1) + "/control", CarControl, self.control_cb))
             self.range_subs.append(
                 rospy.Subscriber("car" + str(i+1) + "/ranges", UWBRange, self.range_cb, (i+1,)))
+            if i != 0:
+                self.estimate_pubs.append(
+                    rospy.Publisher("car" + str(self.car_id) + "/car" + str(i+1) +
+                                     "/estimate_path", Path, queue_size=1))
+
         self.listener = tf.TransformListener()
         self.br = tf2_ros.StaticTransformBroadcaster()
 
@@ -56,7 +68,6 @@ class MeasViz(object):
         rospy.sleep(1.0)
         for i in range(self.Ncars):
             self.car_transforms(i+1)
-
 
     def control_cb(self, data):
         vel_arr = Marker()
@@ -210,15 +221,26 @@ class MeasViz(object):
                     new_pose.pose.position.x = pos[0]
                     new_pose.pose.position.y = pos[1]
                     self.paths[i].poses.append(new_pose)
-                    if len(self.paths[i].poses) > 100:
-                        self.paths[i].poses.pop(0)
+                    # if len(self.paths[i].poses) > 100:
+                    #     self.paths[i].poses.pop(0)
                     self.path_pubs[i].publish(self.paths[i])
                 except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                     continue
-            try:
-                self.rate.sleep()
-            except (rospy.exceptions.ROSTimeMovedBackwardsException):
-                continue
+                if i+1 != self.car_id: # i = 1, 2
+                    try:
+                        pos, quat = self.listener.lookupTransform("/world", "/pfestimate1" + str(i+1),rospy.Time(0))
+                        self.estimate_paths[i-1].header.stamp = rospy.Time(0)
+                        new_pose = PoseStamped()
+                        new_pose.header.stamp = rospy.Time(0)
+                        new_pose.header.frame_id = "/world"
+                        new_pose.pose.position.x = pos[0]
+                        new_pose.pose.position.y = pos[1]
+                        self.estimate_paths[i-1].poses.append(new_pose)
+                        # if len(self.paths[i].poses) > 100:
+                        #     self.paths[i].poses.pop(0)
+                        self.estimate_pubs[i-1].publish(self.estimate_paths[i-1])
+                    except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+                        continue
 
 if __name__ == "__main__":
     rospy.init_node("meas_viz", anonymous=False)

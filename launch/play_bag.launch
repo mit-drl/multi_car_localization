@@ -19,10 +19,4 @@
 
      <node pkg="multi_car_localization" type="new_measurement_filter.py" name="new_measurement_filter" output="screen" />
 
-<!--     <node pkg="tf2_ros" type="static_transform_publisher" name="car1_to_vicon" args="0 0 0 0 0 0 /vicon/car1/car1 /car1/base_link"/>
-    <node pkg="tf2_ros" type="static_transform_publisher" name="chassis_to_car1" args="0 0 0 0 0 0 /car1/base_link /car1/chassis"/>
- -->
-
-<!--     <node pkg="multi_car_localization" type="tf_bag_publisher.py" name="tf_bag_publisher" output="screen"/>
- -->
 </launch>

@@ -5,6 +5,7 @@ from multi_car_msgs.msg import CarControl
 from multi_car_msgs.msg import UWBRange
 from std_msgs.msg import Header
 import tf
+import tf2_ros
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 
@@ -34,6 +35,7 @@ class NewParticleFilter(object):
         self.circ_var = [0, 0, 1, 0, 0, 1]
 
         self.listener = tf.TransformListener()
+        self.br = tf2_ros.TransformBroadcaster()
 
         self.filter = particle_filter.ParticleFilter()
         self.initialized = False
@@ -54,8 +56,7 @@ class NewParticleFilter(object):
         self.range_sub = []
         self.pa_pub = rospy.Publisher("/car" + str(self.car_id) + "/particles",
                                       PoseArray, queue_size=1)
-        self.pos_pub = rospy.Publisher("/car" + str(self.car_id) + "/estimate",
-                                       PoseArray, queue_size=1)
+        self.pos_pub = []
         for i, ID in enumerate(self.car_ids):
             self.control_sub.append(
                 rospy.Subscriber("/car" + str(ID) + "/control", CarControl,
@@ -63,6 +64,10 @@ class NewParticleFilter(object):
             self.range_sub.append(
                 rospy.Subscriber("/car" + str(ID) + "/ranges", UWBRange,
                                  self.range_cb, (ID, i), queue_size=1))
+            if ID != self.car_id:
+                self.pos_pub.append(rospy.Publisher(
+                    "/car" + str(self.car_id) + "/car" + str(ID) + "/estimate",
+                    PoseStamped, queue_size=1))
 
     def range_cb(self, data, args):
         if self.initialized:
@@ -167,21 +172,34 @@ class NewParticleFilter(object):
                         rospy.logwarn("DT < 0: DT = {}".format(dt))
                     # if True:
                     state = self.filter.get_state()
-                    states = PoseArray()
-                    states.header.stamp = rospy.Time(0)
-                    states.header.frame_id = "/vicon/car1/car1"
                     for i in range(self.Ncars-1):
                         fi = 3*i
-                        p = Pose()
-                        p.position.x = state[fi]
-                        p.position.y = state[fi+1]
+                        p = PoseStamped()
+                        p.header.stamp = rospy.Time.now()
+                        p.header.frame_id = "/vicon/car1/car1"
+                        p.pose.position.x = state[fi]
+                        p.pose.position.y = state[fi+1]
                         q = quaternion_from_euler(0, 0, state[fi+2])
-                        p.orientation.x = q[0]
-                        p.orientation.y = q[1]
-                        p.orientation.z = q[2]
-                        p.orientation.w = q[3]
-                        states.poses.append(p)
-                    self.pos_pub.publish(states)
+                        p.pose.orientation.x = q[0]
+                        p.pose.orientation.y = q[1]
+                        p.pose.orientation.z = q[2]
+                        p.pose.orientation.w = q[3]
+                        self.pos_pub[i].publish(p)
+
+                        t = TransformStamped()
+                        t.header.stamp = rospy.Time.now()
+                        t.header.frame_id = "vicon/car1/car1"
+                        t.child_frame_id = "pfestimate" + str(self.car_id) + str(i+2)
+                        t.transform.translation.x = p.pose.position.x
+                        t.transform.translation.y = p.pose.position.y
+                        t.transform.translation.z = p.pose.position.z
+                        t.transform.rotation.x = p.pose.orientation.x
+                        t.transform.rotation.y = p.pose.orientation.y
+                        t.transform.rotation.z = p.pose.orientation.z
+                        t.transform.rotation.w = p.pose.orientation.w
+
+                        self.br.sendTransform(t)
+
 
                     particles = self.filter.particles
                     pa = PoseArray()
