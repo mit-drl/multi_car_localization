@@ -9,7 +9,7 @@
 
     <include file="$(find decawave_interface)/launch/run_decawave.launch">
         <arg name="name" value="$(env CAR_FRAME_ID)"/>
-        <arg name="name" value="/dev/sender"/>
+        <arg name="port" value="/dev/sender"/>
     </include>
 
 	<!-- <remap from="initialpose" to="observer/initial_pose_$(env CAR_FRAME_ID)"/> -->
