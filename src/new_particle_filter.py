@@ -18,6 +18,7 @@ class ParticleFilter(object):
     def __init__(self):
         self.StateTransitionFcn = None
         self.MeasurementLikelihoodFcn = None
+        self.LagCompensationFcn = None
         self.particles = None
         self.weights = None
 
@@ -49,6 +50,7 @@ class ParticleFilter(object):
 
         N = self.weights.shape[0]
         if self.neff(self.weights) < 0.7*N:
+            print "RESAMPLED"
             indexes = systematic_resample(self.weights)
             self.particles, self.weights = self.resample_from_index(
                 self.particles, self.weights, indexes)
@@ -65,11 +67,23 @@ class ParticleFilter(object):
 
         self.particles = self.StateTransitionFcn(self.particles, *args)
 
+    def lag_compensate(self, *args):
+        if self.LagCompensationFcn is None:
+            raise Exception(
+                "You need a lag compensation function")
+
+        return self.LagCompensationFcn(*args)
+
     def estimate(self, particles, weights):
+        # top 10%
+        N = particles.shape[0]
+        top = int(N*0.2)
+        ind = np.argpartition(weights[:, 0], -top)[-top:]
+
         mean = np.average(
-            particles, weights=weights.T[0], axis=0).T
-        var = np.average(np.power((particles - mean.T), 2),
-                         weights=weights.T[0], axis=0)
+            particles[ind], weights=weights[ind].T[0], axis=0).T
+        var = np.average(np.power((particles[ind] - mean.T), 2),
+                         weights=weights[ind].T[0], axis=0)
         return mean, var
 
     def get_state(self):

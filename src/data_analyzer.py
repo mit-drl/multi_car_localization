@@ -5,26 +5,45 @@ from geometry_msgs.msg import TransformStamped, PoseStamped, Pose, PointStamped
 from multi_car_msgs.msg import CarControl
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import math
+import numpy as np
 import csv
 
 class DataAnalyzer(object):
 
     def __init__(self):
-        self.Ncars = 3
+        self.Ncars = rospy.get_param("~num_cars", 3)
 
         self.rate = rospy.Rate(100)
+        self.bag_name = rospy.get_param("~bag_name", "2018-02-23-2cars-straight")
         self.listener = tf.TransformListener(True, rospy.Duration(1.0))
-        self.car_id = 1
-        self.car_ids = [1, 2, 3]
+        self.car_id = int(rospy.get_param("~car_id", 1))
+        self.car_ids = [1, 2]
 
-        self.filename = "/home/brandon/projects/multi_car_ws/src/multi_car_localization/src/data.csv"
+        self.filename = "/home/brandon/projects/multi_car_ws/src/multi_car_localization/src/data" \
+                        + self.bag_name + ".csv"
 
         self.trans = [None] * (self.Ncars - 1)
         self.estimate_sub = []
+        self.data = {}
+        self.fieldnames = []
         self.trans_pub = []
         self.vicon_control_pub = []
         self.delta_pub = rospy.Publisher("/car" + str(self.car_id) + "/delta",
                                          PointStamped, queue_size=1)
+
+        for i in range(self.Ncars - 1):
+            time = "time" + str(i+1)
+            x = "x" + str(i+1)
+            y = "y" + str(i+1)
+            d = "d" + str(i+1)
+            theta = "theta" + str(i+1)
+            self.data[time] = []
+            self.data[x] = []
+            self.data[y] = []
+            self.data[d] = []
+            self.data[theta] = []
+            self.fieldnames += [time, x, y, d, theta]
+
         for i in range(self.Ncars):
             num = str(i+1)
             self.vicon_control_pub.append(rospy.Publisher(
@@ -37,7 +56,18 @@ class DataAnalyzer(object):
                     "/car" + str(self.car_id) + "/car" + num + "/estimate", PoseStamped,
                     self.estimate_cb, (self.car_id, i), queue_size=1))
 
+        self.first_time = True
+
+        rospy.on_shutdown(self.print_data)
+
+    def print_data(self):
+        print "MEAN ERROR:", np.average(self.data["d1"])
+        d = np.array(self.data["d1"])
+        d2 = np.sqrt(np.sum(np.square(d))/len(d))
+        print "RMSE: ", d2
+
     def estimate_cb(self, data, args):
+        self.print_time = rospy.get_time()
         index = args[1] - 1
         if self.trans[index] is None:
             return
@@ -54,13 +84,37 @@ class DataAnalyzer(object):
         (_, _, trans_theta) = euler_from_quaternion([to.x, to.y, to.z, to.w])
 
         delta.point.z = est_theta - trans_theta
+
+        dist = math.sqrt(delta.point.x**2 + delta.point.y**2)
+        self.data["time" + str(args[1])].append(rospy.get_time())
+        self.data["x" + str(args[1])].append(delta.point.x)
+        self.data["y" + str(args[1])].append(delta.point.y)
+        self.data["d" + str(args[1])].append(dist)
+        self.data["theta" + str(args[1])].append(delta.point.z)
+
         self.delta_pub.publish(delta)
-        with open(self.filename, 'ab') as csvfile:
-            writer = csv.writer(csvfile, delimiter=' ', quotechar='|',
-                                quoting=csv.QUOTE_MINIMAL)
-            writer.writerow([0] * 4 * (args[1] == 1) +
-                [rospy.get_time(), delta.point.x, delta.point.y, delta.point.z] +
-                [0] * 4 * (args[1] == 2))
+
+        write = 'ab'
+        if self.first_time:
+            write = 'wb'
+            self.first_time = False
+
+        with open(self.filename, write) as csvfile:
+            writer = csv.DictWriter(csvfile, delimiter=' ', quotechar='|',
+                                quoting=csv.QUOTE_MINIMAL, fieldnames=self.fieldnames)
+            row = {}
+            time = "time" + str(args[1])
+            x = "x" + str(args[1])
+            y = "y" + str(args[1])
+            d = "d" + str(args[1])
+            theta = "theta" + str(args[1])
+            row[time] = self.data[theta][-1]
+            row[x] = self.data[x][-1]
+            row[y] = self.data[y][-1]
+            row[d] = self.data[d][-1]
+            row[theta] = self.data[theta][-1]
+            writer.writerow(row)
+
 
     def run(self):
         while not rospy.is_shutdown():

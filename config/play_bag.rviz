@@ -67,7 +67,7 @@ Visualization Manager:
       Marker Topic: /car1/control_viz
       Name: Marker
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -98,14 +98,14 @@ Visualization Manager:
       Marker Topic: /car2/control_viz
       Name: Marker
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
       Color: 0; 170; 0
-      Enabled: false
+      Enabled: true
       Head Diameter: 0.300000012
       Head Length: 0.200000003
       Length: 0.300000012
@@ -123,12 +123,12 @@ Visualization Manager:
       Shaft Length: 0.100000001
       Topic: /car2/path
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
       Color: 170; 255; 127
-      Enabled: false
+      Enabled: true
       Head Diameter: 0.300000012
       Head Length: 0.200000003
       Length: 0.300000012
@@ -146,13 +146,13 @@ Visualization Manager:
       Shaft Length: 0.100000001
       Topic: /car1/car2/estimate_path
       Unreliable: false
-      Value: false
+      Value: true
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /car3/control_viz
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -202,13 +202,13 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /car1/range_marker
       Name: Marker
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
-      Value: false
+      Value: true
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
@@ -366,79 +366,18 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
-      Enabled: true
+      Enabled: false
       Links:
         All Links Enabled: true
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        camera_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        chassis:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        chassis_inertia:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        laser:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        left_front_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        left_rear_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        left_steering_hinge:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        right_front_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        right_rear_wheel:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        right_steering_hinge:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        zed_camera_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        zed_camera_right_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
       Name: RobotModel
       Robot Description: robot_description
       TF Prefix: car3
       Update Interval: 0
-      Value: true
+      Value: false
       Visual Enabled: true
     - Alpha: 1
       Arrow Length: 0.300000012
@@ -446,7 +385,7 @@ Visualization Manager:
       Axes Radius: 0.00999999978
       Class: rviz/PoseArray
       Color: 255; 25; 0
-      Enabled: false
+      Enabled: true
       Head Length: 0.0700000003
       Head Radius: 0.0299999993
       Name: PoseArray
@@ -455,7 +394,7 @@ Visualization Manager:
       Shape: Arrow (Flat)
       Topic: /car1/particles
       Unreliable: false
-      Value: false
+      Value: true
     - Alpha: 1
       Axes Length: 1
       Axes Radius: 0.100000001
@@ -510,7 +449,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 13.8360729
+      Distance: 14.3344669
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
         Stereo Focal Distance: 1
@@ -525,7 +464,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Pitch: 0.744797111
+      Pitch: 1.3897965
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
       Yaw: 0.375401109

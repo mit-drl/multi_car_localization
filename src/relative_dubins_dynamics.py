@@ -36,6 +36,10 @@ class RelativeDubinsDynamics(object):
         self.state = rk4(self.state.T, u, dt, self.dynamics).T
         return self.state
 
+    def pfLagCompensation(self, state, u, dt):
+        state2 = rk4(state.T, u, dt, self.dynamics).T
+        return state2
+
     def pfStateTransition(self, prevParticles, dt, u):
         predictParticles = np.zeros(prevParticles.shape)
 

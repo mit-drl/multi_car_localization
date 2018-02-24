@@ -23,13 +23,14 @@ import heapq
 class NewParticleFilter(object):
 
     def __init__(self):
-        self.rate = rospy.Rate(15)
+        self.rate = rospy.Rate(30)
         self.Np = rospy.get_param("~num_particles", 2000)
-        self.Ncars = rospy.get_param("/num_cars", 3)
+        self.Ncars = int(rospy.get_param("~num_cars", 3))
+        self.lag = float(rospy.get_param("~lag", 0.1))
         self.car_id = 1
-        self.car_ids = [1, 2, 3]
-        self.u_cov = [1.5, 1.5] * self.Ncars # rospy.get_param("/u_cov", [0.15, 0.15, 0.05])
-        self.uwb_cov = rospy.get_param("/uwb_cov", 0.6)
+        self.car_ids = [1, 2]
+        self.u_cov = [0.6, 0.6] * self.Ncars # [1.5, 1.5] * self.Ncars # rospy.get_param("/u_cov", [0.15, 0.15, 0.05])
+        self.uwb_cov = float(rospy.get_param("~uwb_cov", 0.3))
         self.limits = np.array([0.1, 0.1, np.pi / 6.0, 0.1, 0.1, np.pi / 6.0]).T
         self.bounds = np.zeros((3 * (self.Ncars - 1), 2))
         self.circ_var = [0, 0, 1, 0, 0, 1]
@@ -52,6 +53,8 @@ class NewParticleFilter(object):
         self.controls = [0.0] * self.Ncars * 2
         self.last_time = 0.0
         self.recent_time = 0.0
+
+        self.lag_time = None
 
         self.range_sub = []
         self.pa_pub = rospy.Publisher("/car" + str(self.car_id) + "/particles",
@@ -78,8 +81,8 @@ class NewParticleFilter(object):
             # print rospy.get_time() - data.header.stamp.to_sec()
             index = args[0]
             # make controls into a WEIGHTED AVERAGE
-            self.controls[2*index] = 0.5*data.velocity + 0.5*self.controls[2*index]
-            self.controls[2*index+1] = 0.5*data.steering_angle + 0.5*self.controls[2*index+1]
+            self.controls[2*index] = data.velocity # + 0.5*self.controls[2*index]
+            self.controls[2*index+1] = -0.09 + data.steering_angle # + 0.5*self.controls[2*index+1]
             if data.header.stamp.to_sec() > self.recent_time: 
                 # rospy.loginfo("Update recent time DT = {}, CarId = {}".format(
                 #     data.header.stamp.to_sec() - self.recent_time,
@@ -99,6 +102,7 @@ class NewParticleFilter(object):
                 self.controls[2*index+1] = data.steering_angle
 
             self.car_controls[index].append(data)
+            self.lag_time = rospy.get_time()
 
             # print self.controls_heap[0][0], min(self.max_control_times)
 
@@ -128,6 +132,8 @@ class NewParticleFilter(object):
             self.bounds[fi:fi + 3, 1] = transforms[i, :].T + limits[fi:fi + 3]
 
     def run(self):
+        ticker = 1
+        dt = 0
         while not rospy.is_shutdown():
             if not self.initialized:
                 rospy.sleep(1.0)
@@ -157,21 +163,49 @@ class NewParticleFilter(object):
                 self.set_bounds(initial_transforms, self.limits)
                 self.filter.StateTransitionFcn = self.rel_model.pfStateTransition
                 self.filter.MeasurementLikelihoodFcn = self.rel_model.pfMeasurementLikelihood
+                self.filter.LagCompensationFcn = self.rel_model.pfLagCompensation
                 self.filter.create_uniform_particles(self.Np, self.bounds, self.circ_var)
                 self.initialized = True
             else:
+                ticker += 1
+                if self.lag_time is None:
+                    self.lag_time = rospy.get_time()
                 if self.last_time <= 0:
                     self.last_time = self.recent_time
                 else:
-                    dt = self.recent_time - self.last_time
-                    if dt > 0.0:
-                        print dt
-                        self.last_time = self.recent_time
-                        self.filter.predict(dt, np.asarray(self.controls))
-                    else:
-                        rospy.logwarn("DT < 0: DT = {}".format(dt))
+                    if ticker % 2 == 0:
+                        dt = self.recent_time - self.last_time
+                        if dt > 0.0:
+                            # print dt
+                            self.last_time = self.recent_time
+                            self.lag_time = rospy.get_time()
+                            self.filter.predict(dt, np.asarray(self.controls))
+                        else:
+                            rospy.logwarn("DT < 0: DT = {}".format(dt))
+
+                        particles = self.filter.particles
+                        pa = PoseArray()
+                        pa.header.stamp = rospy.Time(0)
+                        pa.header.frame_id = "/vicon/car1/car1"
+                        for i in range(0, np.shape(particles)[0], 10):
+                            particle = particles[i, :]
+                            for j in range(self.Ncars-1):
+                                fj = 3*j
+                                p = Pose()
+                                p.position.x = particle[fj]
+                                p.position.y = particle[fj+1]
+                                q = quaternion_from_euler(0, 0, particle[fj+2])
+                                p.orientation.x = q[0]
+                                p.orientation.y = q[1]
+                                p.orientation.z = q[2]
+                                p.orientation.w = q[3]
+                                pa.poses.append(p)
+                        self.pa_pub.publish(pa)
                     # if True:
                     state = self.filter.get_state()
+                    lag = rospy.get_time() - self.lag_time + dt + self.lag
+                    print lag
+                    state = self.filter.lag_compensate(state[:,None], np.asarray(self.controls), lag)
                     for i in range(self.Ncars-1):
                         fi = 3*i
                         p = PoseStamped()
@@ -200,25 +234,6 @@ class NewParticleFilter(object):
 
                         self.br.sendTransform(t)
 
-
-                    particles = self.filter.particles
-                    pa = PoseArray()
-                    pa.header.stamp = rospy.Time(0)
-                    pa.header.frame_id = "/vicon/car1/car1"
-                    for i in range(0, np.shape(particles)[0], 10):
-                        particle = particles[i, :]
-                        for j in range(self.Ncars-1):
-                            fj = 3*j
-                            p = Pose()
-                            p.position.x = particle[fj]
-                            p.position.y = particle[fj+1]
-                            q = quaternion_from_euler(0, 0, particle[fj+2])
-                            p.orientation.x = q[0]
-                            p.orientation.y = q[1]
-                            p.orientation.z = q[2]
-                            p.orientation.w = q[3]
-                            pa.poses.append(p)
-                    self.pa_pub.publish(pa)
             self.rate.sleep()
 
 

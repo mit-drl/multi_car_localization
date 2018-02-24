@@ -26,7 +26,7 @@ class MeasViz(object):
 
     def __init__(self):
         self.rate = rospy.Rate(30)
-        self.Ncars = 3
+        self.Ncars = int(rospy.get_param("~num_cars", 3))
         self.counter = 0
         self.paths = []
         self.estimate_paths = []
