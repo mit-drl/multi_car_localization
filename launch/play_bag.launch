@@ -7,7 +7,7 @@
         args="-d $(find multi_car_localization)/config/play_bag.rviz" />
 
     <node pkg="rosbag" type="play" name="player" 
-        args="--clock --quiet $(find multi_car_localization)/bags/2018-02-14-18-34-41-good.bag">
+        args="--clock --quiet $(find multi_car_localization)/bags/2018-02-23-22-25-28.bag">
     </node>
 
     <node pkg="tf" type="static_transform_publisher" name="map_to_world"
