@@ -12,11 +12,17 @@
             trusted:
                 - car1
                 - car2
+                - car3
+                - car4
+                - car5
             global_frames:
                 - earth
                 - map
                 - car1
                 - car2
+                - car3
+                - car4
+                - car5
                 - "/map"
         </rosparam>
         <rosparam command="load"

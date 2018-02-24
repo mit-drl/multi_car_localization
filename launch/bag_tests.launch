@@ -42,8 +42,8 @@
                 - multi_car_msgs/CarControl
                 - multi_car_msgs/UWBRange
             trusted:
-                - "car[1-2] observer"
-                - "car[1-2] observer"
+                - "car[1-5] observer"
+                - "car[1-5] observer"
             global_frames:
                 - "$(env CAR_FRAME_ID)"
         </rosparam>
