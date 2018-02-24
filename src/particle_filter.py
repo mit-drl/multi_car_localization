@@ -13,14 +13,14 @@ State:
     [x0, y0, phi (angle)]
 
 Control:
-    [dx0, dy0
-     dx1, dy1
-     dx2, dy2]
+    [v0, w0
+     v1, w1
+     v2, w2]
 
 Measurements:
-    [lid_x0, lid_y0, lid_theta0, uwb_00, uwb_01, uwb_02
-     lid_x1, lid_y1, lid_theta1, uwb_10, uwb_11, uwb_12
-     lid_x2, lid_y2, lid_theta2, uwb_20, uwb_21, uwb_22]
+    [uwb_00, uwb_01, uwb_02
+     uwb_10, uwb_11, uwb_12
+     uwb_20, uwb_21, uwb_22]
 """
 
 

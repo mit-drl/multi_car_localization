@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<launch>
+<!--     <group>
+        <machine name="car1" address="192.168.1.101" user="nvidia" password="racecar@mit" default="true"/>
+        <include file="$(find multi_car_localization)/launch/bag_tests.launch" />
+    </group> -->
+
+    <arg name="car_name" value="car1" />
+
+    <group ns="car1">
+        <machine name="car1" address="car1" user="nvidia" password="racecar@mit" default="true" env-loader="~/racecar_ws/src/multi_car_localization/env.sh"/>
+        <include file="$(find decawave_interface)/launch/run_decawave.launch" />
+    </group>
+
+    <group ns="car2">
+        <machine name="car2" address="car2" user="nvidia" password="racecar@mit" default="true" env-loader="~/racecar_ws/src/multi_car_localization/env.sh"/>
+        <include file="$(find decawave_interface)/launch/run_decawave.launch" />
+    </group>
+<!--     <arg name="car_frame_id" default="base_link"/>
+    <arg name="map_frame_id" default="map"/>
+    <arg name="port" default="/dev/receiver"/>
+    <arg name="name" default="$(arg car_name)"/>
+
+    <rosparam param="tag_names">
+        ["receiver"]
+    </rosparam>
+    <rosparam param="offsets">
+        [0]
+    </rosparam>
+
+    <node machine="$(arg car_name)" name="receiver" type="tag.py" pkg="decawave_interface"
+        output="screen">
+        <param name="port" value="$(arg port)"/>
+        <param name="baud" value="115200"/>
+        <param name="frequency" value="100"/>
+    <param name="car_id" value="$(arg name)"/>
+    </node> -->
+
+</launch>

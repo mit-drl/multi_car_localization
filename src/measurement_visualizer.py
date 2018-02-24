@@ -15,9 +15,11 @@ from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import OccupancyGrid
 from tf2_msgs.msg import TFMessage
 from geometry_msgs.msg import Point
+from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Path
 import math
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
+import tf2_ros
 
 
 class MeasViz(object):
@@ -48,12 +50,18 @@ class MeasViz(object):
             self.range_subs.append(
                 rospy.Subscriber("car" + str(i+1) + "/ranges", UWBRange, self.range_cb, (i+1,)))
         self.listener = tf.TransformListener()
+        self.br = tf2_ros.StaticTransformBroadcaster()
+
+        # need to sleep to give rosbag time to start publishing vicon transforms
+        rospy.sleep(1.0)
+        for i in range(self.Ncars):
+            self.car_transforms(i+1)
 
 
     def control_cb(self, data):
         vel_arr = Marker()
         vel_arr.header.stamp = rospy.Time(0)
-        vel_arr.header.frame_id = "/vicon/ba_car" + str(data.car_id) + "/ba_car" + str(data.car_id)
+        vel_arr.header.frame_id = "/vicon/car" + str(data.car_id) + "/car" + str(data.car_id)
         vel_arr.id = data.car_id
         vel_arr.type = 0
         vel_arr.scale.x = data.velocity
@@ -67,10 +75,15 @@ class MeasViz(object):
 
         ang_arr = Marker()
         ang_arr.header.stamp = rospy.Time(0)
-        ang_arr.header.frame_id = "/vicon/ba_car" + str(data.car_id) + "/ba_car" + str(data.car_id)
+        ang_arr.header.frame_id = "/vicon/car" + str(data.car_id) + "/car" + str(data.car_id)
         ang_arr.id = data.car_id + 10
         ang_arr.type = 0
         ang_arr.scale.x = data.steering_angle
+        quat = quaternion_from_euler(0, 0, math.pi/2)
+        ang_arr.pose.orientation.x = quat[0]
+        ang_arr.pose.orientation.y = quat[1]
+        ang_arr.pose.orientation.z = quat[2]
+        ang_arr.pose.orientation.w = quat[3]
         ang_arr.scale.y = 0.1
         ang_arr.scale.z = 0.1
         ang_arr.color.a = 1.0
@@ -86,7 +99,7 @@ class MeasViz(object):
         # try:
         spheres = Marker()
         spheres.header.stamp = rospy.Time(0)
-        spheres.header.frame_id = "/vicon/ba_car" + str(from_id) + "/ba_car" + str(from_id)
+        spheres.header.frame_id = "/vicon/car" + str(from_id) + "/car" + str(from_id)
         spheres.id = self.counter
         self.counter = self.counter + 1
         spheres.type = 4 #linestrip
@@ -127,11 +140,69 @@ class MeasViz(object):
             spheres.points.append(p)
         self.marker_pubs[to_id-1].publish(spheres)
 
+    def make_transform(self, parent, child, state):
+        x, y, z = state[:3]
+        if len(state) == 6:
+            euler = state[3:]
+            quat = quaternion_from_euler(euler[0], euler[1], euler[2])
+        else:
+            quat = quaternion_from_euler(0, 0, 0)
+        transform = TransformStamped()
+        transform.header.stamp = rospy.Time(0)
+        transform.header.frame_id = parent
+        transform.child_frame_id = child
+        transform.transform.translation.x = x
+        transform.transform.translation.y = y
+        transform.transform.translation.z = z
+        transform.transform.rotation.x = quat[0]
+        transform.transform.rotation.y = quat[1]
+        transform.transform.rotation.z = quat[2]
+        transform.transform.rotation.w = quat[3]
+
+        return transform
+
+    def car_transforms(self, car_num):
+        vicon_frame = "/vicon/car" + str(car_num) + "/car" + str(car_num)
+        bl_frame = "/car" + str(car_num) + "/base_link"
+        vicon_to_bl = self.make_transform(vicon_frame, bl_frame, [0, 0, 0])
+        self.br.sendTransform(vicon_to_bl)
+
+        c_frame = "/car" + str(car_num) + "/chassis"
+        bl_to_c = self.make_transform(bl_frame, c_frame, [-0.2, 0, 0])
+        self.br.sendTransform(bl_to_c)
+        ci_frame = "/car" + str(car_num) + "/chassis_inertia"
+        c_to_ci = self.make_transform(c_frame, ci_frame, [0, 0, 0])
+        self.br.sendTransform(c_to_ci)
+        lfw_frame = "/car" + str(car_num) + "/left_front_wheel"
+        c_to_lfw = self.make_transform(c_frame, lfw_frame, [0.3, 0.12, 0, -3.14159/2.0, 0, 0])
+        self.br.sendTransform(c_to_lfw)
+        rfw_frame = "/car" + str(car_num) + "/right_front_wheel"
+        c_to_rfw = self.make_transform(c_frame, rfw_frame, [0.3, -0.12, 0, -3.14159/2.0, 0, 0])
+        self.br.sendTransform(c_to_rfw)
+        lrw_frame = "/car" + str(car_num) + "/left_rear_wheel"
+        c_to_lrw = self.make_transform(c_frame, lrw_frame, [0, 0.12, 0, -3.14159/2.0, 0, 0])
+        self.br.sendTransform(c_to_lrw)
+        rrw_frame = "/car" + str(car_num) + "/right_rear_wheel"
+        c_to_rrw = self.make_transform(c_frame, rrw_frame, [0, -0.12, 0, -3.14159/2.0, 0, 0])
+        self.br.sendTransform(c_to_rrw)
+
+        cam_frame = "/car" + str(car_num) + "/camera_link"
+        laser_frame = "/car" + str(car_num) + "/laser"
+        lsh_frame = "/car" + str(car_num) + "/left_steering_hinge"
+        fsh_frame = "/car" + str(car_num) + "/right_steering_hinge"
+        zed_frame = "/car" + str(car_num) + "/zed_camera_link"
+        zedr_frame = "/car" + str(car_num) + "/zed_camera_right_link"
+        junk_frames = [cam_frame, laser_frame, lsh_frame, fsh_frame, zed_frame, zedr_frame]
+        for frame in junk_frames:
+            world_to_junk = self.make_transform("/world", frame, [100, 0, 0])
+            self.br.sendTransform(world_to_junk)
+
+
     def run(self):
         while not rospy.is_shutdown():
             for i in range(self.Ncars):
                 try:
-                    pos, quat = self.listener.lookupTransform("/world", "/vicon/ba_car" + str(i+1) + "/ba_car" + str(i+1),rospy.Time(0))
+                    pos, quat = self.listener.lookupTransform("/world", "/vicon/car" + str(i+1) + "/car" + str(i+1),rospy.Time(0))
                     self.paths[i].header.stamp = rospy.Time(0)
                     new_pose = PoseStamped()
                     new_pose.header.stamp = rospy.Time(0)
@@ -144,7 +215,10 @@ class MeasViz(object):
                     self.path_pubs[i].publish(self.paths[i])
                 except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                     continue
-            self.rate.sleep()
+            try:
+                self.rate.sleep()
+            except (rospy.exceptions.ROSTimeMovedBackwardsException):
+                continue
 
 if __name__ == "__main__":
     rospy.init_node("meas_viz", anonymous=False)
