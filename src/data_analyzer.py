@@ -22,13 +22,20 @@ class DataAnalyzer(object):
         self.id_to_index = get_id_to_index(self.Ncars, self.car_ids, self.car_id)
         self.index_to_id = get_index_to_id(self.Ncars, self.car_ids, self.car_id)
 
-        self.filename = "/home/brandon/projects/multi_car_ws/src/multi_car_localization/src/data" \
-                        + self.bag_name + ".csv"
+        self.first_time = True
+        self.first_time_traj = True
+
+        self.filename = "/home/brandon/projects/multi_car_ws/src/multi_car_localization/data/" \
+                        + self.bag_name + "_error.csv"
+        self.filename_traj = "/home/brandon/projects/multi_car_ws/src/multi_car_localization/data/" \
+                        + self.bag_name + "_trajectories.csv"
 
         self.trans = [None] * (self.Ncars - 1)
         self.estimate_sub = []
-        self.data = {}
+        self.data = {}  # records the errors in the transform and the estimated position
+        self.data_traj = {}  # records the vicon trajectories of the cars
         self.fieldnames = []
+        self.fieldnames_traj = []
         self.trans_pub = []
         self.vicon_control_pub = []
         self.delta_pub = rospy.Publisher("/car" + str(self.car_id) + "/delta",
@@ -49,6 +56,24 @@ class DataAnalyzer(object):
             self.fieldnames += [time, x, y, d, theta]
 
         for i in range(self.Ncars):
+            ID = str(self.index_to_id[i])
+            x = "x" + ID
+            y = "y" + ID
+            theta = "theta" + ID
+            if i != 0:
+                x_est = "xe" + str(self.car_id) + ID
+                y_est = "ye" + str(self.car_id) + ID
+                theta_est = "thetae" + str(self.car_id) + ID
+                self.data_traj[x_est] = []
+                self.data_traj[y_est] = []
+                self.data_traj[theta_est] = []
+                self.fieldnames_traj += [x_est, y_est, theta_est]
+            self.data_traj[x] = []
+            self.data_traj[y] = []
+            self.data_traj[theta] = []
+            self.fieldnames_traj += [x, y, theta]
+
+        for i in range(self.Ncars):
             num = str(self.index_to_id[i])
             self.vicon_control_pub.append(rospy.Publisher(
                 "/car" + num + "/vicon_controls", CarControl, queue_size=1))
@@ -59,8 +84,6 @@ class DataAnalyzer(object):
                 self.estimate_sub.append(rospy.Subscriber(
                     "/car" + str(self.car_id) + "/car" + num + "/estimate", PoseStamped,
                     self.estimate_cb, (self.car_id, int(num)), queue_size=1))
-
-        self.first_time = True
 
         rospy.on_shutdown(self.print_data)
 
@@ -107,7 +130,7 @@ class DataAnalyzer(object):
 
         with open(self.filename, write) as csvfile:
             writer = csv.DictWriter(csvfile, delimiter=' ', quotechar='|',
-                                quoting=csv.QUOTE_MINIMAL, fieldnames=self.fieldnames)
+                                    quoting=csv.QUOTE_MINIMAL, fieldnames=self.fieldnames)
             row = {}
             time = "time" + str(self.car_id) + str(args[1])
             x = "x" + str(self.car_id) + str(args[1])
@@ -121,15 +144,15 @@ class DataAnalyzer(object):
             row[theta] = self.data[theta][-1]
             writer.writerow(row)
 
-
     def run(self):
         while not rospy.is_shutdown():
             car_id = str(self.car_id)
+            row = {}
             for index in range(self.Ncars):
                 i = self.index_to_id[index]
                 num = str(i)
-                if num != self.car_id:
-                    now = rospy.Time(0)
+                now = rospy.Time(0)
+                if num != car_id:
                     starting_trans = "/vicon/car" + car_id + "/car" + car_id
                     ending_trans = "/vicon/car" + num + "/car" + num
                     self.listener.waitForTransform(starting_trans,
@@ -146,9 +169,52 @@ class DataAnalyzer(object):
                     ps.orientation.w = rot[3]
                     self.trans[i-2] = ps
 
+                    ending_trans = "/pfestimate" + car_id + num
+                    self.listener.waitForTransform("/world",
+                        ending_trans, now, rospy.Duration(0.5))
+                    (trans, rot) = self.listener.lookupTransform("/world",
+                        ending_trans, now)
+                    x_est = "xe" + car_id + num
+                    y_est = "ye" + car_id + num
+                    theta_est = "thetae" + car_id + num
+                    self.data_traj[x_est].append(trans[0])
+                    self.data_traj[y_est].append(trans[1])
+                    (_, _, estimated_theta) = euler_from_quaternion(rot)
+                    self.data_traj[theta_est].append(estimated_theta)
+                    row[x_est] = self.data_traj[x_est][-1]
+                    row[y_est] = self.data_traj[y_est][-1]
+                    row[theta_est] = self.data_traj[theta_est][-1]
+
+                ending_trans = "/vicon/car" + num + "/car" + num
+                self.listener.waitForTransform("/world",
+                    ending_trans, now, rospy.Duration(0.5))
+                (trans, rot) = self.listener.lookupTransform("/world",
+                    ending_trans, now)
+                x = "x" + num
+                y = "y" + num
+                theta = "theta" + num
+                self.data_traj[x].append(trans[0])
+                self.data_traj[y].append(trans[1])
+                (_, _, true_theta) = euler_from_quaternion(rot)
+                self.data_traj[theta].append(true_theta)
+                row[x] = self.data_traj[x][-1]
+                row[y] = self.data_traj[y][-1]
+                row[theta] = self.data_traj[theta][-1]
+
+                write = 'ab'
+                if self.first_time_traj:
+                    write = 'wb'
+                    self.first_time_traj = False
+
+                with open(self.filename_traj, write) as csvfile:
+                    writer = csv.DictWriter(csvfile, delimiter=' ', quotechar='|',
+                                        quoting=csv.QUOTE_MINIMAL, fieldnames=self.fieldnames_traj)
+                    writer.writerow(row)
+
             self.rate.sleep()
 
 if __name__ == "__main__":
     rospy.init_node("tf_bag_publisher", anonymous=False)
+    rospy.sleep(1.0)
     tfpub = DataAnalyzer()
     tfpub.run()
