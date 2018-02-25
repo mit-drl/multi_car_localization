@@ -20,17 +20,20 @@ from nav_msgs.msg import Path
 import math
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import tf2_ros
-
+from utils import get_id_to_index, get_index_to_id
 
 class MeasViz(object):
 
     def __init__(self):
         self.rate = rospy.Rate(30)
-        self.Ncars = int(rospy.get_param("~num_cars", 3))
+        self.Ncars = int(rospy.get_param("/num_cars", 3))
         self.counter = 0
         self.paths = []
         self.estimate_paths = []
-        self.car_id = 1
+        self.car_id = int(rospy.get_param("~car_id", 1))
+        self.car_ids = rospy.get_param("/car_ids", [])
+        self.id_to_index = get_id_to_index(self.Ncars, self.car_ids, self.car_id)
+        self.index_to_id = get_index_to_id(self.Ncars, self.car_ids, self.car_id)
 
         self.marker_pubs = []
         self.path_pubs = []
@@ -46,19 +49,20 @@ class MeasViz(object):
             estimate_path.header.frame_id = "/world"
             self.estimate_paths.append(estimate_path)
             self.paths.append(path)
+            ID = str(self.index_to_id[i])
             self.path_pubs.append(
-                rospy.Publisher("car" + str(i+1) + "/path", Path, queue_size=1))
+                rospy.Publisher("car" + ID + "/path", Path, queue_size=1))
             self.marker_pubs.append(
-                rospy.Publisher("car" + str(i+1) + "/range_marker", Marker, queue_size=1))
+                rospy.Publisher("car" + ID + "/range_marker", Marker, queue_size=1))
             self.control_pubs.append(
-                rospy.Publisher("car" + str(i+1) + "/control_viz", Marker, queue_size=1))
+                rospy.Publisher("car" + ID + "/control_viz", Marker, queue_size=1))
             self.control_subs.append(
-                rospy.Subscriber("car" + str(i+1) + "/control", CarControl, self.control_cb))
+                rospy.Subscriber("car" + ID + "/control", CarControl, self.control_cb))
             self.range_subs.append(
-                rospy.Subscriber("car" + str(i+1) + "/ranges", UWBRange, self.range_cb, (i+1,)))
+                rospy.Subscriber("car" + ID + "/ranges", UWBRange, self.range_cb, (int(ID),)))
             if i != 0:
                 self.estimate_pubs.append(
-                    rospy.Publisher("car" + str(self.car_id) + "/car" + str(i+1) +
+                    rospy.Publisher("car" + str(self.car_id) + "/car" + ID +
                                      "/estimate_path", Path, queue_size=1))
 
         self.listener = tf.TransformListener()
@@ -67,9 +71,12 @@ class MeasViz(object):
         # need to sleep to give rosbag time to start publishing vicon transforms
         rospy.sleep(1.0)
         for i in range(self.Ncars):
-            self.car_transforms(i+1)
+            ID = self.index_to_id[i]
+            self.car_transforms(ID)
 
     def control_cb(self, data):
+        index = self.id_to_index[data.car_id]
+        
         vel_arr = Marker()
         vel_arr.header.stamp = rospy.Time(0)
         vel_arr.header.frame_id = "/vicon/car" + str(data.car_id) + "/car" + str(data.car_id)
@@ -82,7 +89,7 @@ class MeasViz(object):
         vel_arr.color.r = 1.0
         vel_arr.color.g = 1.0
         vel_arr.color.b = 0.0
-        self.control_pubs[data.car_id-1].publish(vel_arr)
+        self.control_pubs[index].publish(vel_arr)
 
         ang_arr = Marker()
         ang_arr.header.stamp = rospy.Time(0)
@@ -101,7 +108,7 @@ class MeasViz(object):
         ang_arr.color.r = 1.0
         ang_arr.color.g = 0.0
         ang_arr.color.b = 0.0
-        self.control_pubs[data.car_id-1].publish(ang_arr)
+        self.control_pubs[index].publish(ang_arr)
 
 
     def range_cb(self, data, args):
@@ -149,7 +156,8 @@ class MeasViz(object):
             p.x = sx
             p.y = sy
             spheres.points.append(p)
-        self.marker_pubs[to_id-1].publish(spheres)
+        index = self.id_to_index[to_id]
+        self.marker_pubs[index].publish(spheres)
 
     def make_transform(self, parent, child, state):
         x, y, z = state[:3]
@@ -208,12 +216,12 @@ class MeasViz(object):
             world_to_junk = self.make_transform("/world", frame, [100, 0, 0])
             self.br.sendTransform(world_to_junk)
 
-
     def run(self):
         while not rospy.is_shutdown():
             for i in range(self.Ncars):
+                ID = self.index_to_id[i]
                 try:
-                    pos, quat = self.listener.lookupTransform("/world", "/vicon/car" + str(i+1) + "/car" + str(i+1),rospy.Time(0))
+                    pos, quat = self.listener.lookupTransform("/world", "/vicon/car" + str(ID) + "/car" + str(ID),rospy.Time(0))
                     self.paths[i].header.stamp = rospy.Time(0)
                     new_pose = PoseStamped()
                     new_pose.header.stamp = rospy.Time(0)
@@ -226,9 +234,9 @@ class MeasViz(object):
                     self.path_pubs[i].publish(self.paths[i])
                 except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                     continue
-                if i+1 != self.car_id: # i = 1, 2
+                if ID != self.car_id: # i = 1, 2
                     try:
-                        pos, quat = self.listener.lookupTransform("/world", "/pfestimate1" + str(i+1),rospy.Time(0))
+                        pos, quat = self.listener.lookupTransform("/world", "/pfestimate" + str(self.car_id) + str(ID),rospy.Time(0))
                         self.estimate_paths[i-1].header.stamp = rospy.Time(0)
                         new_pose = PoseStamped()
                         new_pose.header.stamp = rospy.Time(0)
@@ -241,6 +249,7 @@ class MeasViz(object):
                         self.estimate_pubs[i-1].publish(self.estimate_paths[i-1])
                     except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                         continue
+            self.rate.sleep()
 
 if __name__ == "__main__":
     rospy.init_node("meas_viz", anonymous=False)

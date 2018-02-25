@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 from scipy.stats import rv_discrete
 from scipy.linalg import block_diag
+from utils import get_id_to_index, get_index_to_id
 
 import heapq
 
@@ -25,15 +26,19 @@ class NewParticleFilter(object):
     def __init__(self):
         self.rate = rospy.Rate(30)
         self.Np = rospy.get_param("~num_particles", 2000)
-        self.Ncars = int(rospy.get_param("~num_cars", 3))
+        self.Ncars = int(rospy.get_param("/num_cars", 3))
         self.lag = float(rospy.get_param("~lag", 0.1))
-        self.car_id = 1
-        self.car_ids = [1, 2]
+        self.car_id = int(rospy.get_param("~car_id", 1))
+        self.car_ids = rospy.get_param("/car_ids", [])
         self.u_cov = [0.6, 0.6] * self.Ncars # [1.5, 1.5] * self.Ncars # rospy.get_param("/u_cov", [0.15, 0.15, 0.05])
         self.uwb_cov = float(rospy.get_param("~uwb_cov", 0.3))
         self.limits = np.array([0.1, 0.1, np.pi / 6.0, 0.1, 0.1, np.pi / 6.0]).T
         self.bounds = np.zeros((3 * (self.Ncars - 1), 2))
-        self.circ_var = [0, 0, 1, 0, 0, 1]
+        self.circ_var = [0, 0, 1] * (self.Ncars - 1)
+        self.id_to_index = get_id_to_index(self.Ncars, self.car_ids, self.car_id)
+        self.index_to_id = get_index_to_id(self.Ncars, self.car_ids, self.car_id)
+
+        # print self.car_id, self.car_ids, self.id_to_index, self.index_to_id
 
         self.listener = tf.TransformListener()
         self.br = tf2_ros.TransformBroadcaster()
@@ -44,10 +49,8 @@ class NewParticleFilter(object):
 
         self.control_sub = []
         self.controls_heap = []
-        self.car_controls = []
-        for i in range(self.Ncars):
-            self.car_controls.append([])
-        self.max_control_times = [0.0]*3
+        self.car_controls = [[] for i in range(self.Ncars)]
+        self.max_control_times = [0.0]*self.Ncars
         self.prev_time = None
 
         self.controls = [0.0] * self.Ncars * 2
@@ -60,7 +63,8 @@ class NewParticleFilter(object):
         self.pa_pub = rospy.Publisher("/car" + str(self.car_id) + "/particles",
                                       PoseArray, queue_size=1)
         self.pos_pub = []
-        for i, ID in enumerate(self.car_ids):
+        for i in range(self.Ncars):  # i, ID in enumerate(self.car_ids):
+            ID = self.index_to_id[i]
             self.control_sub.append(
                 rospy.Subscriber("/car" + str(ID) + "/control", CarControl,
                                  self.control_cb, (i,), queue_size=1))
@@ -74,7 +78,8 @@ class NewParticleFilter(object):
 
     def range_cb(self, data, args):
         if self.initialized:
-            self.filter.correct(data.distance, data.from_id-1, data.to_id-1)
+            self.filter.correct(data.distance, self.id_to_index[data.from_id],
+                                self.id_to_index[data.to_id])  # data.from_id-1, data.to_id-1)
 
     def control_cb(self, data, args):
         if self.initialized:
@@ -82,12 +87,12 @@ class NewParticleFilter(object):
             index = args[0]
             # make controls into a WEIGHTED AVERAGE
             self.controls[2*index] = data.velocity # + 0.5*self.controls[2*index]
-            self.controls[2*index+1] = -0.09 + data.steering_angle # + 0.5*self.controls[2*index+1]
+            self.controls[2*index+1] = -0.05 + data.steering_angle  # + 0.5*self.controls[2*index+1]
             if data.header.stamp.to_sec() > self.recent_time: 
                 # rospy.loginfo("Update recent time DT = {}, CarId = {}".format(
                 #     data.header.stamp.to_sec() - self.recent_time,
                 #     index+1))
-                self.recent_time =  data.header.stamp.to_sec() # rospy.get_time()
+                self.recent_time = data.header.stamp.to_sec()  # rospy.get_time()
 
     def control_cb_old(self, data, args):
         if self.initialized:
@@ -140,7 +145,8 @@ class NewParticleFilter(object):
                 car_order_num = 0
                 car_id = str(self.car_id)
                 initial_transforms = np.zeros(((self.Ncars-1), 3))
-                for i in self.car_ids:
+                for index in range(self.Ncars):
+                    i = self.index_to_id[index]
                     if i != self.car_id:
                         num = str(i)
                         now = rospy.Time(0)
@@ -186,7 +192,7 @@ class NewParticleFilter(object):
                         particles = self.filter.particles
                         pa = PoseArray()
                         pa.header.stamp = rospy.Time(0)
-                        pa.header.frame_id = "/vicon/car1/car1"
+                        pa.header.frame_id = "/vicon/car" + str(self.car_id) + "/car" + str(self.car_id)
                         for i in range(0, np.shape(particles)[0], 10):
                             particle = particles[i, :]
                             for j in range(self.Ncars-1):
@@ -210,7 +216,7 @@ class NewParticleFilter(object):
                         fi = 3*i
                         p = PoseStamped()
                         p.header.stamp = rospy.Time.now()
-                        p.header.frame_id = "/vicon/car1/car1"
+                        p.header.frame_id = "/vicon/car" + str(self.car_id) + "/car" + str(self.car_id)
                         p.pose.position.x = state[fi]
                         p.pose.position.y = state[fi+1]
                         q = quaternion_from_euler(0, 0, state[fi+2])
@@ -222,8 +228,9 @@ class NewParticleFilter(object):
 
                         t = TransformStamped()
                         t.header.stamp = rospy.Time.now()
-                        t.header.frame_id = "vicon/car1/car1"
-                        t.child_frame_id = "pfestimate" + str(self.car_id) + str(i+2)
+                        t.header.frame_id = "/vicon/car" + str(self.car_id) + "/car" + str(self.car_id)
+                        ID = self.index_to_id[i+1]
+                        t.child_frame_id = "pfestimate" + str(self.car_id) + str(ID)
                         t.transform.translation.x = p.pose.position.x
                         t.transform.translation.y = p.pose.position.y
                         t.transform.translation.z = p.pose.position.z

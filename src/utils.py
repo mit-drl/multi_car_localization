@@ -4,6 +4,26 @@ import numpy as np
 from geometry_msgs.msg import Pose, PoseStamped, TransformStamped
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
+def get_id_to_index(num_cars, car_ids, ego_car):
+    id_to_index = {}
+    id_to_index[ego_car] = 0
+    index = 1
+    for car_id in car_ids:
+        if car_id != ego_car:
+            id_to_index[car_id] = index
+            index += 1
+    return id_to_index
+
+def get_index_to_id(num_cars, car_ids, ego_car):
+    index_to_id = {}
+    index_to_id[0] = ego_car
+    index = 1
+    for car_id in car_ids:
+        if car_id != ego_car:
+            index_to_id[index] = car_id
+            index += 1
+    return index_to_id
+
 def rk4(y0, u, dt, f):
     if dt == 0.0:
         return y0

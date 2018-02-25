@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+
+<include file="$(find multi_car_localization)/launch/play_bag.launch">
+	<arg name="num_cars" value="2" />
+    <arg name="bag_name" value="2018-02-23-2cars-straight" />
+    <arg name="lag" value="0.1" />
+    <arg name="start_time" value="4" />
+    <arg name="end_time" value="5.5" />
+    <arg name="uwb_cov" default="0.2" />
+</include>
+
+</launch>
