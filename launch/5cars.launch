@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<launch>
+<!-- 
+-s 4 2018-02-23-2cars-straight.bag
+-s 3 2018-02-23-2cars-left-turn-straight.bag 0.3
+-s 2 2018-02-23-2cars-semicircle.bag
+-s 2 -u 6.6 2018-02-23-2cars-left-turns.bag 0.1
+2018-02-25-5cars_good.bag
+ -->
+
+    <arg name="num_cars" default="4" />
+    <arg name="bag_name" default="2018-02-25-5cars_good" />
+    <arg name="lag" default="0.1" />
+    <arg name="start_time" default="4" />
+    <arg name="end_time" default="17" />
+    <arg name="uwb_cov" default="0.4" />
+
+    <rosparam>
+        car_ids:
+            - 1
+            - 2
+            - 3
+            - 5
+    </rosparam>
+
+    <param name="/use_sim_time" type="bool" value="true" />
+    <param name="/num_cars" type="int" value="$(arg num_cars)" />
+
+    <node pkg="rviz" type="rviz" name="visualization" 
+        args="-d $(find multi_car_localization)/config/5cars.rviz" />
+
+    <node pkg="rosbag" type="play" name="player" 
+        args="--clock --quiet -r 0.1 -s $(arg start_time) -u $(arg end_time) $(find multi_car_localization)/bags/$(arg bag_name).bag">
+    </node> 
+
+    <node pkg="tf" type="static_transform_publisher" name="map_to_world"
+        args="0 0 0 0 0 0  /map /world 100" />
+
+    <param name="robot_description" command="$(find xacro)/xacro '$(find racecar_description)/urdf/racecar.xacro'" />
+
+    <node pkg="multi_car_localization" type="measurement_visualizer.py" name="meas_viz1" output="screen">
+        <param name="car_id" value="1" />
+    </node>
+
+    <node pkg="multi_car_localization" type="new_measurement_filter.py" name="new_measurement_filter1" output="screen">
+        <param name="uwb_cov" value="$(arg uwb_cov)" />
+        <param name="car_id" value="1" />
+        <rosparam> u_cov: [0.5, 0.5] </rosparam>
+    </node>
+
+    <node pkg="multi_car_localization" type="data_analyzer.py" name="data_analyzer1" output="screen">
+        <param name="bag_name" value="$(arg bag_name)" />
+        <param name="car_id" value="1" />
+    </node>
+
+</launch>

@@ -7,7 +7,7 @@
     <arg name="lag" value="0.1" />
     <arg name="start_time" value="3" />
     <arg name="end_time" value="7.5" />
-    <arg name="uwb_cov" default="0.3" />
+    <arg name="uwb_cov" default="0.4" />
 </include>
 
 </launch>

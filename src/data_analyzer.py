@@ -137,7 +137,7 @@ class DataAnalyzer(object):
             y = "y" + str(self.car_id) + str(args[1])
             d = "d" + str(self.car_id) + str(args[1])
             theta = "theta" + str(self.car_id) + str(args[1])
-            row[time] = self.data[theta][-1]
+            row[time] = self.data[time][-1]
             row[x] = self.data[x][-1]
             row[y] = self.data[y][-1]
             row[d] = self.data[d][-1]
@@ -145,6 +145,7 @@ class DataAnalyzer(object):
             writer.writerow(row)
 
     def run(self):
+        rospy.sleep(1)
         while not rospy.is_shutdown():
             car_id = str(self.car_id)
             row = {}
@@ -167,7 +168,7 @@ class DataAnalyzer(object):
                     ps.orientation.y = rot[1]
                     ps.orientation.z = rot[2]
                     ps.orientation.w = rot[3]
-                    self.trans[i-2] = ps
+                    self.trans[index-1] = ps
 
                     ending_trans = "/pfestimate" + car_id + num
                     self.listener.waitForTransform("/world",

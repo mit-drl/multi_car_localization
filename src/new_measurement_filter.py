@@ -17,6 +17,7 @@ from scipy.stats import multivariate_normal
 from scipy.stats import rv_discrete
 from scipy.linalg import block_diag
 from utils import get_id_to_index, get_index_to_id
+import csv
 
 import heapq
 
@@ -30,13 +31,17 @@ class NewParticleFilter(object):
         self.lag = float(rospy.get_param("~lag", 0.1))
         self.car_id = int(rospy.get_param("~car_id", 1))
         self.car_ids = rospy.get_param("/car_ids", [])
-        self.u_cov = [0.6, 0.6] * self.Ncars  # [1.5, 1.5] * self.Ncars # rospy.get_param("/u_cov", [0.15, 0.15, 0.05])
+        self.u_cov = rospy.get_param("~u_cov", [0.6, 0.6]) * self.Ncars  # [1.5, 1.5] * self.Ncars # rospy.get_param("/u_cov", [0.15, 0.15, 0.05])
         self.uwb_cov = float(rospy.get_param("~uwb_cov", 0.3))
-        self.limits = np.array([0.1, 0.1, np.pi / 6.0, 0.1, 0.1, np.pi / 6.0]).T
+        self.bag_name = rospy.get_param("~bag_name", "bag")
+        self.limits = np.array([0.1, 0.1, np.pi / 6.0] * (self.Ncars - 1)).T
         self.bounds = np.zeros((3 * (self.Ncars - 1), 2))
         self.circ_var = [0, 0, 1] * (self.Ncars - 1)
         self.id_to_index = get_id_to_index(self.Ncars, self.car_ids, self.car_id)
         self.index_to_id = get_index_to_id(self.Ncars, self.car_ids, self.car_id)
+        self.first_time = True
+        self.filename = "/home/brandon/projects/multi_car_ws/src/multi_car_localization/data/" \
+                        + self.bag_name + "_dts" + str(self.car_id) + ".csv"
 
         # print self.car_id, self.car_ids, self.id_to_index, self.index_to_id
 
@@ -78,8 +83,9 @@ class NewParticleFilter(object):
 
     def range_cb(self, data, args):
         if self.initialized:
-            self.filter.correct(data.distance, self.id_to_index[data.from_id],
-                                self.id_to_index[data.to_id])  # data.from_id-1, data.to_id-1)
+            if data.from_id in self.car_ids:
+                self.filter.correct(data.distance, self.id_to_index[data.from_id],
+                                    self.id_to_index[data.to_id])
 
     def control_cb(self, data, args):
         if self.initialized:
@@ -141,7 +147,7 @@ class NewParticleFilter(object):
         dt = 0
         while not rospy.is_shutdown():
             if not self.initialized:
-                rospy.sleep(1.0)
+                rospy.sleep(0.5)
                 car_order_num = 0
                 car_id = str(self.car_id)
                 initial_transforms = np.zeros(((self.Ncars-1), 3))
@@ -154,7 +160,7 @@ class NewParticleFilter(object):
                         ending_trans = "/vicon/car" + num + "/car" + num
                         self.listener.waitForTransform(starting_trans,
                                                        ending_trans, now,
-                                                       rospy.Duration(3.0))
+                                                       rospy.Duration(1.0))
                         (trans, rot) = self.listener.lookupTransform(starting_trans,
                                                                      ending_trans, now)
                         (r, p, y) = euler_from_quaternion(rot)
@@ -183,6 +189,15 @@ class NewParticleFilter(object):
                         dt = self.recent_time - self.last_time
                         if dt > 0.0:
                             # print dt
+                            write = 'ab'
+                            if self.first_time:
+                                write = 'wb'
+                                self.first_time = False
+                            with open(self.filename, write) as csvfile:
+                                writer = csv.writer(csvfile, delimiter=' ', quotechar='|',
+                                                    quoting=csv.QUOTE_MINIMAL)
+                                writer.writerow([dt])
+
                             self.last_time = self.recent_time
                             self.lag_time = rospy.get_time()
                             self.filter.predict(dt, np.asarray(self.controls))

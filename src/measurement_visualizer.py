@@ -76,7 +76,7 @@ class MeasViz(object):
 
     def control_cb(self, data):
         index = self.id_to_index[data.car_id]
-        
+
         vel_arr = Marker()
         vel_arr.header.stamp = rospy.Time(0)
         vel_arr.header.frame_id = "/vicon/car" + str(data.car_id) + "/car" + str(data.car_id)
