@@ -26,9 +26,9 @@ class DataAnalyzer(object):
         self.first_time_traj = True
 
         self.filename = "/home/brandon/projects/multi_car_ws/src/multi_car_localization/data/" \
-                        + self.bag_name + "_error.csv"
+                        + self.bag_name + "_error" + str(self.car_id) + ".csv"
         self.filename_traj = "/home/brandon/projects/multi_car_ws/src/multi_car_localization/data/" \
-                        + self.bag_name + "_trajectories.csv"
+                        + self.bag_name + "_trajectories" + str(self.car_id) + ".csv"
 
         self.trans = [None] * (self.Ncars - 1)
         self.estimate_sub = []
@@ -93,7 +93,7 @@ class DataAnalyzer(object):
         print "MEAN ERROR:", np.average(self.data["d" + car_id + sec_id])
         d = np.array(self.data["d" + car_id + sec_id])
         d2 = np.sqrt(np.sum(np.square(d))/len(d))
-        print "RMSE: ", d2
+        print "===========   RMSE: ", d2, "  ============"
 
     def estimate_cb(self, data, args):
         self.print_time = rospy.get_time()

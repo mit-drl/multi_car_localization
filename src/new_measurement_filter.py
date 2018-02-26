@@ -30,7 +30,7 @@ class NewParticleFilter(object):
         self.lag = float(rospy.get_param("~lag", 0.1))
         self.car_id = int(rospy.get_param("~car_id", 1))
         self.car_ids = rospy.get_param("/car_ids", [])
-        self.u_cov = [0.6, 0.6] * self.Ncars # [1.5, 1.5] * self.Ncars # rospy.get_param("/u_cov", [0.15, 0.15, 0.05])
+        self.u_cov = [0.6, 0.6] * self.Ncars  # [1.5, 1.5] * self.Ncars # rospy.get_param("/u_cov", [0.15, 0.15, 0.05])
         self.uwb_cov = float(rospy.get_param("~uwb_cov", 0.3))
         self.limits = np.array([0.1, 0.1, np.pi / 6.0, 0.1, 0.1, np.pi / 6.0]).T
         self.bounds = np.zeros((3 * (self.Ncars - 1), 2))

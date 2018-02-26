@@ -10,8 +10,8 @@
     <arg name="num_cars" default="2" />
     <arg name="bag_name" default="2018-02-23-2cars-left-turns" />
     <arg name="lag" default="0.1" />
-    <arg name="start_time" default="3" />
-    <arg name="end_time" default="7.5" />
+    <arg name="start_time" default="3.2" />
+    <arg name="end_time" default="5.6" />
     <arg name="uwb_cov" default="0.3" />
 
     <rosparam>
@@ -30,7 +30,7 @@
         args="-d $(find multi_car_localization)/config/play_bag.rviz" />
 
     <node pkg="rosbag" type="play" name="player" 
-        args="--clock --quiet -r 0.4 -s $(arg start_time) -u $(arg end_time) $(find multi_car_localization)/bags/$(arg bag_name).bag">
+        args="--clock --quiet -r 0.3 -s $(arg start_time) -u $(arg end_time) $(find multi_car_localization)/bags/$(arg bag_name).bag">
     </node> 
 
     <node pkg="tf" type="static_transform_publisher" name="map_to_world"
@@ -53,8 +53,7 @@
     </node>
 
 
-
-<!--     <node pkg="multi_car_localization" type="measurement_visualizer.py" name="meas_viz2" output="screen">
+    <node pkg="multi_car_localization" type="measurement_visualizer.py" name="meas_viz2" output="screen">
         <param name="car_id" value="2" />
     </node>
 
@@ -66,6 +65,6 @@
     <node pkg="multi_car_localization" type="data_analyzer.py" name="data_analyzer2" output="screen">
         <param name="bag_name" value="$(arg bag_name)" />
         <param name="car_id" value="2" />
-    </node> -->
+    </node>
 
 </launch>
