@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import tf
-from geometry_msgs.msg import TransformStamped, PoseStamped, Pose, PointStamped
+from geometry_msgs.msg import TransformStamped, PoseStamped, Pose, PointStamped, PoseWithCovarianceStamped
 from multi_car_msgs.msg import CarControl
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import math
@@ -25,9 +25,9 @@ class DataAnalyzer(object):
         self.first_time = True
         self.first_time_traj = True
 
-        self.filename = "/home/brandon/projects/multi_car_ws/src/multi_car_localization/data/" \
+        self.filename = "/home/brandon/projects/pub-2018-araki-cooperative_localization/data/" \
                         + self.bag_name + "_error" + str(self.car_id) + ".csv"
-        self.filename_traj = "/home/brandon/projects/multi_car_ws/src/multi_car_localization/data/" \
+        self.filename_traj = "/home/brandon/projects/pub-2018-araki-cooperative_localization/data/" \
                         + self.bag_name + "_trajectories" + str(self.car_id) + ".csv"
 
         self.trans = [None] * (self.Ncars - 1)
@@ -48,12 +48,18 @@ class DataAnalyzer(object):
             y = "y" + str(self.car_id) + ID
             d = "d" + str(self.car_id) + ID
             theta = "theta" + str(self.car_id) + ID
+            vx = "vx" + str(self.car_id) + ID
+            vy = "vy" + str(self.car_id) + ID
+            vt = "vt" + str(self.car_id) + ID
             self.data[time] = []
             self.data[x] = []
             self.data[y] = []
             self.data[d] = []
             self.data[theta] = []
-            self.fieldnames += [time, x, y, d, theta]
+            self.data[vx] = []
+            self.data[vy] = []
+            self.data[vt] = []
+            self.fieldnames += [time, x, y, d, theta, vx, vy, vt]
 
         for i in range(self.Ncars):
             ID = str(self.index_to_id[i])
@@ -82,7 +88,7 @@ class DataAnalyzer(object):
                     "transpub" + num, PoseStamped, queue_size=1))
             if i != 0:
                 self.estimate_sub.append(rospy.Subscriber(
-                    "/car" + str(self.car_id) + "/car" + num + "/estimate", PoseStamped,
+                    "/car" + str(self.car_id) + "/car" + num + "/estimate", PoseWithCovarianceStamped,
                     self.estimate_cb, (self.car_id, int(num)), queue_size=1))
 
         rospy.on_shutdown(self.print_data)
@@ -100,7 +106,8 @@ class DataAnalyzer(object):
         index = self.id_to_index[args[1]] - 1  # transform index
         if self.trans[index] is None:
             return
-        est = data.pose
+        est = data.pose.pose
+        cov = data.pose.covariance
         delta = PointStamped()
         delta.header.stamp = rospy.Time.now()
         delta.header.frame_id = str(self.car_id) + "-" + str(args[1]+1)
@@ -120,6 +127,9 @@ class DataAnalyzer(object):
         self.data["y" + str(self.car_id) + str(args[1])].append(delta.point.y)
         self.data["d" + str(self.car_id) + str(args[1])].append(dist)
         self.data["theta" + str(self.car_id) + str(args[1])].append(delta.point.z)
+        self.data["vx" + str(self.car_id) + str(args[1])].append(cov[0])
+        self.data["vy" + str(self.car_id) + str(args[1])].append(cov[1])
+        self.data["vt" + str(self.car_id) + str(args[1])].append(cov[2])
 
         self.delta_pub.publish(delta)
 
@@ -137,15 +147,21 @@ class DataAnalyzer(object):
             y = "y" + str(self.car_id) + str(args[1])
             d = "d" + str(self.car_id) + str(args[1])
             theta = "theta" + str(self.car_id) + str(args[1])
+            vx = "vx" + str(self.car_id) + str(args[1])
+            vy = "vy" + str(self.car_id) + str(args[1])
+            vt = "vt" + str(self.car_id) + str(args[1])
             row[time] = self.data[time][-1]
             row[x] = self.data[x][-1]
             row[y] = self.data[y][-1]
             row[d] = self.data[d][-1]
             row[theta] = self.data[theta][-1]
+            row[vx] = self.data[vx][-1]
+            row[vy] = self.data[vy][-1]
+            row[vt] = self.data[vt][-1]
             writer.writerow(row)
 
     def run(self):
-        rospy.sleep(1)
+        rospy.sleep(1.0)
         while not rospy.is_shutdown():
             car_id = str(self.car_id)
             row = {}
@@ -157,7 +173,7 @@ class DataAnalyzer(object):
                     starting_trans = "/vicon/car" + car_id + "/car" + car_id
                     ending_trans = "/vicon/car" + num + "/car" + num
                     self.listener.waitForTransform(starting_trans,
-                        ending_trans, now, rospy.Duration(0.5))
+                        ending_trans, now, rospy.Duration(1.5))
                     (trans, rot) = self.listener.lookupTransform(starting_trans,
                         ending_trans, now)
                     ps = Pose()
@@ -172,7 +188,7 @@ class DataAnalyzer(object):
 
                     ending_trans = "/pfestimate" + car_id + num
                     self.listener.waitForTransform("/world",
-                        ending_trans, now, rospy.Duration(0.5))
+                        ending_trans, now, rospy.Duration(1.5))
                     (trans, rot) = self.listener.lookupTransform("/world",
                         ending_trans, now)
                     x_est = "xe" + car_id + num
@@ -188,7 +204,7 @@ class DataAnalyzer(object):
 
                 ending_trans = "/vicon/car" + num + "/car" + num
                 self.listener.waitForTransform("/world",
-                    ending_trans, now, rospy.Duration(0.5))
+                    ending_trans, now, rospy.Duration(1.5))
                 (trans, rot) = self.listener.lookupTransform("/world",
                     ending_trans, now)
                 x = "x" + num

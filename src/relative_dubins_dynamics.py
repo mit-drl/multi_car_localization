@@ -41,11 +41,16 @@ class RelativeDubinsDynamics(object):
         return state2
 
     def pfStateTransition(self, prevParticles, dt, u):
-        predictParticles = np.zeros(prevParticles.shape)
+        notzero = u > 0.001
+        notzero = notzero.astype(float)
+        # instead of making them 0 make them lower
+        noise = np.multiply(self.noise_u, notzero)
+        print noise
 
+        predictParticles = np.zeros(prevParticles.shape)
         N = prevParticles.shape[0]
         new_u = multivariate_normal(
-            u, np.diag(dt*np.asarray(self.noise_u)), N)
+            u, np.diag(dt*np.asarray(noise)), N)
         # np.asarray(u.T)[0], np.diag(dt*np.asarray(self.noise_u)), N))
         predictParticles = rk4(prevParticles, new_u, dt, self.dynamics)
 

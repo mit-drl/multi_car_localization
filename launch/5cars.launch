@@ -1,25 +1,25 @@
 <?xml version="1.0"?>
 <launch>
 <!-- 
--s 4 2018-02-23-2cars-straight.bag
--s 3 2018-02-23-2cars-left-turn-straight.bag 0.3
--s 2 2018-02-23-2cars-semicircle.bag
--s 2 -u 6.6 2018-02-23-2cars-left-turns.bag 0.1
-2018-02-25-5cars_good.bag
+2018-02-26-21-43-10_good - works pretty well
+2018-02-26-21-53-21_great - doesnt work well
+-u 15.8 2018-02-26-21-54-15_good - works pretty well
+2018-02-26-21-56-36_good
  -->
 
-    <arg name="num_cars" default="4" />
-    <arg name="bag_name" default="2018-02-25-5cars_good" />
-    <arg name="lag" default="0.1" />
-    <arg name="start_time" default="4" />
-    <arg name="end_time" default="17" />
-    <arg name="uwb_cov" default="0.4" />
+    <arg name="num_cars" default="5" />
+    <arg name="bag_name" default="2018-02-26-21-54-15_good" />
+    <arg name="lag" default="0.0" />
+    <arg name="start_time" default="7" />
+    <arg name="end_time" default="25" />
+    <arg name="uwb_cov" default="3." />
 
     <rosparam>
         car_ids:
             - 1
             - 2
             - 3
+            - 4
             - 5
     </rosparam>
 
@@ -43,9 +43,12 @@
     </node>
 
     <node pkg="multi_car_localization" type="new_measurement_filter.py" name="new_measurement_filter1" output="screen">
+        <param name="bag_name" value="$(arg bag_name)" />
         <param name="uwb_cov" value="$(arg uwb_cov)" />
         <param name="car_id" value="1" />
-        <rosparam> u_cov: [0.5, 0.5] </rosparam>
+        <param name="lag" value="$(arg lag)" />
+        <param name="num_particles" value="2500" />
+        <rosparam> u_cov: [2.5, 2.5] </rosparam>
     </node>
 
     <node pkg="multi_car_localization" type="data_analyzer.py" name="data_analyzer1" output="screen">

@@ -84,11 +84,27 @@ class ParticleFilter(object):
             particles[ind], weights=weights[ind].T[0], axis=0).T
         var = np.average(np.power((particles[ind] - mean.T), 2),
                          weights=weights[ind].T[0], axis=0)
+        theta_x = np.average(np.cos(particles[ind,2::3]), weights=weights[ind].T[0],axis=0).T
+        theta_y = np.average(np.sin(particles[ind,2::3]), weights=weights[ind].T[0],axis=0).T
+        theta = np.arctan2(theta_y, theta_x)
+        mean[2::3] = theta
         return mean, var
 
     def get_state(self):
         mean, var = self.estimate(self.particles, self.weights)
-        return mean
+        return mean, var
+
+    def get_trace(self):
+        traces = []
+        N = self.particles.shape[1]/3
+        for i in range(N):
+            fi = 3*i
+            # var = np.average(np.power((self.particles - mean.T), 2),
+            #                  weights=self.weights.T[0], axis=0)
+            trace = np.trace(np.cov(self.particles[:, fi:fi+3].T,
+                             aweights=self.weights.T[0]))
+            traces.append(trace)
+        return traces
 
     def resample_from_index(self, particles, weights, indexes):
         particles[:] = particles[indexes]
@@ -160,14 +176,15 @@ if __name__ == "__main__":
         start = time.time()
 
         u[0::2] = [0.7*abs(np.sin(t)) + 0.1] * Ncars
-        u[1] = np.cos(2*t)
-        u[3::2] = [-0.12*np.cos(t)] * (Ncars - 1)
+        u[0] = 0.
+        u[1] = 0.  # np.cos(2*t)
+        u[3::2] = [0.]*(Ncars-1)  # [-0.12*np.cos(t)] * (Ncars - 1)
 
         rel_model.fwd_sim(dt, np.asarray(u))
-        if uniform() < 0.5:
+        if uniform() < 0.95:
             delt = t - prev_t # + randn() * 0.003
             for i in range(Ncars):
-                if uniform() < 0.5:
+                if uniform() < 0.95:
                     meas_u[2*i:2*i+2] = np.asarray(u[2*i:2*i+2]) + \
                                         np.multiply(np.sqrt(delt * np.asarray(noise_u[2*i:2*i+2])), randn(2))
 
@@ -189,14 +206,16 @@ if __name__ == "__main__":
                     sx = rel_model.state[si:si + 2]
                     measurement = norm(fx - sx) + \
                         np.sqrt(noise_uwb) * randn(1)[0]
-                if uniform() < 0.3:
-                    stateCorrected, covCorrected = pf.correct(
+                if uniform() < 0.93:
+                    stateCorrected = pf.correct(
                             measurement, i, j)
         end_time = time.time()
         # print end_time - start
 
         # pdb.set_trace()
-        state = pf.get_state()
+        state, var = pf.get_state()
+        print var
+
         plt.scatter([state[0], state[3]],
                     [state[1], state[4]],
                     marker='+', color='r')

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import rospy
-from geometry_msgs.msg import Pose, PoseArray, PoseStamped, TransformStamped
+from geometry_msgs.msg import Pose, PoseArray, PoseStamped, TransformStamped, PoseWithCovarianceStamped
 from multi_car_msgs.msg import CarControl
 from multi_car_msgs.msg import UWBRange
 from std_msgs.msg import Header
@@ -26,7 +26,7 @@ class NewParticleFilter(object):
 
     def __init__(self):
         self.rate = rospy.Rate(30)
-        self.Np = rospy.get_param("~num_particles", 2000)
+        self.Np = int(rospy.get_param("~num_particles", 2000))
         self.Ncars = int(rospy.get_param("/num_cars", 3))
         self.lag = float(rospy.get_param("~lag", 0.1))
         self.car_id = int(rospy.get_param("~car_id", 1))
@@ -40,7 +40,7 @@ class NewParticleFilter(object):
         self.id_to_index = get_id_to_index(self.Ncars, self.car_ids, self.car_id)
         self.index_to_id = get_index_to_id(self.Ncars, self.car_ids, self.car_id)
         self.first_time = True
-        self.filename = "/home/brandon/projects/multi_car_ws/src/multi_car_localization/data/" \
+        self.filename = "/home/brandon/projects/pub-2018-araki-cooperative_localization/data/" \
                         + self.bag_name + "_dts" + str(self.car_id) + ".csv"
 
         # print self.car_id, self.car_ids, self.id_to_index, self.index_to_id
@@ -79,7 +79,7 @@ class NewParticleFilter(object):
             if ID != self.car_id:
                 self.pos_pub.append(rospy.Publisher(
                     "/car" + str(self.car_id) + "/car" + str(ID) + "/estimate",
-                    PoseStamped, queue_size=1))
+                    PoseWithCovarianceStamped, queue_size=1))
 
     def range_cb(self, data, args):
         if self.initialized:
@@ -93,7 +93,12 @@ class NewParticleFilter(object):
             index = args[0]
             # make controls into a WEIGHTED AVERAGE
             self.controls[2*index] = data.velocity # + 0.5*self.controls[2*index]
-            self.controls[2*index+1] = -0.05 + data.steering_angle  # + 0.5*self.controls[2*index+1]
+            if data.steering_angle < 0.001 and data.velocity > 0.001:
+                self.controls[2*index+1] = -0.05
+            elif data.steering_angle < 0.001:
+                self.controls[2*index+1] = 0.0
+            else:
+                self.controls[2*index+1] = -0.05 + data.steering_angle  # + 0.5*self.controls[2*index+1]
             if data.header.stamp.to_sec() > self.recent_time: 
                 # rospy.loginfo("Update recent time DT = {}, CarId = {}".format(
                 #     data.header.stamp.to_sec() - self.recent_time,
@@ -147,7 +152,7 @@ class NewParticleFilter(object):
         dt = 0
         while not rospy.is_shutdown():
             if not self.initialized:
-                rospy.sleep(0.5)
+                rospy.sleep(1.0)
                 car_order_num = 0
                 car_id = str(self.car_id)
                 initial_transforms = np.zeros(((self.Ncars-1), 3))
@@ -194,6 +199,7 @@ class NewParticleFilter(object):
                                 write = 'wb'
                                 self.first_time = False
                             with open(self.filename, write) as csvfile:
+                                print "WRITING TO ", self.filename
                                 writer = csv.writer(csvfile, delimiter=' ', quotechar='|',
                                                     quoting=csv.QUOTE_MINIMAL)
                                 writer.writerow([dt])
@@ -223,22 +229,26 @@ class NewParticleFilter(object):
                                 pa.poses.append(p)
                         self.pa_pub.publish(pa)
                     # if True:
-                    state = self.filter.get_state()
+                    state, var = self.filter.get_state()
                     lag = rospy.get_time() - self.lag_time + dt + self.lag
                     print lag
                     state = self.filter.lag_compensate(state[:,None], np.asarray(self.controls), lag)
                     for i in range(self.Ncars-1):
                         fi = 3*i
-                        p = PoseStamped()
+                        p = PoseWithCovarianceStamped()
                         p.header.stamp = rospy.Time.now()
                         p.header.frame_id = "/vicon/car" + str(self.car_id) + "/car" + str(self.car_id)
-                        p.pose.position.x = state[fi]
-                        p.pose.position.y = state[fi+1]
+                        p.pose.pose.position.x = state[fi]
+                        p.pose.pose.position.y = state[fi+1]
+                        p.pose.pose.position.z = 0.25
                         q = quaternion_from_euler(0, 0, state[fi+2])
-                        p.pose.orientation.x = q[0]
-                        p.pose.orientation.y = q[1]
-                        p.pose.orientation.z = q[2]
-                        p.pose.orientation.w = q[3]
+                        p.pose.pose.orientation.x = q[0]
+                        p.pose.pose.orientation.y = q[1]
+                        p.pose.pose.orientation.z = q[2]
+                        p.pose.pose.orientation.w = q[3]
+                        p.pose.covariance[0] = var[fi]
+                        p.pose.covariance[1] = var[fi+1]
+                        p.pose.covariance[2] = var[fi+2]
                         self.pos_pub[i].publish(p)
 
                         t = TransformStamped()
@@ -246,13 +256,13 @@ class NewParticleFilter(object):
                         t.header.frame_id = "/vicon/car" + str(self.car_id) + "/car" + str(self.car_id)
                         ID = self.index_to_id[i+1]
                         t.child_frame_id = "pfestimate" + str(self.car_id) + str(ID)
-                        t.transform.translation.x = p.pose.position.x
-                        t.transform.translation.y = p.pose.position.y
-                        t.transform.translation.z = p.pose.position.z
-                        t.transform.rotation.x = p.pose.orientation.x
-                        t.transform.rotation.y = p.pose.orientation.y
-                        t.transform.rotation.z = p.pose.orientation.z
-                        t.transform.rotation.w = p.pose.orientation.w
+                        t.transform.translation.x = p.pose.pose.position.x
+                        t.transform.translation.y = p.pose.pose.position.y
+                        t.transform.translation.z = p.pose.pose.position.z
+                        t.transform.rotation.x = p.pose.pose.orientation.x
+                        t.transform.rotation.y = p.pose.pose.orientation.y
+                        t.transform.rotation.z = p.pose.pose.orientation.z
+                        t.transform.rotation.w = p.pose.pose.orientation.w
 
                         self.br.sendTransform(t)
 

@@ -4,9 +4,9 @@
 <include file="$(find multi_car_localization)/launch/play_bag.launch">
 	<arg name="num_cars" value="2" />
     <arg name="bag_name" value="2018-02-23-2cars-semicircle" />
-    <arg name="lag" value="0.0" />
+    <arg name="lag" value="0.05" />
     <arg name="start_time" value="3.4" />
-    <arg name="end_time" value="7.6" />
+    <arg name="end_time" value="7.3" />
     <arg name="uwb_cov" default="0.3" />
 </include>
 
